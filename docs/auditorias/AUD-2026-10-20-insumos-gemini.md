@@ -5,7 +5,14 @@
 | Fecha | 2026-10-20 |
 | Alcance | Tres conversaciones de Gemini impresas en PDF ([FG-01](../fuentes/gemini/FG-01-arquitectura-grafos-operacionales.md), [FG-02](../fuentes/gemini/FG-02-revision-documento-maestro.md), [FG-03](../fuentes/gemini/FG-03-arquitectura-limites-ingenieria-agentica.md)), cruzadas con `arquitectura/kernel-durable.json` (1.1.1), `arquitectura/grafo-operacional.json` (v0.2), `scene_popayan.py` y las decisiones confirmadas por el usuario hasta el 2026-10-20 |
 | Método | Lectura visual de las 34 páginas (los PDFs no tienen texto), resumen por turno, clasificación de cada afirmación, cruce con los artefactos del repo y verificación del estado de git |
-| Estado | Informe. Las recomendaciones están **por aprobar**; ninguna se aplicó todavía |
+| Estado | Informe. Las recomendaciones están **por aprobar** salvo las que figuran en el seguimiento |
+
+## Seguimiento
+
+| Hallazgo | Resolución | Fecha |
+|---|---|---|
+| AUD-17 | Kernel, grafo y esta auditoría confirmados en git y fusionados en `main` (PR #1, commit `bbc5595`) | 2026-10-20 |
+| AUD-12 | Topología de despliegue aprobada: [ADR-0001](../adr/ADR-0001-topologia-de-despliegue.md), opción C. Aplicada en el kernel 1.2.0 y el grafo v0.3 | 2026-10-20 |
 
 ## Resumen ejecutivo
 
@@ -108,7 +115,7 @@ Si el MVP tiene como mucho 1.000 usuarios registrados, 1.000 concurrentes signif
 
 ### E. Infraestructura planificada
 
-**AUD-12 · Crítico · La topología de despliegue no está decidida.** Tres fuentes, tres respuestas: Gemini (FG-03 T1, heredado de `@crm-erika`) propone VPS + Docker Compose + Caddy + Backblaze B2 + MinIO; el presupuesto del 17-oct asume Vercel Pro + Supabase Pro + Cloudflare R2; el grafo v0.2 describe la API como funciones serverless, y el kernel reconoce en PEN-03 que pg-boss y los proyectores necesitan un proceso permanente que Vercel no aloja. Sin esta decisión no se puede estimar costo, escribir el pipeline de despliegue ni cerrar el presupuesto. Quedan 40 días para la baseline v1.1 y 51 para el lanzamiento del MVP.
+**AUD-12 · Crítico · La topología de despliegue no está decidida.** Tres fuentes, tres respuestas: Gemini (FG-03 T1, heredado de `@crm-erika`) propone VPS + Docker Compose + Caddy + Backblaze B2 + MinIO; el presupuesto del 17-oct asume Vercel Pro + Supabase Pro + Cloudflare R2; el grafo v0.2 describe la API como funciones serverless, y el kernel reconoce en PEN-03 que pg-boss y los proyectores necesitan un proceso permanente que Vercel no aloja. Sin esta decisión no se puede estimar costo, escribir el pipeline de despliegue ni cerrar el presupuesto. Quedan 40 días para la baseline v1.1 y 51 para el lanzamiento del MVP. Propuesta de resolución: [ADR-0001](../adr/ADR-0001-topologia-de-despliegue.md).
 
 **AUD-13 · Alto · Matriz de la infraestructura planificada.**
 
