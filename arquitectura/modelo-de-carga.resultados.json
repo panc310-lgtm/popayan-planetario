@@ -1,8 +1,8 @@
 {
   "documento": "Resultados del modelo de carga",
   "generado_por": "tools/modelo-de-carga/calcular.mjs — no editar a mano",
-  "modelo": "Modelo de carga único v0.2 (2026-10-20)",
-  "grafo": "grafo-operacional v0.3",
+  "modelo": "Modelo de carga único v0.3 (2026-10-20)",
+  "grafo": "grafo-operacional v0.4",
   "rho_objetivo": 0.7,
   "escenarios": {
     "mvp": {
@@ -20,7 +20,7 @@
           "telegram_chat_top_s": 0.001667,
           "turnos_agente_s": 0.00891,
           "llamadas_modelo_s": 0.01336,
-          "base_ops_s": 0.3333
+          "base_ops_s": 0.369
         },
         "evento": {
           "concurrentes": 45.9,
@@ -35,7 +35,7 @@
           "telegram_chat_top_s": 0.02833,
           "turnos_agente_s": 0.1515,
           "llamadas_modelo_s": 0.2272,
-          "base_ops_s": 5.667
+          "base_ops_s": 6.273
         }
       },
       "mes": {
@@ -52,6 +52,15 @@
         "costo_upstash_usd_mes": 0,
         "salida_cdn_gb_mes": 9,
         "lecturas_cdn_mes": 24000
+      },
+      "ia": {
+        "llamadas_min_pico_evento": 13.63,
+        "itpm_sin_cache_pico_evento": 20450,
+        "otpm_pico_evento": 5453,
+        "costo_usd_por_llamada": 0.000365,
+        "costo_usd_mes": 16.43,
+        "costo_usd_hora_pico_evento": 0.2985,
+        "nivel_minimo_anthropic": "Start"
       },
       "utilizacion": [
         {
@@ -140,7 +149,7 @@
         },
         {
           "nodo": "P7",
-          "nombre": "Agente de IA del usuario y soporte",
+          "nombre": "Agentes de IA del usuario y soporte",
           "tipo": "infraestructura",
           "carga": "turnos_agente_s",
           "mu_por_s": 10,
@@ -172,12 +181,12 @@
           "tipo": "infraestructura",
           "carga": "base_ops_s",
           "mu_por_s": 300,
-          "lambda_normal": 0.3333,
-          "rho_normal": 0.001111,
-          "lambda_evento": 5.667,
-          "rho_evento": 0.01889,
-          "mu_requerida": 8.095,
-          "veces_a_escalar": 0.02698,
+          "lambda_normal": 0.369,
+          "rho_normal": 0.00123,
+          "lambda_evento": 6.273,
+          "rho_evento": 0.02091,
+          "mu_requerida": 8.961,
+          "veces_a_escalar": 0.02987,
           "estado": "ok"
         },
         {
@@ -251,7 +260,7 @@
           "telegram_chat_top_s": 0.25,
           "turnos_agente_s": 33,
           "llamadas_modelo_s": 49.5,
-          "base_ops_s": 1144
+          "base_ops_s": 1276
         },
         "evento": {
           "concurrentes": 10000,
@@ -266,10 +275,19 @@
           "telegram_chat_top_s": 0.25,
           "turnos_agente_s": 33,
           "llamadas_modelo_s": 49.5,
-          "base_ops_s": 1144
+          "base_ops_s": 1276
         }
       },
       "mes": null,
+      "ia": {
+        "llamadas_min_pico_evento": 2970,
+        "itpm_sin_cache_pico_evento": 4455000,
+        "otpm_pico_evento": 1188000,
+        "costo_usd_por_llamada": 0.000365,
+        "costo_usd_mes": null,
+        "costo_usd_hora_pico_evento": 65.04,
+        "nivel_minimo_anthropic": "Scale"
+      },
       "utilizacion": [
         {
           "nodo": "P2",
@@ -357,7 +375,7 @@
         },
         {
           "nodo": "P7",
-          "nombre": "Agente de IA del usuario y soporte",
+          "nombre": "Agentes de IA del usuario y soporte",
           "tipo": "infraestructura",
           "carga": "turnos_agente_s",
           "mu_por_s": 10,
@@ -389,12 +407,12 @@
           "tipo": "infraestructura",
           "carga": "base_ops_s",
           "mu_por_s": 300,
-          "lambda_normal": 1144,
-          "rho_normal": 3.815,
-          "lambda_evento": 1144,
-          "rho_evento": 3.815,
-          "mu_requerida": 1635,
-          "veces_a_escalar": 5.45,
+          "lambda_normal": 1276,
+          "rho_normal": 4.255,
+          "lambda_evento": 1276,
+          "rho_evento": 4.255,
+          "mu_requerida": 1823,
+          "veces_a_escalar": 6.078,
           "estado": "saturado"
         },
         {
@@ -468,7 +486,7 @@
           "telegram_chat_top_s": 0.01667,
           "turnos_agente_s": 0.297,
           "llamadas_modelo_s": 0.4455,
-          "base_ops_s": 12.22
+          "base_ops_s": 13.41
         },
         "evento": {
           "concurrentes": 270,
@@ -483,7 +501,7 @@
           "telegram_chat_top_s": 0.05,
           "turnos_agente_s": 0.891,
           "llamadas_modelo_s": 1.337,
-          "base_ops_s": 36.67
+          "base_ops_s": 40.23
         }
       },
       "mes": {
@@ -500,6 +518,15 @@
         "costo_upstash_usd_mes": 24.92,
         "salida_cdn_gb_mes": 300,
         "lecturas_cdn_mes": 800000
+      },
+      "ia": {
+        "llamadas_min_pico_evento": 80.19,
+        "itpm_sin_cache_pico_evento": 120300,
+        "otpm_pico_evento": 32080,
+        "costo_usd_por_llamada": 0.000365,
+        "costo_usd_mes": 547.5,
+        "costo_usd_hora_pico_evento": 1.756,
+        "nivel_minimo_anthropic": "Build"
       },
       "utilizacion": [
         {
@@ -588,7 +615,7 @@
         },
         {
           "nodo": "P7",
-          "nombre": "Agente de IA del usuario y soporte",
+          "nombre": "Agentes de IA del usuario y soporte",
           "tipo": "infraestructura",
           "carga": "turnos_agente_s",
           "mu_por_s": 10,
@@ -620,12 +647,12 @@
           "tipo": "infraestructura",
           "carga": "base_ops_s",
           "mu_por_s": 300,
-          "lambda_normal": 12.22,
-          "rho_normal": 0.04074,
-          "lambda_evento": 36.67,
-          "rho_evento": 0.1222,
-          "mu_requerida": 52.38,
-          "veces_a_escalar": 0.1746,
+          "lambda_normal": 13.41,
+          "rho_normal": 0.0447,
+          "lambda_evento": 40.23,
+          "rho_evento": 0.1341,
+          "mu_requerida": 57.47,
+          "veces_a_escalar": 0.1916,
           "estado": "ok"
         },
         {
