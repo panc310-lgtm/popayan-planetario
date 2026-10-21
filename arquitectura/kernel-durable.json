@@ -1,0 +1,128 @@
+{
+  "kernel_id": "POPAYAN_PLANETARIO_ORGANIZATIONAL_CORE",
+  "schema_version": "1.1.1-DURABLE-KERNEL",
+  "last_updated": "2026-10-20",
+  "estado": "Decisiones aprobadas por el usuario; implementación sin empezar. Lo marcado 'por definir' o 'propuesta' no está decidido.",
+  "changelog_1_1_1": [
+    "Ecuación corregida: Omega por transacción, Theta suave, Psi por par, penalizaciones sin unidades; el registro de eventos pasa de sumando a identidad de cálculo.",
+    "Reputación quincenal como agregación SQL exacta; la cuadratura queda solo para simulación.",
+    "INV_02: clave de idempotencia determinista tomada de la fuente; UUIDv7 generado en la app.",
+    "Invariantes renombrados de 'verified' a diseño sin implementar; tiempos del benchmark marcados como sintéticos.",
+    "Avisos al comprador dentro de la app; servicios por WhatsApp directo con la marca.",
+    "Se agregan reglas núcleo que faltaban: edad mínima, cero comisión, índice y calificación, atribución de OpenStreetMap, fechas del MVP.",
+    "L3: se quita dataarts/100000-stars (no existe); las herramientas de desarrollo se separan de los nodos de producción."
+  ],
+  "governance_law": "STRICT_ROOT_GRAPH_VALIDATION_REQUIRED: Ninguna decisión de producto, transacción financiera, renderizado espacial o inferencia agéntica puede ejecutarse fuera del grafo con raíz en N0_ORG_CORE.",
+  "architectural_separation_guardrail": {
+    "product_under_construction": "Popayán Planetario (Backend, Frontend Web 3D y futura App Móvil 100% propios y limpios).",
+    "learning_reference_only": "@crm-erika se utiliza exclusivamente como referente doctrinal de aprendizaje sobre concurrencia, idempotencia y arquitectura hexagonal. Cero tablas o archivos compartidos."
+  },
+  "L0_mathematical_and_graph_core": {
+    "master_unified_equation": {
+      "definicion": "S_Planetario([t0,T]) = sum_{g=1}^{9} sum_{m=1}^{M(t)} sum_{u=1}^{U(t)} integral_{t0}^{T} [ Omega(u,m,t) * Phi_{u,m,g}(t) * Theta_s(L_m(t)) / (1 + tau_hat(t) + delta_hat(u,m,g,t)) - psi_{u,m,g}(t) ] dt",
+      "nucleo_de_flujo": "Phi_{u,m,g}(t) = M_{m,g}(t) * A_G^{(u,m,g)}(t) * U_{u,g}^T(t) * lambda_{u,m}(t) * gamma_coherencia(u,m,t) * mu_m^{Tg}(t)",
+      "identidad_de_calculo": "Como lambda es una tasa de eventos, integral(lambda * f) dt = sum_{e_k in E*} f(e_k), donde E* son los eventos confirmados en planetario_events que pasan el filtro delta_idemp. El ledger es la forma de calcular S, no un término que se suma: el antiguo '(+) contour_integral_{COMMIT}' contaba el flujo dos veces.",
+      "eficiencia_propuesta": {
+        "estado": "propuesta",
+        "conversion_eta": "F3 / F0 = (F1/F0) * (F2/F1) * (F3/F2): F0 flujo potencial, F1 tras capacidad (Theta_s), F2 tras latencia y zona, F3 tras fricción.",
+        "cobertura_C15": "Fracción de marcas con al menos k pedidos en 15 días; k = pedidos que justifican la suscripción (por definir)."
+      }
+    },
+    "simbolos": {
+      "Omega(u,m,t)": "Compuerta por transacción en {0,1}: vale 0 si la transacción viola el aislamiento multi-marca, el firewall de visibilidad o las prohibiciones financieras de los agentes. Se mide con T12 violaciones_aislamiento (umbral > 0). Reemplaza a Omega_0 global, que anulaba todo [t0,T] por una sola violación.",
+      "M_{m,g}(t)": "Vector de estado de la marca m en la galaxia g: catálogo activo, stock e Índice de Relevancia (ventana de 90 días, recálculo cada 15) que define el tamaño del planeta y separa al Líder del nicho del Mejor evaluado.",
+      "A_G^{(u,m,g)}(t)": "Tensor de adyacencia del Grafo 3 que articula N1_SPATIAL_DISCOVERY, N4_MATCHING_&_CATALOG_INDEX y los dos servicios agénticos compartidos.",
+      "U_{u,g}^T(t)": "Vector de intención, sesión y favoritos (Mi universo) del comprador u.",
+      "lambda_{u,m}(t)": "Tasa de eventos por segundo entre el comprador u y la marca m.",
+      "gamma_coherencia(u,m,t)": "Integridad transaccional, medida con T08 coherencia_C = 1 - (duplicados aplicados + perdidos + fuera de orden aplicados) / eventos totales.",
+      "mu_m^{Tg}(t)": "Velocidad de resolución de la marca en Telegram sobre pedidos con pago confirmado: 1 / p50 del tiempo entre pago confirmado y aceptado (T19).",
+      "L_m(t)": "Carga operativa = pedidos pendientes de la marca / capacidad de la marca (15 por defecto, T10).",
+      "Theta_s(L)": "min(1, max(0, (1 - L) / 0.10)): vale 1 hasta L = 0.90 y amortigua linealmente hasta 0 en L = 1 (rule_02). Reemplaza al escalón, que cortaba en vez de amortiguar.",
+      "tau_hat(t)": "tau_lat / tau_ref, con tau_ref = 300 ms (umbral de T02); sin unidades.",
+      "delta_hat(u,m,g,t)": "Distancia entre el centroide de la comuna del usuario y la sede que lo atiende / distancia de referencia (por definir); sin unidades. No expone la dirección exacta salvo en domicilio.",
+      "psi_{u,m,g}(t)": "Fricción por par: tasa de pedidos cancelados, reembolsados, con pago fallido o con reclamo, por su peso (T20). Va dentro de la suma para que escale con U x M.",
+      "delta_idemp(e_k)": "Filtro de deduplicación por clave de idempotencia (INV_02) aplicado a cada evento antes de entrar a E*."
+    },
+    "dominio": {
+      "escala_de_diseno": "g en 1..9; M(t) hasta 1.000 marcas; U(t) hasta 50.000 usuarios; Edad(u) >= 18; triángulos por GLB <= 20.000; techo de commits ~800 ev/s (por medir).",
+      "escala_mvp": "1 marca por nicho y meta de 100 a 1.000 usuarios antes del lanzamiento oficial."
+    },
+    "calculation_engines_selected": {
+      "real_time_production": "Fold/Reduce incremental por evento confirmado (acumulador dx en PostgreSQL 16 + Redis). Benchmark sintético: 0.059 a 1.711 ms (1k a 50k usuarios); pendiente medir con datos reales.",
+      "biweekly_90d_reputation_batch": "Agregación SQL exacta (SUM/COUNT sobre la ventana de 90 días) particionada por galaxia, nicho y marca, publicada cada 15 días. Simpson / Gauss-Legendre solo para simular lambda(t) continua en proyecciones.",
+      "client_spatial_interpolation": "Float32Array pre-reducido en Redis + THREE.InstancedMesh y Shaders GLSL en GPU"
+    },
+    "selected_graph_topology": "Grafo 3: Grafo Multicapa Híbrido (Capa 0 Gobernanza N0 + Capa 1 Bipartita Espacial 9 Galaxias + Capa 2 Sub-Grafo DAG Transaccional con Pago Automático (proveedor por definir) y Telegram)",
+    "operational_nodes": {
+      "N0_ORG_CORE": "Gobernanza, Contratos JSON Schema (Ajv 8), Aislamiento Multi-Marca (1 marca por nicho en el MVP; 100 a 1.000 en producto final) y Ledger Inmutable",
+      "N1_SPATIAL_DISCOVERY": "Navegación en 5 secciones (Mapa, Galaxia, Mi universo, Noticias, Perfil) y 9 Galaxias (comunas) en WebGL/Three.js -> App Móvil",
+      "N2_BRAND_ORCHESTRATOR": "Operación de comercios 100% vía Telegram (botones inline) y Estudio del Agente de IA de Marca con Manual de Marca previo obligatorio",
+      "N3_EVENT_BROKER_ENGINE": "Almacén de eventos planetario_events con posición al COMMIT, colas SKIP LOCKED y cortacircuitos por marca",
+      "N4_MATCHING_&_CATALOG_INDEX": "Búsqueda jerárquica (interés -> subcategoría -> tipo de oferta -> producto -> variantes), malla H3 y Agente de IA del Usuario",
+      "N5_FULFILLMENT_SERVICES": "3 modalidades de compra + flujo de servicios (cita y anticipo por WhatsApp directo con la marca) con Verificación Automática de Pagos (proveedor por definir); el comprador ve el estado de su pedido dentro de la app",
+      "N6_AUDIT_&_AI_TELEMETRY": "Telemetría JSON Senior para segunda auditoría de IA y monitoreo de latencia tau_lat(t) y fricción zonal delta_zona(t)"
+    },
+    "detalle_operacional": "arquitectura/grafo-operacional.json (v0.2): nodos, aristas, restricciones R01-R10 y telemetría T01-T20."
+  },
+  "L1_engineering_invariants": {
+    "estado": "Diseño; sin implementar ni verificar.",
+    "INV_01_commit_order_visibility": "Asignación de posición canónica al COMMIT con trigger diferido y pg_advisory_xact_lock (techo ~800 ev/s por medir, para hechos confirmados; borradores y lecturas van por Redis). El pico estimado en grafo-operacional.json es 0,22 ev/s.",
+    "INV_02_canonical_event_writer": "Puerto único appendCanonicalEvent. La idempotencia usa una clave determinista de la fuente: update_id o callback_query.id de Telegram, id del evento del proveedor de pagos, o encabezado Idempotency-Key del cliente reutilizado en cada reintento. UNIQUE(idempotency_key) y comparación JSONB del payload para detectar una clave reutilizada con otro contenido. event_id = UUIDv7 generado en la app (PostgreSQL 16 no trae uuidv7(); llegó en la versión 18).",
+    "INV_03_poison_event_isolation": "Procesamiento en proyectores bajo SAVEPOINT individual; desvío a dead-letter sin frenar a las demás marcas y cortacircuitos en lotes de hasta 60 eventos.",
+    "INV_04_three_failure_clocks": "Separación estricta de contadores: attempts (negocio), transient_failures (contención SQL con backoff exponencial) y lease_expiries (infraestructura).",
+    "INV_05_external_io_decoupling": "Prohibición absoluta de retener conexiones SQL abiertas durante llamadas HTTP a pasarelas de pago, API de Telegram o inferencia de LLMs.",
+    "INV_06_pure_hexagonal_ports": "Inversión de dependencias estricta: packages/domain y packages/ports jamás importan Fastify, pg, grammY ni SDKs externos."
+  },
+  "L2_product_stages_and_v1_1_rules": {
+    "stage_gates": {
+      "stage_1_mockup": "Maqueta Web para presentación a la administración municipal con marcas ficticias y pago simulado (7/7 bloqueantes cerrados).",
+      "gate_1_to_mvp": "Pago real verificado automáticamente (proveedor por definir; investigación en curso) + políticas de devoluciones y soporte definidas.",
+      "stage_2_mvp_v1_1": "Baseline v1.1 congelada el 29-nov-2026 para despliegue mientras el desarrollo continúa; pruebas con marcas del 1 al 9-dic; lanzamiento del MVP el 10-dic-2026. 1 marca por nicho, pagos verificados automáticamente, operación comercial por Telegram y avisos al comprador dentro de la app.",
+      "gate_2_to_final": "Cartera de 100 marcas prospectadas en paralelo + evento previo a Semana Santa.",
+      "stage_3_final_product": "Lanzamiento en Semana Santa 2027 (21 al 28 de marzo) con App Móvil y las 100 marcas con su mes gratis ($150k COP plan básico / $75k COP segundo planeta)."
+    },
+    "reglas_nucleo": {
+      "edad_minima": "18 años.",
+      "dinero_y_comision": "El dinero va directo del comprador a la cuenta de la marca por Bre-B; la plataforma no lo toca ni cobra comisión por transacción. Cualquier tarifa del proveedor de pagos la paga la marca.",
+      "indice_y_calificacion": "Calificación por atención, producto, precio y distribución (1 a 5; distribución solo con domicilio). Índice de Relevancia = calificación 40 + compras 30 + flujo 20 + sedes 10; la calificación nunca se excluye.",
+      "avisos": "Marcas: Telegram con botones inline. Compradores: estados del pedido dentro de la app; promociones dentro de la app, máximo 3 por semana. Servicios: cita y anticipo por WhatsApp directo con la marca.",
+      "mapa": "Polígonos de las 9 comunas desde OpenStreetMap (licencia ODbL): atribución obligatoria '© OpenStreetMap contributors'."
+    },
+    "spatial_and_visual_budgets": {
+      "galaxies_and_centers": "9 comunas urbanas de Popayán = 9 galaxias con límites exactos; el líder del nicho ocupa el centro (calculado cada 15 días con ventana de 90 días, separado de 'Mejor evaluado').",
+      "3d_budgets": "Planetas GLB Draco/Meshopt + KTX2 <= 1 MB y < 20.000 triángulos; Mapa Popayán GLB <= 3 MB; Galaxias, órbitas y letreros generados por código en Three.js; fondos 2K en Nano Banana."
+    },
+    "privacy_and_agent_guardrails": {
+      "brand_visibility_firewall": "Cada marca en Telegram recibe únicamente nombre, celular, dirección de entrega (solo en domicilio) y detalle de su propio pedido.",
+      "user_agent": "Servicio compartido con Progressive Disclosure (<800 tokens iniciales). Recomienda, busca, organiza Mi universo y arma borradores; prohibido pagar o confirmar por el usuario.",
+      "brand_agent": "Sesión aislada por marca subordinada al Manual de Marca obligatorio. Flujo: manual -> propuesta -> vista previa -> validaciones -> aprobación humana -> publicación.",
+      "restricciones_detalladas": "R01-R10 en arquitectura/grafo-operacional.json, cada una con su prueba."
+    }
+  },
+  "L3_distilled_sota_mapping": {
+    "verificacion": "2026-10-20: los 10 repositorios listados existen y están activos en GitHub; dataarts/100000-stars no existe (404) y se retiró.",
+    "N0_ORG_CORE": ["Sairyss/domain-driven-hexagon"],
+    "N1_SPATIAL_DISCOVERY": ["uber/h3-js", "googlemaps/js-three", "Solido/awesome-flutter (Fase 2 Móvil)"],
+    "N2_BRAND_ORCHESTRATOR": ["langchain-ai/langgraphjs", "grammyjs/grammY"],
+    "N3_EVENT_BROKER_ENGINE": ["event-driven-io/emmett", "timgit/pg-boss"],
+    "N4_MATCHING_&_CATALOG_INDEX": ["uber/h3-js", "langchain-ai/langgraphjs"],
+    "N5_FULFILLMENT_SERVICES": ["timgit/pg-boss", "grammyjs/grammY", "Sairyss/domain-driven-hexagon"],
+    "N6_AUDIT_&_AI_TELEMETRY": ["event-driven-io/emmett"],
+    "herramientas_de_desarrollo": {
+      "descripcion": "Ayudan a construir el producto; no corren en producción.",
+      "repos": ["wshobson/agents", "msitarzewski/agency-agents"]
+    }
+  },
+  "pendientes": [
+    {"id": "PEN-01", "tema": "Proveedor de verificación automática Bre-B", "estado": "investigado el 20-oct-2026; decisión del usuario pendiente", "bloquea": "gate_1_to_mvp y el lanzamiento del 10-dic-2026", "nota": "Solo Bold (Cuenta Bold por marca, QR por API con webhook HMAC-SHA256 y referencia del pedido) cumple todas las reglas, a 2,89 % por QR que paga la marca. Riesgos: API de QR en BETA, aprobación manual de llaves por marca sin plazo y sin modelo de plataforma documentado. Por confirmar con Bold por escrito."},
+    {"id": "PEN-02", "tema": "Emmett frente a appendCanonicalEvent propio", "estado": "por decidir", "nota": "Emmett trae su propio almacén de eventos para PostgreSQL; usar uno de los dos, no ambos."},
+    {"id": "PEN-03", "tema": "Host de procesos siempre encendidos", "estado": "por proponer y presupuestar", "nota": "pg-boss y los proyectores necesitan un proceso permanente que Vercel no aloja; el bot de Telegram por webhook sí puede ir en Vercel."},
+    {"id": "PEN-04", "tema": "Redis", "estado": "por presupuestar", "nota": "Proveedor y costo."},
+    {"id": "PEN-05", "tema": "Google Maps", "estado": "por presupuestar o descartar", "nota": "googlemaps/js-three exige API key con facturación; el mapa base es el GLB con polígonos de OpenStreetMap."},
+    {"id": "PEN-06", "tema": "Presupuesto de producción del 17-oct", "estado": "por actualizar", "nota": "Quitar WhatsApp Cloud API; agregar Redis, host de procesos y cuentas de desarrollador de Apple y Google para la App Móvil."},
+    {"id": "PEN-07", "tema": "Validador del kernel", "estado": "por construir", "nota": "No existen el JSON Schema del kernel ni validar_grafo.py."},
+    {"id": "PEN-08", "tema": "Bucle de retroalimentación del índice", "estado": "por definir", "nota": "El Índice de Relevancia usa compras y flujo, que salen de S: los líderes se refuerzan solos. Definir dentro de M el incentivo para marcas nuevas."},
+    {"id": "PEN-09", "tema": "Mediciones reales", "estado": "por medir", "nota": "Los tiempos del benchmark y el techo de 800 ev/s son sintéticos; confirmarlos con prueba de carga."},
+    {"id": "PEN-10", "tema": "Parámetros abiertos de la ecuación", "estado": "por definir", "nota": "Distancia de referencia de delta_hat, pesos de psi y el umbral k de cobertura."}
+  ]
+}
