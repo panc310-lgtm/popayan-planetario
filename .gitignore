@@ -1,0 +1,25 @@
+# Configuración local de Claude Code: cada equipo tiene la suya
+.claude/settings.local.json
+
+# Dependencias y artefactos de construcción
+node_modules/
+dist/
+coverage/
+
+# Variables de entorno y secretos
+.env
+.env.*
+!.env.example
+
+# Blender: copias de respaldo automáticas
+*.blend1
+*.blend2
+
+# Python
+__pycache__/
+*.pyc
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini

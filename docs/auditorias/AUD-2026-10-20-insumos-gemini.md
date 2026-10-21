@@ -13,6 +13,9 @@
 |---|---|---|
 | AUD-17 | Kernel, grafo y esta auditoría confirmados en git y fusionados en `main` (PR #1, commit `bbc5595`) | 2026-10-20 |
 | AUD-12 | Topología de despliegue aprobada: [ADR-0001](../adr/ADR-0001-topologia-de-despliegue.md), opción C. Aplicada en el kernel 1.2.0 y el grafo v0.3 | 2026-10-20 |
+| AUD-18 | Copia `grafo-operacional.v0.1.json` eliminada; su contenido sigue en el commit `bcc6cff` | 2026-10-21 |
+| AUD-19 | `README`, `.gitignore` y `.gitattributes` agregados; finales de línea LF; archivos 3D en Git LFS; ramas fusionadas borradas. Quedan el nombre de `blender/Sin_nombre.blend` y la ubicación de `scene_popayan.py` | 2026-10-21 |
+| AUD-20 | Parcial: la integración continua verifica en cada PR que los JSON sean válidos y que el grafo cumpla el requisito de capacidad. Faltan los JSON Schema y la validación estructural del grafo (PEN-07) | 2026-10-21 |
 | AUD-11 | Modelo de carga único (v0.2): `arquitectura/modelo-de-carga.json`, calculadora en `tools/modelo-de-carga/` y [reporte](../modelo-de-carga.md), con el requisito de 10.000 sesiones simultáneas y el plan de capacidad. Desde el 2026-10-21 el grafo v0.5 toma sus tasas del modelo v0.4 y cumple el requisito en diseño (PEN-14; falta la prueba de carga) | 2026-10-20 |
 
 ## Resumen ejecutivo

@@ -1,0 +1,11 @@
+# Todo el texto se guarda y se descarga con finales de línea LF, en cualquier sistema operativo.
+* text=auto eol=lf
+
+# Archivos 3D y multimedia pesados en Git LFS
+*.blend filter=lfs diff=lfs merge=lfs -text
+*.glb filter=lfs diff=lfs merge=lfs -text
+*.ktx2 filter=lfs diff=lfs merge=lfs -text
+*.fbx filter=lfs diff=lfs merge=lfs -text
+*.exr filter=lfs diff=lfs merge=lfs -text
+*.hdr filter=lfs diff=lfs merge=lfs -text
+*.mp4 filter=lfs diff=lfs merge=lfs -text

@@ -29,7 +29,7 @@ No escribe nada. Termina con error si los archivos generados no coinciden con el
 node tools/modelo-de-carga/calcular.mjs --estricto
 ```
 
-Como `--check`, y además falla si algún nodo de infraestructura queda en zona crítica (ρ ≥ 0,9) en algún escenario. Los nodos humanos (la marca) y externos no lo hacen fallar. Pasa desde el grafo v0.5, que aplica el plan de capacidad (PEN-14); conviene correrlo en la integración continua para que ningún cambio del grafo o del modelo rompa el requisito de 10.000 sesiones.
+Como `--check`, y además falla si algún nodo de infraestructura queda en zona crítica (ρ ≥ 0,9) en algún escenario. Los nodos humanos (la marca) y externos no lo hacen fallar. Pasa desde el grafo v0.5, que aplica el plan de capacidad (PEN-14). La integración continua (`.github/workflows/verificaciones.yml`) corre `--check` y `--estricto` en cada pull request y en cada cambio de `main`, así que ningún cambio del grafo o del modelo puede romper el requisito de 10.000 sesiones sin que se note.
 
 ## Cómo se calcula
 
