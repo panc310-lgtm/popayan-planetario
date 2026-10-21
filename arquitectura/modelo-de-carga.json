@@ -1,14 +1,15 @@
 {
   "proyecto": "Popayán Planetario",
   "documento": "Modelo de carga único",
-  "version": "0.2",
+  "version": "0.3",
   "fecha": "2026-10-20",
   "estado": "propuesta",
   "resuelve": "AUD-11",
   "alineado_con": [
-    "arquitectura/kernel-durable.json (1.2.1-DURABLE-KERNEL)",
-    "arquitectura/grafo-operacional.json (0.3)"
+    "arquitectura/kernel-durable.json (1.3.0-DURABLE-KERNEL)",
+    "arquitectura/grafo-operacional.json (0.4)"
   ],
+  "cambios_0_3": "Costo de la API de IA por llamada, por mes y por hora pico, y nivel mínimo de cuenta de Anthropic que exige cada escenario. La carga de la base suma las escrituras del estado de las conversaciones de los agentes en PostgreSQL (insumos del ADR-0002).",
   "cambios_0_2": "Requisito de capacidad del usuario: 10.000 sesiones simultáneas. El escenario de lanzamiento con 10.000 registrados supuestos se reemplaza por el escenario de capacidad objetivo; el MVP queda con 1.000 usuarios el día de lanzamiento, que entra como pico de evento. Se agregan el plan de capacidad por nodo y los pedidos abiertos.",
   "como_se_usa": "Este archivo guarda solo entradas: definiciones, parámetros por escenario, límites externos y el mapa de nodos. Las tasas, volúmenes, utilizaciones y el plan de capacidad se calculan con tools/modelo-de-carga/calcular.mjs, que escribe arquitectura/modelo-de-carga.resultados.json y docs/modelo-de-carga.md. Nunca se escriben a mano.",
   "definiciones": {
@@ -185,6 +186,13 @@
       "origen": "Supuesto: fila de estado, fila del evento y actualización de proyección.",
       "como_se_mide": "Escrituras en D1 / eventos (estadísticas de PostgreSQL)."
     },
+    "escrituras_estado_agente_por_turno": {
+      "unidad": "escrituras en D1 por turno del agente",
+      "valores": {"mvp": 4, "capacidad": 4, "diseno": 4},
+      "estado": "supuesto",
+      "origen": "ADR-0002: el estado de la conversación se guarda en PostgreSQL con un punto de control por paso del grafo (enrutador, agente, herramienta y respuesta). El guardado oficial en Redis requiere módulos que Upstash no soporta.",
+      "como_se_mide": "Filas escritas en el esquema de puntos de control de los agentes / turnos."
+    },
     "bytes_por_evento": {
       "unidad": "bytes",
       "valores": {"mvp": 1024, "capacidad": null, "diseno": 1024},
@@ -220,6 +228,27 @@
       "origen": "Grafo v0.3: E30 (5 por segundo) / E29 (3,3 por segundo).",
       "como_se_mide": "Llamadas al modelo / turnos (T17)."
     },
+    "tokens_entrada_por_llamada": {
+      "unidad": "tokens",
+      "valores": {"mvp": 3000, "capacidad": 3000, "diseno": 3000},
+      "estado": "supuesto",
+      "origen": "Supuesto: instrucciones y herramientas del agente especializado (~1.500), perfil reducido (< 800, divulgación progresiva), historial corto y resultados de herramientas.",
+      "como_se_mide": "Promedio de input_tokens + cache_read_input_tokens + cache_creation_input_tokens por llamada (T17)."
+    },
+    "fraccion_entrada_cacheada": {
+      "unidad": "tokens leídos de caché / tokens de entrada",
+      "valores": {"mvp": 0.5, "capacidad": 0.5, "diseno": 0.5},
+      "estado": "supuesto",
+      "origen": "Supuesto: el prefijo estable (herramientas e instrucciones de cada agente) se lee de la caché de prompts.",
+      "como_se_mide": "cache_read_input_tokens / tokens de entrada totales (T17)."
+    },
+    "tokens_salida_por_llamada": {
+      "unidad": "tokens",
+      "valores": {"mvp": 400, "capacidad": 400, "diseno": 400},
+      "estado": "supuesto",
+      "origen": "Supuesto: respuesta corta o llamada a herramienta más pensamiento adaptativo en esfuerzo bajo, que se factura como salida.",
+      "como_se_mide": "Promedio de output_tokens por llamada (T17)."
+    },
     "turnos_agente_por_mau_mes": {
       "unidad": "turnos por MAU por mes",
       "valores": {"mvp": 50, "capacidad": null, "diseno": 50},
@@ -252,6 +281,17 @@
     "upstash_usd_por_100k_comandos": {"valor": 0.2, "origen": "Upstash, pago por uso, consultado 2026-10-20 (ADR-0001)"},
     "upstash_plan_fijo_usd_mes": {"valor": 10, "origen": "Upstash, plan fijo más barato (250 MB), consultado 2026-10-20 (ADR-0001)"},
     "r2_lecturas_gratis_mes": {"valor": 10000000, "origen": "Cloudflare R2, operaciones clase B gratuitas, consultado 2026-10-20 (ADR-0001)"},
+    "haiku_usd_mtok_entrada": {"valor": 0.10, "origen": "Claude Haiku 5.5, prompts de hasta 100.000 tokens: https://platform.claude.com/docs/en/about-claude/pricing, consultado 2026-10-20"},
+    "haiku_usd_mtok_lectura_cache": {"valor": 0.01, "origen": "Claude Haiku 5.5, lectura de caché: https://platform.claude.com/docs/en/about-claude/pricing, consultado 2026-10-20"},
+    "haiku_usd_mtok_salida": {"valor": 0.50, "origen": "Claude Haiku 5.5, salida: https://platform.claude.com/docs/en/about-claude/pricing, consultado 2026-10-20"},
+    "anthropic_niveles_haiku_5_5": {
+      "valor": [
+        {"nivel": "Start", "rpm": 1000, "itpm": 2000000, "otpm": 400000, "tope_gasto_usd_mes": 500},
+        {"nivel": "Build", "rpm": 5000, "itpm": 5000000, "otpm": 1000000, "tope_gasto_usd_mes": 1000},
+        {"nivel": "Scale", "rpm": 10000, "itpm": 10000000, "otpm": 2000000, "tope_gasto_usd_mes": 200000}
+      ],
+      "origen": "Límites por nivel para Claude Haiku 5.5; los tokens leídos de caché no cuentan para ITPM: https://platform.claude.com/docs/en/api/rate-limits, consultado 2026-10-20. Por encima de Scale se negocia un nivel personalizado. Las organizaciones nuevas pueden empezar en un nivel de evaluación con límites menores."
+    },
     "rho_alerta": {"valor": 0.7, "origen": "Grafo, T01; también es la utilización objetivo del plan de capacidad"},
     "rho_critico": {"valor": 0.9, "origen": "Grafo, T01"}
   },
@@ -264,7 +304,7 @@
     {"nodo": "X1", "tipo": "externo", "carga": "telegram_s", "descripcion": "Bot API de Telegram", "palanca": "Límite fijo de Telegram; agrupar avisos o repartir marcas entre varios bots si se acerca."},
     {"nodo": "P7", "tipo": "infraestructura", "carga": "turnos_agente_s", "descripcion": "Turnos del agente del usuario", "palanca": "Réplicas del servicio del agente y límite de turnos por usuario."},
     {"nodo": "X3", "tipo": "externo", "carga": "llamadas_modelo_s", "descripcion": "Llamadas a la API de IA", "palanca": "Subir el nivel de límites de la cuenta de la API de IA y enrutar la búsqueda al modelo más rápido."},
-    {"nodo": "D1", "tipo": "infraestructura", "carga": "base_ops_s", "descripcion": "Consultas y escrituras en la base", "palanca": "Subir el cómputo de Supabase, aumentar los aciertos de caché en Redis y agregar una réplica de lectura."},
+    {"nodo": "D1", "tipo": "infraestructura", "carga": "base_ops_s", "descripcion": "Consultas y escrituras en la base", "palanca": "Subir el cómputo de Supabase, aumentar los aciertos de caché en Redis y agregar una réplica de lectura; si hace falta, mover el estado de los agentes a un guardado propio sobre Upstash (ADR-0002)."},
     {"nodo": "D3", "tipo": "infraestructura", "carga": "eventos_negocio_s", "descripcion": "Escrituras en planetario_events", "palanca": "El techo de ~800 eventos/s se mide en PEN-09; escritura por lotes si se acerca."},
     {"nodo": "A2", "tipo": "humano", "carga": "pedidos_marca_top_s", "descripcion": "Marca más activa aceptando pedidos en Telegram", "palanca": "Pausa automática al superar 15 pedidos pendientes (R06, T10) y espera visible para el comprador."}
   ],

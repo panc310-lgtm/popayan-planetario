@@ -80,7 +80,10 @@ function tasasPico(p, m) {
     telegram_chat_top_s: pedidosMarcaTopS * p.mensajes_telegram_por_pedido,
     turnos_agente_s: turnosAgenteS,
     llamadas_modelo_s: turnosAgenteS * p.llamadas_modelo_por_turno,
-    base_ops_s: apiS * p.fraccion_api_a_base + eventosNegocioS * p.escrituras_base_por_evento,
+    base_ops_s:
+      apiS * p.fraccion_api_a_base +
+      eventosNegocioS * p.escrituras_base_por_evento +
+      turnosAgenteS * p.escrituras_estado_agente_por_turno, // puntos de control de los agentes (ADR-0002)
   };
 }
 
@@ -109,6 +112,37 @@ function volumenesMes(p) {
     costo_upstash_usd_mes: (excedenteRedis / 100000) * limite("upstash_usd_por_100k_comandos"),
     salida_cdn_gb_mes: (mau * p.mb_activos_por_mau_mes) / 1000,
     lecturas_cdn_mes: mau * p.solicitudes_cdn_por_mau_mes,
+  };
+}
+
+// Costo de una llamada al modelo del agente del usuario (Claude Haiku 5.5). La escritura de caché se omite:
+// ocurre una vez por prefijo cada pocos minutos y es despreciable frente al volumen.
+const costoPorLlamada = (p) =>
+  (p.tokens_entrada_por_llamada * (1 - p.fraccion_entrada_cacheada) * limite("haiku_usd_mtok_entrada") +
+    p.tokens_entrada_por_llamada * p.fraccion_entrada_cacheada * limite("haiku_usd_mtok_lectura_cache") +
+    p.tokens_salida_por_llamada * limite("haiku_usd_mtok_salida")) /
+  1e6;
+
+// Demanda sobre la API de IA en el pico de evento y nivel mínimo de cuenta que la cubre con la utilización objetivo.
+function apiIa(p, pico, mes) {
+  const llamadasMin = pico.llamadas_modelo_s * 60;
+  const itpm = llamadasMin * p.tokens_entrada_por_llamada * (1 - p.fraccion_entrada_cacheada); // la caché no cuenta
+  const otpm = llamadasMin * p.tokens_salida_por_llamada;
+  const costoLlamada = costoPorLlamada(p);
+  const costoMes = mes ? mes.turnos_agente_mes * p.llamadas_modelo_por_turno * costoLlamada : null;
+  const cabe = (n) =>
+    llamadasMin <= n.rpm * RHO_OBJETIVO &&
+    itpm <= n.itpm * RHO_OBJETIVO &&
+    otpm <= n.otpm * RHO_OBJETIVO &&
+    (costoMes === null || costoMes <= n.tope_gasto_usd_mes * RHO_OBJETIVO);
+  return {
+    llamadas_min_pico_evento: llamadasMin,
+    itpm_sin_cache_pico_evento: itpm,
+    otpm_pico_evento: otpm,
+    costo_usd_por_llamada: costoLlamada,
+    costo_usd_mes: costoMes,
+    costo_usd_hora_pico_evento: pico.llamadas_modelo_s * 3600 * costoLlamada,
+    nivel_minimo_anthropic: limite("anthropic_niveles_haiku_5_5").find(cabe)?.nivel ?? "Personalizado",
   };
 }
 
@@ -154,7 +188,8 @@ function calcular() {
       fila.estado = estadoRho(fila.uso_evento);
       return fila;
     });
-    escenarios[e] = { picos, mes: volumenesMes(p), utilizacion, limites };
+    const mes = volumenesMes(p);
+    escenarios[e] = { picos, mes, ia: apiIa(p, picos.evento, mes), utilizacion, limites };
   }
   return escenarios;
 }
@@ -222,6 +257,8 @@ function generarReporte(r) {
     L.push(`- El límite humano aparece antes que el técnico: la marca más activa acepta pedidos a mano en Telegram (${num(humanos.mu_por_s * 60)} por minuto) y en el escenario ${nombreEsc(humanos.e)} recibiría ${num(humanos.rho_evento)} veces los pedidos que puede atender. La protección es la pausa automática al superar 15 pedidos pendientes (R06, T10).`);
   }
   L.push(`- En el pico de capacidad hay ${num(cap.pedidos_abiertos)} pedidos abiertos a la vez, cada uno con una conexión de aviso en vivo al comprador (E63).`);
+  const iaCap = r.capacidad.ia;
+  L.push(`- El pico de capacidad hace ${num(iaCap.llamadas_min_pico_evento)} llamadas por minuto a la API de IA y exige como mínimo el nivel **${iaCap.nivel_minimo_anthropic}** de la cuenta de Anthropic; una hora así cuesta unos US$${num(iaCap.costo_usd_hora_pico_evento)}. Una cuenta nueva empieza en un nivel menor: el aumento se solicita antes del lanzamiento oficial.`);
   const disco = ESCENARIOS.filter((e) => r[e].mes).map((e) => ({ e, meses: r[e].mes.meses_hasta_llenar_disco_incluido })).sort((a, b) => a.meses - b.meses)[0];
   if (disco && disco.meses < 24) {
     L.push(`- En el escenario ${nombreEsc(disco.e)}, los eventos llenan los ${num(limite("supabase_disco_incluido_gb"))} GB incluidos en Supabase Pro en ${num(disco.meses)} meses; desde ahí, US$${num(limite("supabase_usd_por_gb_extra"))} por GB al mes.`);
@@ -278,6 +315,19 @@ function generarReporte(r) {
       : "Ningún nodo necesita escalar.",
     "",
   );
+
+  L.push("## API de IA", "");
+  L.push(`Agente del usuario con Claude Haiku 5.5. Demanda en el pico de evento, costos y nivel mínimo de cuenta de Anthropic que la cubre con utilización ${num(RHO_OBJETIVO)} en llamadas, tokens y tope de gasto mensual. Los tokens leídos de caché no cuentan para el límite de entrada.`, "");
+  const filasIa = [
+    ["Llamadas al modelo por minuto", "llamadas_min_pico_evento"],
+    ["Tokens de entrada sin caché por minuto", "itpm_sin_cache_pico_evento"],
+    ["Tokens de salida por minuto", "otpm_pico_evento"],
+    ["Costo por llamada (US$)", "costo_usd_por_llamada"],
+    ["Costo de la IA al mes (US$)", "costo_usd_mes"],
+    ["Costo de una hora en el pico de evento (US$)", "costo_usd_hora_pico_evento"],
+    ["Nivel mínimo de cuenta de Anthropic", "nivel_minimo_anthropic"],
+  ];
+  L.push(tabla(["Magnitud", ...ESCENARIOS.map(nombreEsc)], filasIa.map(([t, k]) => [t, ...ESCENARIOS.map((e) => (typeof r[e].ia[k] === "string" ? r[e].ia[k] : num(r[e].ia[k])))])), "");
 
   L.push("## Utilización de los nodos del grafo", "");
   L.push(`Utilización ρ = carga / capacidad actual del nodo (μ en el grafo v${grafo.version}). Alerta desde ${num(limite("rho_alerta"))}, crítico desde ${num(limite("rho_critico"))} (T01). Pico normal y, entre paréntesis, pico de evento; el estado corresponde al pico de evento.`, "");

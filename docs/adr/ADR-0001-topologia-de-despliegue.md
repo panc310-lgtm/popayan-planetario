@@ -227,6 +227,12 @@ Una prueba de humo de unos tres días, antes del 10-nov-2026. Si alguno de estos
 - Hace falta una función de PostgreSQL 18 o más de 200 conexiones simultáneas a la base.
 - El cliente web pasa a renderizarse en servidor (por ejemplo con Next.js): entonces Vercel vuelve a tener sentido para la web, no para la API.
 
+## Enmiendas
+
+| Fecha | Origen | Cambio |
+|---|---|---|
+| 2026-10-21 | [ADR-0002](ADR-0002-arquitectura-multiagente.md) | La imagen suma un tercer servicio, `agentes`, con los grafos de los agentes de IA. Escala aparte de `api` y usa la misma conexión a la base (pooler en modo sesión). El resto de esta decisión no cambia. |
+
 ## Fuentes
 
 Consultadas el 2026-10-20.

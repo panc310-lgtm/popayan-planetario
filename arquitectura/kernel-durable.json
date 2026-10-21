@@ -1,8 +1,14 @@
 {
   "kernel_id": "POPAYAN_PLANETARIO_ORGANIZATIONAL_CORE",
-  "schema_version": "1.2.1-DURABLE-KERNEL",
-  "last_updated": "2026-10-20",
+  "schema_version": "1.3.0-DURABLE-KERNEL",
+  "last_updated": "2026-10-21",
   "estado": "Decisiones aprobadas por el usuario; implementación sin empezar. Lo marcado 'por definir' o 'propuesta' no está decidido.",
+  "changelog_1_3_0": [
+    "Arquitectura multiagente aprobada (ADR-0002, opción C): nueva sección L1_agent_architecture; N2 y N4 apuntan a ella.",
+    "El despliegue suma un tercer servicio, agentes, en la misma imagen (enmienda a ADR-0001).",
+    "Modelo de carga v0.3: costo de la API de IA, nivel mínimo de cuenta de Anthropic por escenario y escrituras del estado de los agentes en la base.",
+    "PEN-14 incorpora el nivel Scale de la API de IA y el servicio agentes; PEN-15 resuelto."
+  ],
   "changelog_1_2_1": [
     "Referencia al modelo de carga único (arquitectura/modelo-de-carga.json v0.2, AUD-11).",
     "Requisito de capacidad del usuario: 10.000 sesiones simultáneas con la integral de eventos sin pérdida.",
@@ -68,14 +74,14 @@
     "operational_nodes": {
       "N0_ORG_CORE": "Gobernanza, Contratos JSON Schema (Ajv 8), Aislamiento Multi-Marca (1 marca por nicho en el MVP; 100 a 1.000 en producto final) y Ledger Inmutable",
       "N1_SPATIAL_DISCOVERY": "Navegación en 5 secciones (Mapa, Galaxia, Mi universo, Noticias, Perfil) y 9 Galaxias (comunas) en WebGL/Three.js -> App Móvil",
-      "N2_BRAND_ORCHESTRATOR": "Operación de comercios 100% vía Telegram (botones inline) y Estudio del Agente de IA de Marca con Manual de Marca previo obligatorio",
+      "N2_BRAND_ORCHESTRATOR": "Operación de comercios 100% vía Telegram (botones inline) y agentes de marca (landing, guardián de marca y verificador de evidencia) con Manual de Marca previo obligatorio; ver L1_agent_architecture",
       "N3_EVENT_BROKER_ENGINE": "Almacén de eventos planetario_events con posición al COMMIT, colas SKIP LOCKED y cortacircuitos por marca",
-      "N4_MATCHING_&_CATALOG_INDEX": "Búsqueda jerárquica (interés -> subcategoría -> tipo de oferta -> producto -> variantes), malla H3 y Agente de IA del Usuario",
+      "N4_MATCHING_&_CATALOG_INDEX": "Búsqueda jerárquica (interés -> subcategoría -> tipo de oferta -> producto -> variantes), malla H3 y agentes del usuario (enrutador, descubrimiento, Mi universo, pedido y soporte); ver L1_agent_architecture",
       "N5_FULFILLMENT_SERVICES": "3 modalidades de compra + flujo de servicios (cita y anticipo por WhatsApp directo con la marca) con Verificación Automática de Pagos (proveedor por definir); el comprador ve el estado de su pedido dentro de la app",
       "N6_AUDIT_&_AI_TELEMETRY": "Telemetría JSON Senior para segunda auditoría de IA y monitoreo de latencia tau_lat(t) y fricción zonal delta_zona(t)"
     },
     "detalle_operacional": "arquitectura/grafo-operacional.json (v0.3): nodos, aristas, restricciones R01-R10 y telemetría T01-T20.",
-    "modelo_de_carga": "arquitectura/modelo-de-carga.json (v0.2): tasas, volúmenes y plan de capacidad de los escenarios MVP, capacidad objetivo (10.000 sesiones simultáneas) y diseño, calculados con tools/modelo-de-carga/calcular.mjs."
+    "modelo_de_carga": "arquitectura/modelo-de-carga.json (v0.3): tasas, volúmenes, costo de la API de IA y plan de capacidad de los escenarios MVP, capacidad objetivo (10.000 sesiones simultáneas) y diseño, calculados con tools/modelo-de-carga/calcular.mjs."
   },
   "L1_engineering_invariants": {
     "estado": "Diseño; sin implementar ni verificar.",
@@ -91,13 +97,35 @@
     "estado": "Aprobada por el usuario el 2026-10-20 (opción C). El host de contenedores se confirma en la prueba de humo (PEN-11).",
     "region": "Este de Estados Unidos (Virginia) para todo lo que guarda datos: menor latencia desde Colombia que São Paulo y país en la lista de protección adecuada de la SIC.",
     "base_de_datos": "Supabase Pro, PostgreSQL 17, us-east-1, cómputo Micro al inicio; respaldos diarios con 7 días de retención.",
-    "codigo_de_servidor": "Una imagen de contenedor del monorepo con dos servicios: api (Fastify, webhooks de Telegram y de pagos, avisos al comprador por Server-Sent Events) y worker (pg-boss, relay de planetario_events, proyectores, notificador de Telegram y tareas programadas).",
+    "codigo_de_servidor": "Una imagen de contenedor del monorepo con tres servicios: api (Fastify, webhooks de Telegram y de pagos, avisos al comprador por Server-Sent Events), worker (pg-boss, relay de planetario_events, proyectores, notificador de Telegram y tareas programadas) y agentes (grafos de LangGraph.js de los agentes de IA; enmienda de ADR-0002).",
     "host_de_contenedores": "Railway en Virginia; alternativa Fly.io (iad).",
-    "conexion_a_la_base": "Pooler de Supabase en modo sesión (puerto 5432, IPv4) desde los dos servicios; nunca el modo transacción.",
+    "conexion_a_la_base": "Pooler de Supabase en modo sesión (puerto 5432, IPv4) desde los tres servicios; nunca el modo transacción.",
     "redis": "Upstash, us-east-1, pago por uso.",
     "web_y_activos": "Cloudflare: R2 con CDN para el cliente web estático, los GLB y las imágenes.",
     "vercel": "No se usa, salvo que el cliente web pase a renderizarse en servidor.",
     "costo_estimado_usd_mes": "35 a 61, sin impuestos ni contingencia."
+  },
+  "L1_agent_architecture": {
+    "adr": "docs/adr/ADR-0002-arquitectura-multiagente.md",
+    "estado": "Aprobada por el usuario el 2026-10-21 (opción C). Se confirma con el agente de la maqueta.",
+    "principio": "El agente propone; el dominio decide. Los agentes son adaptadores primarios del hexágono: toda acción es una consulta o un comando de packages/domain a través de packages/ports.",
+    "reglas": [
+      "El contexto de autorización (actor, usuario, marca, sesión) lo pone el servidor desde la sesión autenticada; nunca es un argumento del modelo.",
+      "Prohibiciones por construcción: no existen herramientas para pagar, confirmar pedidos, cambiar la llave Bre-B, leer la reputación ni leer datos de otra marca. Confirmar un pedido y publicar una landing los ejecuta una persona desde la interfaz.",
+      "Compuerta de política en código: evalúa Omega antes de cada comando; si falla, no se ejecuta y se registra en T12.",
+      "Cada comando lleva una clave de idempotencia derivada de conversación, turno y llamada a la herramienta (INV_02).",
+      "Los eventos originados por agentes entran por appendCanonicalEvent con actor, agente, versión del contrato, modelo y turno (rule_03).",
+      "El contenido escrito por marcas entra al contexto como dato, nunca como instrucción.",
+      "Historial de conversación solo de agregar."
+    ],
+    "agentes_del_usuario": "Enrutador (salida estructurada, solo con texto libre), descubrimiento, Mi universo, pedido en borrador y soporte; Claude Haiku 5.5.",
+    "agentes_de_marca": "Landing (Claude Sonnet 5.5), guardián de marca (reglas en código y juez Haiku 5.5) y verificador de evidencia (solo código); fase 2.",
+    "orquestacion": "Grafos de estados con StateGraph de @langchain/langgraph 1.5 (patrones enrutador y flujo propio), sin paquetes de supervisor ni de enjambre. Llamadas al modelo con @anthropic-ai/sdk dentro de cada nodo.",
+    "estado_de_conversacion": "PostgresSaver en el esquema agentes de Supabase, separado del dominio y de planetario_events; vence a las 24 horas sin actividad (landings: al publicarse o a los 30 días). Upstash no sirve como guardado oficial porque no soporta RediSearch.",
+    "aprobacion_humana": "interrupt() pausa el grafo; la API ejecuta el comando del dominio con la sesión de la persona y el grafo se reanuda con Command({ resume }). Lo que un nodo hace antes de pausar es idempotente.",
+    "concurrencia": "Un turno a la vez por conversación con un candado en Upstash; semáforo de llamadas al modelo por instancia; límite de turnos por usuario; degradación a búsqueda clásica cerca del límite de la API de IA.",
+    "presupuesto": "1,5 llamadas al modelo por turno en promedio; p95 del agente menor a 6 s (T03).",
+    "servicio": "agentes, en la imagen de ADR-0001, escalado aparte de api."
   },
   "L2_product_stages_and_v1_1_rules": {
     "stage_gates": {
@@ -122,6 +150,7 @@
       "brand_visibility_firewall": "Cada marca en Telegram recibe únicamente nombre, celular, dirección de entrega (solo en domicilio) y detalle de su propio pedido.",
       "user_agent": "Servicio compartido con Progressive Disclosure (<800 tokens iniciales). Recomienda, busca, organiza Mi universo y arma borradores; prohibido pagar o confirmar por el usuario.",
       "brand_agent": "Sesión aislada por marca subordinada al Manual de Marca obligatorio. Flujo: manual -> propuesta -> vista previa -> validaciones -> aprobación humana -> publicación.",
+      "arquitectura_de_agentes": "Implementación de user_agent y brand_agent en L1_agent_architecture (ADR-0002).",
       "restricciones_detalladas": "R01-R10 en arquitectura/grafo-operacional.json, cada una con su prueba."
     }
   },
@@ -153,7 +182,7 @@
     {"id": "PEN-11", "tema": "Prueba de humo de ADR-0001", "estado": "por hacer antes del 10-nov-2026", "bloquea": "la elección final del host de contenedores", "nota": "Desplegar api y worker desde una imagen; probar INV_01, INV_02 y R10; medir la latencia p95 desde Popayán (< 300 ms, T02); restaurar un respaldo de Supabase; revisar el gasto a los 7 días. Si falla, se reconsidera la opción A (VPS)."},
     {"id": "PEN-12", "tema": "Exportación horaria de planetario_events a R2", "estado": "propuesta", "nota": "Con respaldos diarios se pueden perder hasta 24 horas de datos; exportar cada hora los eventos nuevos baja esa pérdida para el registro de eventos sin pagar la recuperación a un punto en el tiempo (US$100 al mes)."},
     {"id": "PEN-13", "tema": "Parámetros del modelo de carga por confirmar", "estado": "resuelto el 2026-10-20, salvo el número de nichos del MVP", "nota": "El usuario fijó 1.000 usuarios el día de lanzamiento del MVP y el requisito de 10.000 sesiones simultáneas. El número de nichos no cambia las tasas del sistema, solo la carga por marca. El resto de supuestos se calibra con la telemetría del MVP."},
-    {"id": "PEN-14", "tema": "Plan de capacidad para 10.000 sesiones simultáneas", "estado": "por aprobar", "bloquea": "la validación estricta del grafo (calcular.mjs --estricto) y el lanzamiento oficial", "nota": "Con las capacidades del grafo v0.3, cinco nodos de infraestructura (D1, P7, P3, P2, P5) y la API de IA (X3) quedan en zona crítica o saturados en ese pico; las capacidades requeridas y cómo se escala cada nodo están en docs/modelo-de-carga.md, sección Plan de capacidad. Aprobarlas, llevarlas al grafo, reemplazar supuestos_pico por el modelo y confirmarlas con una prueba de carga de 10.000 sesiones."},
-    {"id": "PEN-15", "tema": "Arquitectura multiagente sobre el núcleo de dominio central", "estado": "por proponer (ADR-0002)", "nota": "Objetivo del usuario (2026-10-20): los agentes de IA cumplen sus objetivos operando solo mediante comandos del núcleo de dominio (N0, hexagonal), con ingeniería multiagente. Definir agentes, herramientas, límites, orquestación y cómo escalan al pico de 10.000 sesiones (P7 y X3 son los nodos más exigidos)."}
+    {"id": "PEN-14", "tema": "Plan de capacidad para 10.000 sesiones simultáneas", "estado": "por aprobar", "bloquea": "la validación estricta del grafo (calcular.mjs --estricto) y el lanzamiento oficial", "nota": "Con las capacidades del grafo v0.3, cinco nodos de infraestructura (D1, P7, P3, P2, P5) y la API de IA (X3) quedan en zona crítica o saturados en ese pico; las capacidades requeridas y cómo se escala cada nodo están en docs/modelo-de-carga.md, sección Plan de capacidad. Aprobarlas, llevarlas al grafo, reemplazar supuestos_pico por el modelo y confirmarlas con una prueba de carga de 10.000 sesiones. La API de IA necesita el nivel Scale de la cuenta de Anthropic en ese pico (unas 2.970 llamadas por minuto); una cuenta nueva empieza más abajo, así que el aumento se solicita antes del lanzamiento oficial. P7 es el servicio agentes (ADR-0002), que escala aparte del servicio api."},
+    {"id": "PEN-15", "tema": "Arquitectura multiagente sobre el núcleo de dominio central", "estado": "resuelto el 2026-10-21 (ADR-0002, opción C); ver L1_agent_architecture", "nota": "Objetivo del usuario (2026-10-20): los agentes de IA cumplen sus objetivos operando solo mediante comandos del núcleo de dominio (N0, hexagonal), con ingeniería multiagente. Definir agentes, herramientas, límites, orquestación y cómo escalan al pico de 10.000 sesiones (P7 y X3 son los nodos más exigidos)."}
   ]
 }

@@ -9,6 +9,7 @@ Solo el usuario aprueba un ADR. Mientras no lo apruebe, su estado es **Propuesta
 | ADR | Título | Estado | Fecha | Resuelve |
 |---|---|---|---|---|
 | [ADR-0001](ADR-0001-topologia-de-despliegue.md) | Topología de despliegue: Supabase + host de contenedores en Virginia (opción C) | Aprobada | 2026-10-20 | AUD-12, PEN-03, PEN-04 |
+| [ADR-0002](ADR-0002-arquitectura-multiagente.md) | Arquitectura multiagente: orquestación determinista con agentes especializados sobre el núcleo de dominio (opción C) | Aprobada | 2026-10-21 | PEN-15 |
 
 ## Estados
 
