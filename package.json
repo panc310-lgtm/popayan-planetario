@@ -1,0 +1,18 @@
+{
+  "name": "popayan-planetario",
+  "private": true,
+  "type": "module",
+  "description": "Base de ingeniería de Popayán Planetario: arquitectura, modelos de cálculo y, más adelante, el código.",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "validar": "node tools/validar-arquitectura/validar.mjs",
+    "probar": "node tools/validar-arquitectura/pruebas.mjs",
+    "modelo": "node tools/modelo-de-carga/calcular.mjs",
+    "verificar": "node tools/validar-arquitectura/validar.mjs && node tools/modelo-de-carga/calcular.mjs --estricto"
+  },
+  "devDependencies": {
+    "ajv": "8.20.0"
+  }
+}

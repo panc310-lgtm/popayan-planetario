@@ -1,8 +1,8 @@
 {
   "documento": "Resultados del modelo de carga",
   "generado_por": "tools/modelo-de-carga/calcular.mjs — no editar a mano",
-  "modelo": "Modelo de carga único v0.4 (2026-10-21)",
-  "grafo": "grafo-operacional v0.6",
+  "modelo": "Modelo de carga único v0.5 (2026-10-21)",
+  "grafo": "grafo-operacional v0.7",
   "rho_objetivo": 0.7,
   "escenarios": {
     "mvp": {

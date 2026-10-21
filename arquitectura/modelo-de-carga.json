@@ -1,14 +1,16 @@
 {
+  "$schema": "./schemas/modelo-de-carga.schema.json",
   "proyecto": "Popayán Planetario",
   "documento": "Modelo de carga único",
-  "version": "0.4",
+  "version": "0.5",
   "fecha": "2026-10-21",
   "estado": "propuesta",
   "resuelve": "AUD-11",
   "alineado_con": [
-    "arquitectura/kernel-durable.json (1.5.0-DURABLE-KERNEL)",
-    "arquitectura/grafo-operacional.json (0.6)"
+    "arquitectura/kernel-durable.json (1.6.0-DURABLE-KERNEL)",
+    "arquitectura/grafo-operacional.json (0.7)"
   ],
+  "cambios_0_5": "Declara su $schema (arquitectura/schemas/modelo-de-carga.schema.json); lo valida tools/validar-arquitectura/validar.mjs.",
   "cambios_0_4": "Plan de capacidad aplicado al grafo v0.5 (PEN-14): la capacidad de los nodos de api, worker y agentes sale de su capacidad por réplica por las réplicas del servicio; la de la API de IA, del nivel de cuenta de Anthropic. Las tasas de las aristas que llevan carga salen de este modelo (mapa_de_aristas) y reemplazan a supuestos_pico.",
   "cambios_0_3": "Costo de la API de IA por llamada, por mes y por hora pico, y nivel mínimo de cuenta de Anthropic que exige cada escenario. La carga de la base suma las escrituras del estado de las conversaciones de los agentes en PostgreSQL (insumos del ADR-0002).",
   "cambios_0_2": "Requisito de capacidad del usuario: 10.000 sesiones simultáneas. El escenario de lanzamiento con 10.000 registrados supuestos se reemplaza por el escenario de capacidad objetivo; el MVP queda con 1.000 usuarios el día de lanzamiento, que entra como pico de evento. Se agregan el plan de capacidad por nodo y los pedidos abiertos.",

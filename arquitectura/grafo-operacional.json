@@ -1,18 +1,20 @@
 {
+  "$schema": "./schemas/grafo-operacional.schema.json",
   "proyecto": "Popayán Planetario",
   "documento": "Inventario maestro del grafo operacional",
-  "version": "0.6",
+  "version": "0.7",
   "fecha": "2026-10-21",
   "estado": "propuesta",
-  "alineado_con": "arquitectura/kernel-durable.json (1.5.0-DURABLE-KERNEL)",
+  "alineado_con": "arquitectura/kernel-durable.json (1.6.0-DURABLE-KERNEL)",
+  "cambios_0_7": "Declara su $schema (arquitectura/schemas/grafo-operacional.schema.json). La regla de bloqueo apunta a los validadores que la hacen cumplir en la integración continua. cambios_0_2 deja de citar la copia de la v0.1, que se eliminó.",
   "cambios_0_6": "Verificación de pagos de ADR-0003 (aprobada): X7 es Bold, condicionado a su aprobación escrita antes del 31-oct-2026, con confirmación manual como contingencia; P4 suma cobro_emitido y cobro_vencido, y pago_informado queda solo para la contingencia; R10 acepta webhook firmado, consulta autenticada o, en la contingencia, el botón del responsable de la marca; E42 cubre las dos vías del proveedor; T09 se redefine y entran T21 a T23.",
   "cambios_0_5": "Plan de capacidad del modelo de carga aplicado (PEN-14): servicios_de_despliegue con las réplicas para 10.000 sesiones simultáneas (api 4, worker 2, agentes 5); los nodos de esos servicios declaran capacidad por réplica; D1 sube a un objetivo de 1.900 operaciones por segundo; X3 toma su capacidad del nivel Scale de Anthropic. supuestos_pico y las tasas de las aristas se reemplazan por arquitectura/modelo-de-carga.json.",
   "cambios_0_4": "Arquitectura multiagente de ADR-0002 (aprobada): P7 es el servicio agentes (enrutador, cuatro agentes del usuario y compuerta de política); P8 incorpora el guardián de marca y el verificador de evidencia; E56 escribe solo la propuesta, porque la publicación la ejecuta el responsable de la marca.",
   "cambios_0_3": "Topología de despliegue de ADR-0001 (aprobada): P2 es un servicio Fastify permanente en contenedor, P5 corre en el servicio worker, D1 es Supabase PostgreSQL 17 en us-east-1, D2 es Cloudflare R2 y D4 es Upstash en us-east-1.",
-  "cambios_0_2": "Marcas por Telegram; avisos al comprador dentro de la app; pago con verificación automática (proveedor por definir, X7); registro de eventos planetario_events con posición al COMMIT; carril efímero Redis (D4); restricción R10 y telemetría T19-T20. La v0.1 queda en grafo-operacional.v0.1.json.",
+  "cambios_0_2": "Marcas por Telegram; avisos al comprador dentro de la app; pago con verificación automática (proveedor por definir, X7); registro de eventos planetario_events con posición al COMMIT; carril efímero Redis (D4); restricción R10 y telemetría T19-T20. La v0.1 queda en el historial de git (commit bcc6cff).",
   "nucleo_organizacional": {
     "id": "N0",
-    "regla_de_bloqueo": "Ninguna decisión de arquitectura o de flujo se toma sin que validar_grafo.py confirme que todos los nodos cuelgan del núcleo N0, que todas las marcas están aisladas y que ningún nodo supera la capacidad de diseño. La verificación de capacidad ya existe (tools/modelo-de-carga/calcular.mjs --estricto); validar_grafo.py, para la estructura, sigue pendiente (PEN-07)."
+    "regla_de_bloqueo": "Ninguna decisión de arquitectura o de flujo se toma sin que la integración continua confirme que todos los nodos cuelgan del núcleo N0, que todas las marcas están aisladas y que ningún nodo supera la capacidad de diseño: la estructura la verifica tools/validar-arquitectura/validar.mjs y la capacidad, tools/modelo-de-carga/calcular.mjs --estricto."
   },
   "escala": {
     "marcas": 100,

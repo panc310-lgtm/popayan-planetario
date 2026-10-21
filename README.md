@@ -21,11 +21,13 @@ Diseño de arquitectura; la implementación no ha empezado.
 | [`arquitectura/kernel-durable.json`](arquitectura/kernel-durable.json) | Fuente de verdad: decisiones aprobadas, invariantes de ingeniería, despliegue, arquitectura de agentes y pendientes (PEN-xx) |
 | [`arquitectura/grafo-operacional.json`](arquitectura/grafo-operacional.json) | Nodos, aristas, servicios de despliegue, restricciones de aislamiento (R01–R10) y telemetría (T01–T23) |
 | [`arquitectura/modelo-de-carga.json`](arquitectura/modelo-de-carga.json) | Parámetros del modelo de carga; sus resultados se generan |
+| [`arquitectura/schemas/`](arquitectura/schemas/kernel.schema.json) | JSON Schema 2020-12 de los tres archivos de arquitectura |
 | [`docs/adr/`](docs/adr/README.md) | Decisiones de arquitectura (ADR) |
 | [`docs/modelo-de-carga.md`](docs/modelo-de-carga.md) | Reporte del modelo de carga: tasas, capacidad, réplicas y costo de la IA (generado) |
 | [`docs/auditorias/`](docs/auditorias/AUD-2026-10-20-insumos-gemini.md) | Auditorías y su seguimiento |
 | [`docs/fuentes/`](docs/fuentes/README.md) | Registro de insumos: conversaciones con IA, documentos y su estado |
 | [`tools/modelo-de-carga/`](tools/modelo-de-carga/README.md) | Calculadora del modelo de carga |
+| [`tools/validar-arquitectura/`](tools/validar-arquitectura/README.md) | Validador de esquemas, estructura y referencias, con sus pruebas |
 | `blender/`, `scene_popayan.py` | Prototipo visual en Blender; desactualizado frente a las 9 galaxias (AUD-09) |
 | `.github/workflows/` | Integración continua |
 
@@ -37,7 +39,7 @@ Diseño de arquitectura; la implementación no ha empezado.
 
 ## Requisitos
 
-- Node.js 24 o posterior.
+- Node.js 24 o posterior. Las dependencias de las herramientas (por ahora solo Ajv) se instalan con versiones exactas desde `package-lock.json`.
 - [Git LFS](https://git-lfs.com) para los archivos 3D (`.blend`, `.glb`, `.ktx2`). Una vez por equipo, antes de clonar:
 
 ```bash
@@ -48,14 +50,27 @@ git lfs install
 
 La integración continua corre en cada pull request y en cada cambio de `main`:
 
-- Que todos los JSON de `arquitectura/` sean válidos.
+- Que el kernel, el grafo y el modelo de carga cumplan sus JSON Schema.
+- Que el grafo sea estructuralmente correcto: todo cuelga del núcleo N0, no hay aristas entre marcas, las referencias existen.
+- Que los tres archivos sean coherentes entre sí: versiones alineadas, rutas citadas que existen, estado de los ADR igual en todas partes.
+- Que el validador detecte cada tipo de error (sus propias pruebas).
 - Que los archivos generados del modelo de carga estén al día con sus parámetros y con el grafo.
 - Que ningún nodo de infraestructura quede en zona crítica en ningún escenario, incluido el requisito de 10.000 sesiones simultáneas.
 
-Para correrlas en local:
+Para correrlas en local, una vez:
 
 ```bash
-node tools/modelo-de-carga/calcular.mjs --estricto
+npm ci
+```
+
+Y luego:
+
+```bash
+npm run verificar
+```
+
+```bash
+npm run probar
 ```
 
 Después de cambiar un parámetro del modelo o una capacidad del grafo, se regeneran los archivos y se confirman junto con el cambio:

@@ -1,0 +1,203 @@
+#!/usr/bin/env node
+// Validador de la arquitectura (PEN-07).
+//   1. Valida el kernel, el grafo y el modelo de carga contra sus JSON Schema (Ajv 8, borrador 2020-12).
+//   2. Verifica las reglas estructurales y de referencias que un esquema no puede expresar.
+// Uso: node tools/validar-arquitectura/validar.mjs [--raiz CARPETA]   (termina con error si encuentra alguno)
+//   --raiz valida una copia del repositorio en otra carpeta; lo usan las pruebas (pruebas.mjs).
+
+import { existsSync, readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import Ajv2020 from "ajv/dist/2020.js";
+
+const argRaiz = process.argv.indexOf("--raiz");
+const RAIZ = argRaiz > 0 ? resolve(process.argv[argRaiz + 1]) : resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+const ARCHIVOS = {
+  kernel: { datos: "arquitectura/kernel-durable.json", esquema: "arquitectura/schemas/kernel.schema.json" },
+  grafo: { datos: "arquitectura/grafo-operacional.json", esquema: "arquitectura/schemas/grafo-operacional.schema.json" },
+  modelo: { datos: "arquitectura/modelo-de-carga.json", esquema: "arquitectura/schemas/modelo-de-carga.schema.json" },
+};
+const INDICE_ADR = "docs/adr/README.md";
+
+const errores = [];
+const error = (codigo, mensaje) => errores.push(`${codigo}: ${mensaje}`);
+const leer = (ruta) => readFileSync(resolve(RAIZ, ruta), "utf8");
+const repetidos = (lista) => [...new Set(lista.filter((x, i) => lista.indexOf(x) !== i))];
+
+function terminar() {
+  if (errores.length) {
+    console.error(`${errores.length} error(es) en la arquitectura:`);
+    for (const e of errores) console.error(`  - ${e}`);
+    process.exit(1);
+  }
+}
+
+// 1. Esquemas
+const ajv = new Ajv2020({ allErrors: true, strict: true, allowUnionTypes: true });
+const datos = {};
+for (const [nombre, { datos: ruta, esquema }] of Object.entries(ARCHIVOS)) {
+  try {
+    datos[nombre] = JSON.parse(leer(ruta));
+  } catch (e) {
+    error("E-JSON", `${ruta} no es JSON válido: ${e.message}`);
+    continue;
+  }
+  const validar = ajv.compile(JSON.parse(leer(esquema)));
+  if (!validar(datos[nombre])) {
+    for (const e of validar.errors) {
+      const detalle = e.params?.additionalProperty ?? e.params?.allowedValues?.join(", ") ?? "";
+      error("E-ESQUEMA", `${ruta} ${e.instancePath || "/"}: ${e.message}${detalle ? ` (${detalle})` : ""}`);
+    }
+  }
+  const esperado = "./" + esquema.replace(/^arquitectura\//, "");
+  if (datos[nombre].$schema !== esperado) error("E-ESQUEMA", `${ruta} debe declarar "$schema": "${esperado}"`);
+}
+terminar(); // sin esquemas válidos, las reglas siguientes no tienen sentido
+
+const { kernel, grafo, modelo } = datos;
+const nodos = new Map(grafo.nodos.map((n) => [n.id, n]));
+const aristas = new Map(grafo.aristas.map((a) => [a.id, a]));
+
+// G1 Identificadores únicos
+for (const [nombre, lista] of [
+  ["nodos", grafo.nodos],
+  ["aristas", grafo.aristas],
+  ["restricciones", grafo.restricciones_aislamiento],
+  ["telemetría", grafo.telemetria],
+  ["pendientes del kernel", kernel.pendientes],
+]) {
+  for (const id of repetidos(lista.map((x) => x.id))) error("G1", `identificador repetido en ${nombre}: ${id}`);
+}
+
+// G2 Todo nodo cuelga del núcleo N0 por su cadena de gobierno, sin ciclos
+const raices = grafo.nodos.filter((n) => n.gobernado_por === null).map((n) => n.id);
+if (raices.length !== 1 || raices[0] !== "N0") error("G2", `el único nodo sin gobierno debe ser N0; hay: ${raices.join(", ") || "ninguno"}`);
+for (const n of grafo.nodos) {
+  const vistos = new Set();
+  for (let actual = n; actual.gobernado_por !== null; ) {
+    if (vistos.has(actual.id)) {
+      error("G2", `ciclo de gobierno que pasa por ${actual.id}`);
+      break;
+    }
+    vistos.add(actual.id);
+    const siguiente = nodos.get(actual.gobernado_por);
+    if (!siguiente) {
+      error("G2", `${actual.id} está gobernado por ${actual.gobernado_por}, que no existe`);
+      break;
+    }
+    actual = siguiente;
+  }
+}
+
+// G3 Las aristas unen nodos que existen
+for (const a of grafo.aristas) {
+  for (const extremo of ["origen", "destino"]) {
+    if (!nodos.has(a[extremo])) error("G3", `${a.id}: el ${extremo} ${a[extremo]} no existe`);
+  }
+}
+
+// G4 Aislamiento entre marcas (R02): entre marcas o sedes solo hay aristas de la misma marca
+for (const a of grafo.aristas) {
+  const entreMarcas = nodos.get(a.origen)?.tipo === "tenant" && nodos.get(a.destino)?.tipo === "tenant";
+  if (entreMarcas && a.alcance !== "misma_marca") error("G4", `${a.id}: une ${a.origen} y ${a.destino} (marcas o sedes) sin alcance misma_marca (R02)`);
+  if (!entreMarcas && a.alcance === "misma_marca") error("G4", `${a.id}: alcance misma_marca en una arista que no une marcas o sedes`);
+}
+
+// G5 Servicios de despliegue: cada nodo apunta a un servicio declarado y cada servicio tiene nodos
+const servicios = Object.keys(grafo.servicios_de_despliegue).filter((s) => s !== "fuente");
+const serviciosUsados = new Set();
+for (const n of grafo.nodos) {
+  const servicio = n.capacidad?.servicio;
+  if (!servicio) continue;
+  serviciosUsados.add(servicio);
+  if (!servicios.includes(servicio)) error("G5", `${n.id} usa el servicio ${servicio}, que no está en servicios_de_despliegue`);
+}
+for (const s of servicios) if (!serviciosUsados.has(s)) error("G5", `el servicio ${s} no tiene nodos`);
+
+// G6 La telemetría solo nombra nodos o aristas que existen
+for (const t of grafo.telemetria) {
+  for (const id of t.objeto.match(/\b[NGAPDXE]\d{1,2}\b/g) ?? []) {
+    if (!nodos.has(id) && !aristas.has(id)) error("G6", `${t.id} menciona ${id}, que no existe en el grafo`);
+  }
+}
+
+// M1 Cada parámetro tiene un valor por escenario, y solo por escenarios declarados
+const escenarios = Object.keys(modelo.escenarios);
+for (const [nombre, p] of Object.entries(modelo.parametros)) {
+  const claves = Object.keys(p.valores);
+  const faltan = escenarios.filter((e) => !claves.includes(e));
+  const sobran = claves.filter((c) => !escenarios.includes(c));
+  if (faltan.length) error("M1", `${nombre}: faltan valores para ${faltan.join(", ")}`);
+  if (sobran.length) error("M1", `${nombre}: valores para escenarios desconocidos: ${sobran.join(", ")}`);
+  if (typeof p.estado === "object") {
+    for (const e of Object.keys(p.estado)) if (!escenarios.includes(e)) error("M1", `${nombre}: estado para el escenario desconocido ${e}`);
+  }
+}
+
+// M2 El mapa de capacidad del modelo usa nodos del grafo, con tipo coherente y capacidad declarada
+const tiposCompatibles = { humano: ["tenant"], externo: ["externo"], infraestructura: ["servicio", "datos"] };
+for (const m of modelo.mapa_de_capacidad) {
+  const n = nodos.get(m.nodo);
+  if (!n) {
+    error("M2", `mapa_de_capacidad usa ${m.nodo}, que no existe en el grafo`);
+    continue;
+  }
+  if (!tiposCompatibles[m.tipo].includes(n.tipo)) error("M2", `${m.nodo} es de tipo ${n.tipo} en el grafo y ${m.tipo} en el modelo`);
+  if (!n.capacidad) error("M2", `${m.nodo} está en el mapa de capacidad pero no tiene capacidad en el grafo`);
+}
+
+// M3 El mapa de aristas del modelo usa aristas del grafo, sin repetir
+for (const id of repetidos(modelo.mapa_de_aristas.map((a) => a.arista))) error("M3", `arista repetida en mapa_de_aristas: ${id}`);
+for (const a of modelo.mapa_de_aristas) if (!aristas.has(a.arista)) error("M3", `mapa_de_aristas usa ${a.arista}, que no existe en el grafo`);
+
+// V1 Versiones alineadas entre los tres archivos
+const citaKernel = `arquitectura/kernel-durable.json (${kernel.schema_version})`;
+const citaGrafo = `arquitectura/grafo-operacional.json (${grafo.version})`;
+if (grafo.alineado_con !== citaKernel) error("V1", `el grafo cita "${grafo.alineado_con}" y el kernel es ${kernel.schema_version}`);
+if (modelo.alineado_con[0] !== citaKernel) error("V1", `el modelo cita "${modelo.alineado_con[0]}" y el kernel es ${kernel.schema_version}`);
+if (modelo.alineado_con[1] !== citaGrafo) error("V1", `el modelo cita "${modelo.alineado_con[1]}" y el grafo es v${grafo.version}`);
+const L0 = kernel.L0_mathematical_and_graph_core;
+if (!L0.detalle_operacional.includes(`grafo-operacional.json (v${grafo.version})`)) error("V1", `el kernel no cita el grafo v${grafo.version} en detalle_operacional`);
+if (!L0.modelo_de_carga.includes(`modelo-de-carga.json (v${modelo.version})`)) error("V1", `el kernel no cita el modelo de carga v${modelo.version}`);
+
+// V2 Cada versión vigente explica sus cambios
+const changelog = `changelog_${kernel.schema_version.split("-")[0].replaceAll(".", "_")}`;
+if (!kernel[changelog]) error("V2", `el kernel ${kernel.schema_version} no tiene ${changelog}`);
+for (const [nombre, d] of [["grafo", grafo], ["modelo de carga", modelo]]) {
+  const cambios = `cambios_${d.version.replace(".", "_")}`;
+  if (!d[cambios]) error("V2", `el ${nombre} v${d.version} no tiene ${cambios}`);
+}
+
+// F1 Las rutas de archivos citadas en los tres archivos existen
+const rutas = new Set();
+const recorrer = (v) => {
+  if (typeof v === "string") for (const r of v.match(/\b(?:docs|arquitectura|tools)\/[A-Za-z0-9_./-]+\.(?:md|json|mjs)\b/g) ?? []) rutas.add(r);
+  else if (Array.isArray(v)) v.forEach(recorrer);
+  else if (v && typeof v === "object") Object.values(v).forEach(recorrer);
+};
+[kernel, grafo, modelo].forEach(recorrer);
+for (const r of rutas) if (!existsSync(resolve(RAIZ, r))) error("F1", `se cita ${r}, que no existe`);
+
+// A1 El estado de cada ADR coincide en el kernel, en el índice y en el propio ADR
+const indice = leer(INDICE_ADR).split(/\r?\n/);
+for (const [seccion, s] of Object.entries(kernel)) {
+  if (!seccion.startsWith("L1_") || !s.adr) continue;
+  const aprobadaEnKernel = /^Aprobada/.test(s.estado);
+  const archivo = s.adr.split("/").pop();
+  const fila = indice.find((l) => l.includes(`(${archivo})`));
+  if (!fila) {
+    error("A1", `${s.adr} no está en ${INDICE_ADR}`);
+  } else if ((fila.split("|")[3]?.trim() === "Aprobada") !== aprobadaEnKernel) {
+    error("A1", `${seccion} y ${INDICE_ADR} no coinciden en el estado de ${archivo}`);
+  }
+  if (existsSync(resolve(RAIZ, s.adr))) {
+    const lineaEstado = leer(s.adr).split(/\r?\n/).find((l) => l.startsWith("| Estado |")) ?? "";
+    if (lineaEstado.includes("Aprobada") !== aprobadaEnKernel) error("A1", `${seccion} y ${s.adr} no coinciden en el estado`);
+  }
+}
+
+terminar();
+console.log(
+  `Arquitectura válida: kernel ${kernel.schema_version}, grafo v${grafo.version} ` +
+    `(${grafo.nodos.length} nodos, ${grafo.aristas.length} aristas), modelo de carga v${modelo.version}.`,
+);
