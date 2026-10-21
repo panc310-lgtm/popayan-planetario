@@ -1,8 +1,13 @@
 {
   "kernel_id": "POPAYAN_PLANETARIO_ORGANIZATIONAL_CORE",
-  "schema_version": "1.4.0-DURABLE-KERNEL",
+  "schema_version": "1.5.0-DURABLE-KERNEL",
   "last_updated": "2026-10-21",
   "estado": "Decisiones aprobadas por el usuario; implementación sin empezar. Lo marcado 'por definir' o 'propuesta' no está decidido.",
+  "changelog_1_5_0": [
+    "Verificación de pagos aprobada (ADR-0003): Bold condicionado a su aprobación escrita antes del 31-oct-2026; contingencia: confirmación manual. Nueva sección L1_payment_verification.",
+    "gate_1_to_mvp ajustada a los dos caminos.",
+    "PEN-01 decidido, a la espera de la respuesta de Bold."
+  ],
   "changelog_1_4_0": [
     "Plan de capacidad aplicado (PEN-14): el grafo v0.5 cumple el requisito de 10.000 sesiones simultáneas con todos los nodos de infraestructura en ρ < 0,7 (api 4 réplicas, worker 2, agentes 5; D1 con objetivo de 1.900 operaciones por segundo; API de IA en nivel Scale).",
     "El despliegue registra las réplicas para el requisito y el objetivo de la base.",
@@ -85,7 +90,7 @@
       "N5_FULFILLMENT_SERVICES": "3 modalidades de compra + flujo de servicios (cita y anticipo por WhatsApp directo con la marca) con Verificación Automática de Pagos (proveedor por definir); el comprador ve el estado de su pedido dentro de la app",
       "N6_AUDIT_&_AI_TELEMETRY": "Telemetría JSON Senior para segunda auditoría de IA y monitoreo de latencia tau_lat(t) y fricción zonal delta_zona(t)"
     },
-    "detalle_operacional": "arquitectura/grafo-operacional.json (v0.5): nodos, aristas, servicios de despliegue, restricciones R01-R10 y telemetría T01-T20.",
+    "detalle_operacional": "arquitectura/grafo-operacional.json (v0.6): nodos, aristas, servicios de despliegue, restricciones R01-R10 y telemetría T01-T23.",
     "modelo_de_carga": "arquitectura/modelo-de-carga.json (v0.4): tasas por nodo y por arista, volúmenes, costo de la API de IA, réplicas y plan de capacidad de los escenarios MVP, capacidad objetivo (10.000 sesiones simultáneas) y diseño, calculados con tools/modelo-de-carga/calcular.mjs."
   },
   "L1_engineering_invariants": {
@@ -133,10 +138,22 @@
     "presupuesto": "1,5 llamadas al modelo por turno en promedio; p95 del agente menor a 6 s (T03).",
     "servicio": "agentes, en la imagen de ADR-0001, escalado aparte de api."
   },
+  "L1_payment_verification": {
+    "adr": "docs/adr/ADR-0003-verificacion-de-pagos.md",
+    "estado": "Aprobada por el usuario el 2026-10-21. Bold depende de su respuesta escrita antes del 31-oct-2026 (PEN-01).",
+    "proveedor": "Bold: QR Bre-B por la API de pagos en línea, cobrado en la Cuenta Bold de cada marca; 2,89 % más IVA por QR, que paga la marca.",
+    "condicion": "Que Bold apruebe por escrito que la plataforma, con autorización de cada titular, emita cobros y consulte o verifique pagos con las llaves de cada Cuenta Bold.",
+    "contingencia": "Si Bold no aprueba o no responde antes del 31-oct-2026: confirmación manual. Cada marca cobra en su propia llave Bre-B y confirma con un botón en Telegram; el pedido pasa por pago_informado; recordatorio a la marca a los 3 minutos y alerta a operación comercial a los 10 (valores iniciales).",
+    "puerto": "VerificadorDePagos en packages/ports (emitirCobro, consultarCobro, validarNotificacion), con un adaptador por proveedor, uno de confirmación manual y uno simulado para pruebas.",
+    "confirmacion": "Dos vías equivalentes del proveedor: webhook firmado con el secreto de la marca o consulta autenticada del estado. Clave de idempotencia: identificador del evento del proveedor. En la contingencia, el botón del responsable de la marca (R10).",
+    "estados_del_pedido": "creado, cobro_emitido, pago_informado (solo en la contingencia), pagado, cobro_vencido, aceptado, en_camino, entregado, evaluado, cancelado y reembolsado.",
+    "credenciales": "Llaves de cada marca cifradas con una llave maestra en los secretos del host; nunca en registros ni en el contexto de los agentes. Cambios según R09.",
+    "habilitacion_de_marca": "Cuenta con el proveedor, activación de la API, llaves por formulario seguro, webhook registrado y pago real de bajo monto de punta a punta; sin eso la marca no cobra en la plataforma."
+  },
   "L2_product_stages_and_v1_1_rules": {
     "stage_gates": {
       "stage_1_mockup": "Maqueta Web para presentación a la administración municipal con marcas ficticias y pago simulado (7/7 bloqueantes cerrados).",
-      "gate_1_to_mvp": "Pago real verificado automáticamente (proveedor por definir; investigación en curso) + políticas de devoluciones y soporte definidas.",
+      "gate_1_to_mvp": "Pago real verificado automáticamente con Bold si aprueba por escrito antes del 31-oct-2026; si no aprueba o no responde, el MVP abre con confirmación manual de la marca (contingencia de ADR-0003). En ambos casos, más políticas de devoluciones y soporte definidas.",
       "stage_2_mvp_v1_1": "Baseline v1.1 congelada el 29-nov-2026 para despliegue mientras el desarrollo continúa; pruebas con marcas del 1 al 9-dic; lanzamiento del MVP el 10-dic-2026. 1 marca por nicho, pagos verificados automáticamente, operación comercial por Telegram y avisos al comprador dentro de la app.",
       "gate_2_to_final": "Cartera de 100 marcas prospectadas en paralelo + evento previo a Semana Santa.",
       "stage_3_final_product": "Lanzamiento en Semana Santa 2027 (21 al 28 de marzo) con App Móvil y las 100 marcas con su mes gratis ($150k COP plan básico / $75k COP segundo planeta)."
@@ -175,7 +192,7 @@
     }
   },
   "pendientes": [
-    {"id": "PEN-01", "tema": "Proveedor de verificación automática Bre-B", "estado": "investigado el 20-oct-2026; decisión del usuario pendiente", "bloquea": "gate_1_to_mvp y el lanzamiento del 10-dic-2026", "nota": "Solo Bold (Cuenta Bold por marca, QR por API con webhook HMAC-SHA256 y referencia del pedido) cumple todas las reglas, a 2,89 % por QR que paga la marca. Riesgos: API de QR en BETA, aprobación manual de llaves por marca sin plazo y sin modelo de plataforma documentado. Por confirmar con Bold por escrito."},
+    {"id": "PEN-01", "tema": "Proveedor de verificación automática Bre-B", "estado": "decidido el 21-oct-2026 (ADR-0003); espera la respuesta escrita de Bold antes del 31-oct-2026", "bloquea": "la elección final entre Bold y la contingencia manual", "nota": "Decisión: Bold, condicionado a que apruebe por escrito que la plataforma opere las llaves de cada Cuenta Bold; si no aprueba o no responde antes del 31-oct-2026, confirmación manual (L1_payment_verification). El usuario envía a Bold las cinco preguntas del ADR-0003 (a: uso de llaves por la plataforma; b: webhook para QR de la API; c: llave y límites de la consulta de estado; d: salida de beta y plazo de activación; e: pruebas sin modo de pruebas). Mientras tanto se construye el puerto VerificadorDePagos con un adaptador simulado."},
     {"id": "PEN-02", "tema": "Emmett frente a appendCanonicalEvent propio", "estado": "por decidir", "nota": "Emmett trae su propio almacén de eventos para PostgreSQL; usar uno de los dos, no ambos."},
     {"id": "PEN-03", "tema": "Host de procesos siempre encendidos", "estado": "resuelto el 2026-10-20 (ADR-0001)", "nota": "La API y los procesos permanentes corren juntos en un host de contenedores en Virginia; ver L1_deployment_topology."},
     {"id": "PEN-04", "tema": "Redis", "estado": "resuelto el 2026-10-20 (ADR-0001)", "nota": "Upstash en us-east-1, pago por uso: 0 dentro del nivel gratuito de 500.000 comandos al mes."},
