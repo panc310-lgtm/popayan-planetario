@@ -4,7 +4,7 @@
   "version": "0.3",
   "fecha": "2026-10-20",
   "estado": "propuesta",
-  "alineado_con": "arquitectura/kernel-durable.json (1.2.0-DURABLE-KERNEL)",
+  "alineado_con": "arquitectura/kernel-durable.json (1.2.1-DURABLE-KERNEL)",
   "cambios_0_3": "Topología de despliegue de ADR-0001 (aprobada): P2 es un servicio Fastify permanente en contenedor, P5 corre en el servicio worker, D1 es Supabase PostgreSQL 17 en us-east-1, D2 es Cloudflare R2 y D4 es Upstash en us-east-1.",
   "cambios_0_2": "Marcas por Telegram; avisos al comprador dentro de la app; pago con verificación automática (proveedor por definir, X7); registro de eventos planetario_events con posición al COMMIT; carril efímero Redis (D4); restricción R10 y telemetría T19-T20. La v0.1 queda en grafo-operacional.v0.1.json.",
   "nucleo_organizacional": {
