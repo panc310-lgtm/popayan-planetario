@@ -18,7 +18,7 @@ Cada insumo que alimenta la arquitectura o el producto queda registrado aquí co
 | FG-03 | Conversación Gemini | Arquitectura y Límites de Ingeniería Agéntica | `gemini.google.com/app/ed5f0b0c36b9dc28` | Impreso 2026-10-20; JSON hasta 2026-10-19 | PDF sin texto; JSON truncados | [FG-03](gemini/FG-03-arquitectura-limites-ingenieria-agentica.md) |
 | FG-04 | Conversación Gemini | Origen de `S_Planetario` y del kernel `1.1.0-DURABLE-KERNEL` | **No aportada** | 2026-10-20 (pegado en el chat de Claude) | — | Pendiente (AUD-04) |
 | FC-01 | Conversación ChatGPT | Diseño de producto inicial | `chatgpt.com/share/6ad23b39-6550-83e9-bf42-c9e45cbac7c5` | Leída 2026-10-16 | Enlace compartido | Pendiente de resumir |
-| FD-01 | Documento Claude Docs | Documento maestro de estructura — Popayán Planetario v0.1 | `claude.ai/code/artifact/01fc69b7-adf1-4d0e-853f-3f80bb4b872f` | Desde 2026-10-16 | Documento vivo | Fuente de las reglas de producto |
+| FD-01 | Documento Claude Docs | Documento maestro de estructura — Popayán Planetario v0.1 | `claude.ai/code/artifact/01fc69b7-adf1-4d0e-853f-3f80bb4b872f` (enlace compartido: `claude.ai/artifact/1FDyw1neXhzV7oyJ7uW73U`) | Desde 2026-10-16 | Documento vivo | Fuente de las reglas de producto; pestaña "Presupuesto de producción" del 2026-10-17 |
 | FD-02 | Documento Claude Docs | Universo visual de Popayán Planetario | `claude.ai/code/artifact/34bf8d5e-ca7f-4008-a417-c3e04e5ff3f1` | 2026-10-17 | Documento vivo; estado propuesta | Guía visual |
 
 ### Archivos originales de las conversaciones Gemini
@@ -36,7 +36,7 @@ Los PDFs no se copian al repo (18 MB de imágenes sin texto). Se identifican por
 | Referencia | Citada en | Nota |
 |---|---|---|
 | `share.gemini.google/03s3AsoYQ2Z3` | FG-01 T2 | Gemini no pudo abrirla; su contenido no entró en la respuesta |
-| `claude.ai/artifact/1FDyw1neXhzV7oyJ7uW73U` | FG-02 T1 | Gemini no pudo abrirla; el usuario pegó después el documento maestro |
+| `claude.ai/artifact/1FDyw1neXhzV7oyJ7uW73U` | FG-02 T1 | Es el enlace compartido del documento maestro (FD-01), comprobado el 2026-10-20. Gemini no pudo abrirlo; el usuario pegó después su contenido |
 | `panc310-lgtm/CRM-ERIKA` | FG-02, FG-03 | **Solo referencia de aprendizaje.** Ningún archivo, tabla ni métrica de ese repositorio forma parte de Popayán Planetario |
 
 Los repositorios de estado del arte (L3) están en `arquitectura/kernel-durable.json`, sección `L3_distilled_sota_mapping`, con su verificación del 2026-10-20.

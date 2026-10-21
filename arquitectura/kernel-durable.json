@@ -1,8 +1,13 @@
 {
   "kernel_id": "POPAYAN_PLANETARIO_ORGANIZATIONAL_CORE",
-  "schema_version": "1.1.1-DURABLE-KERNEL",
+  "schema_version": "1.2.0-DURABLE-KERNEL",
   "last_updated": "2026-10-20",
   "estado": "Decisiones aprobadas por el usuario; implementación sin empezar. Lo marcado 'por definir' o 'propuesta' no está decidido.",
+  "changelog_1_2_0": [
+    "Topología de despliegue aprobada (ADR-0001, opción C): Supabase PostgreSQL 17 y host de contenedores en Virginia; nueva sección L1_deployment_topology.",
+    "PostgreSQL 16 pasa a 17, la versión que crea Supabase; el UUIDv7 se sigue generando en la app.",
+    "PEN-03 y PEN-04 resueltos; PEN-06 actualizado; nuevos PEN-11 (prueba de humo) y PEN-12 (exportación horaria de eventos)."
+  ],
   "changelog_1_1_1": [
     "Ecuación corregida: Omega por transacción, Theta suave, Psi por par, penalizaciones sin unidades; el registro de eventos pasa de sumando a identidad de cálculo.",
     "Reputación quincenal como agregación SQL exacta; la cuadratura queda solo para simulación.",
@@ -48,7 +53,7 @@
       "escala_mvp": "1 marca por nicho y meta de 100 a 1.000 usuarios antes del lanzamiento oficial."
     },
     "calculation_engines_selected": {
-      "real_time_production": "Fold/Reduce incremental por evento confirmado (acumulador dx en PostgreSQL 16 + Redis). Benchmark sintético: 0.059 a 1.711 ms (1k a 50k usuarios); pendiente medir con datos reales.",
+      "real_time_production": "Fold/Reduce incremental por evento confirmado (acumulador dx en PostgreSQL 17 de Supabase + Redis de Upstash). Benchmark sintético: 0.059 a 1.711 ms (1k a 50k usuarios); pendiente medir con datos reales.",
       "biweekly_90d_reputation_batch": "Agregación SQL exacta (SUM/COUNT sobre la ventana de 90 días) particionada por galaxia, nicho y marca, publicada cada 15 días. Simpson / Gauss-Legendre solo para simular lambda(t) continua en proyecciones.",
       "client_spatial_interpolation": "Float32Array pre-reducido en Redis + THREE.InstancedMesh y Shaders GLSL en GPU"
     },
@@ -62,16 +67,29 @@
       "N5_FULFILLMENT_SERVICES": "3 modalidades de compra + flujo de servicios (cita y anticipo por WhatsApp directo con la marca) con Verificación Automática de Pagos (proveedor por definir); el comprador ve el estado de su pedido dentro de la app",
       "N6_AUDIT_&_AI_TELEMETRY": "Telemetría JSON Senior para segunda auditoría de IA y monitoreo de latencia tau_lat(t) y fricción zonal delta_zona(t)"
     },
-    "detalle_operacional": "arquitectura/grafo-operacional.json (v0.2): nodos, aristas, restricciones R01-R10 y telemetría T01-T20."
+    "detalle_operacional": "arquitectura/grafo-operacional.json (v0.3): nodos, aristas, restricciones R01-R10 y telemetría T01-T20."
   },
   "L1_engineering_invariants": {
     "estado": "Diseño; sin implementar ni verificar.",
     "INV_01_commit_order_visibility": "Asignación de posición canónica al COMMIT con trigger diferido y pg_advisory_xact_lock (techo ~800 ev/s por medir, para hechos confirmados; borradores y lecturas van por Redis). El pico estimado en grafo-operacional.json es 0,22 ev/s.",
-    "INV_02_canonical_event_writer": "Puerto único appendCanonicalEvent. La idempotencia usa una clave determinista de la fuente: update_id o callback_query.id de Telegram, id del evento del proveedor de pagos, o encabezado Idempotency-Key del cliente reutilizado en cada reintento. UNIQUE(idempotency_key) y comparación JSONB del payload para detectar una clave reutilizada con otro contenido. event_id = UUIDv7 generado en la app (PostgreSQL 16 no trae uuidv7(); llegó en la versión 18).",
+    "INV_02_canonical_event_writer": "Puerto único appendCanonicalEvent. La idempotencia usa una clave determinista de la fuente: update_id o callback_query.id de Telegram, id del evento del proveedor de pagos, o encabezado Idempotency-Key del cliente reutilizado en cada reintento. UNIQUE(idempotency_key) y comparación JSONB del payload para detectar una clave reutilizada con otro contenido. event_id = UUIDv7 generado en la app (PostgreSQL 17 de Supabase no trae uuidv7(); llegó en la versión 18).",
     "INV_03_poison_event_isolation": "Procesamiento en proyectores bajo SAVEPOINT individual; desvío a dead-letter sin frenar a las demás marcas y cortacircuitos en lotes de hasta 60 eventos.",
     "INV_04_three_failure_clocks": "Separación estricta de contadores: attempts (negocio), transient_failures (contención SQL con backoff exponencial) y lease_expiries (infraestructura).",
     "INV_05_external_io_decoupling": "Prohibición absoluta de retener conexiones SQL abiertas durante llamadas HTTP a pasarelas de pago, API de Telegram o inferencia de LLMs.",
     "INV_06_pure_hexagonal_ports": "Inversión de dependencias estricta: packages/domain y packages/ports jamás importan Fastify, pg, grammY ni SDKs externos."
+  },
+  "L1_deployment_topology": {
+    "adr": "docs/adr/ADR-0001-topologia-de-despliegue.md",
+    "estado": "Aprobada por el usuario el 2026-10-20 (opción C). El host de contenedores se confirma en la prueba de humo (PEN-11).",
+    "region": "Este de Estados Unidos (Virginia) para todo lo que guarda datos: menor latencia desde Colombia que São Paulo y país en la lista de protección adecuada de la SIC.",
+    "base_de_datos": "Supabase Pro, PostgreSQL 17, us-east-1, cómputo Micro al inicio; respaldos diarios con 7 días de retención.",
+    "codigo_de_servidor": "Una imagen de contenedor del monorepo con dos servicios: api (Fastify, webhooks de Telegram y de pagos, avisos al comprador por Server-Sent Events) y worker (pg-boss, relay de planetario_events, proyectores, notificador de Telegram y tareas programadas).",
+    "host_de_contenedores": "Railway en Virginia; alternativa Fly.io (iad).",
+    "conexion_a_la_base": "Pooler de Supabase en modo sesión (puerto 5432, IPv4) desde los dos servicios; nunca el modo transacción.",
+    "redis": "Upstash, us-east-1, pago por uso.",
+    "web_y_activos": "Cloudflare: R2 con CDN para el cliente web estático, los GLB y las imágenes.",
+    "vercel": "No se usa, salvo que el cliente web pase a renderizarse en servidor.",
+    "costo_estimado_usd_mes": "35 a 61, sin impuestos ni contingencia."
   },
   "L2_product_stages_and_v1_1_rules": {
     "stage_gates": {
@@ -116,13 +134,15 @@
   "pendientes": [
     {"id": "PEN-01", "tema": "Proveedor de verificación automática Bre-B", "estado": "investigado el 20-oct-2026; decisión del usuario pendiente", "bloquea": "gate_1_to_mvp y el lanzamiento del 10-dic-2026", "nota": "Solo Bold (Cuenta Bold por marca, QR por API con webhook HMAC-SHA256 y referencia del pedido) cumple todas las reglas, a 2,89 % por QR que paga la marca. Riesgos: API de QR en BETA, aprobación manual de llaves por marca sin plazo y sin modelo de plataforma documentado. Por confirmar con Bold por escrito."},
     {"id": "PEN-02", "tema": "Emmett frente a appendCanonicalEvent propio", "estado": "por decidir", "nota": "Emmett trae su propio almacén de eventos para PostgreSQL; usar uno de los dos, no ambos."},
-    {"id": "PEN-03", "tema": "Host de procesos siempre encendidos", "estado": "por proponer y presupuestar", "nota": "pg-boss y los proyectores necesitan un proceso permanente que Vercel no aloja; el bot de Telegram por webhook sí puede ir en Vercel."},
-    {"id": "PEN-04", "tema": "Redis", "estado": "por presupuestar", "nota": "Proveedor y costo."},
+    {"id": "PEN-03", "tema": "Host de procesos siempre encendidos", "estado": "resuelto el 2026-10-20 (ADR-0001)", "nota": "La API y los procesos permanentes corren juntos en un host de contenedores en Virginia; ver L1_deployment_topology."},
+    {"id": "PEN-04", "tema": "Redis", "estado": "resuelto el 2026-10-20 (ADR-0001)", "nota": "Upstash en us-east-1, pago por uso: 0 dentro del nivel gratuito de 500.000 comandos al mes."},
     {"id": "PEN-05", "tema": "Google Maps", "estado": "por presupuestar o descartar", "nota": "googlemaps/js-three exige API key con facturación; el mapa base es el GLB con polígonos de OpenStreetMap."},
-    {"id": "PEN-06", "tema": "Presupuesto de producción del 17-oct", "estado": "por actualizar", "nota": "Quitar WhatsApp Cloud API; agregar Redis, host de procesos y cuentas de desarrollador de Apple y Google para la App Móvil."},
+    {"id": "PEN-06", "tema": "Presupuesto de producción del 17-oct", "estado": "por actualizar", "nota": "Quitar WhatsApp Cloud API y Vercel Pro; agregar el host de contenedores y Upstash según ADR-0001 (infraestructura estimada en US$35 a 61 al mes); agregar cuentas de desarrollador de Apple y Google para la App Móvil."},
     {"id": "PEN-07", "tema": "Validador del kernel", "estado": "por construir", "nota": "No existen el JSON Schema del kernel ni validar_grafo.py."},
     {"id": "PEN-08", "tema": "Bucle de retroalimentación del índice", "estado": "por definir", "nota": "El Índice de Relevancia usa compras y flujo, que salen de S: los líderes se refuerzan solos. Definir dentro de M el incentivo para marcas nuevas."},
     {"id": "PEN-09", "tema": "Mediciones reales", "estado": "por medir", "nota": "Los tiempos del benchmark y el techo de 800 ev/s son sintéticos; confirmarlos con prueba de carga."},
-    {"id": "PEN-10", "tema": "Parámetros abiertos de la ecuación", "estado": "por definir", "nota": "Distancia de referencia de delta_hat, pesos de psi y el umbral k de cobertura."}
+    {"id": "PEN-10", "tema": "Parámetros abiertos de la ecuación", "estado": "por definir", "nota": "Distancia de referencia de delta_hat, pesos de psi y el umbral k de cobertura."},
+    {"id": "PEN-11", "tema": "Prueba de humo de ADR-0001", "estado": "por hacer antes del 10-nov-2026", "bloquea": "la elección final del host de contenedores", "nota": "Desplegar api y worker desde una imagen; probar INV_01, INV_02 y R10; medir la latencia p95 desde Popayán (< 300 ms, T02); restaurar un respaldo de Supabase; revisar el gasto a los 7 días. Si falla, se reconsidera la opción A (VPS)."},
+    {"id": "PEN-12", "tema": "Exportación horaria de planetario_events a R2", "estado": "propuesta", "nota": "Con respaldos diarios se pueden perder hasta 24 horas de datos; exportar cada hora los eventos nuevos baja esa pérdida para el registro de eventos sin pagar la recuperación a un punto en el tiempo (US$100 al mes)."}
   ]
 }
