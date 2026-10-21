@@ -72,7 +72,10 @@ function tasasPico(p, m) {
     api_s: apiS,
     catalogo_s: apiS * p.fraccion_api_catalogo,
     pedidos_hora_pico: pedidosHoraPico,
+    pedidos_s: pedidosHoraPico / 3600,
     pedidos_abiertos: (pedidosHoraPico / 3600) * p.duracion_pedido_s, // ley de Little
+    lecturas_catalogo_base_s: apiS * p.fraccion_api_catalogo * p.fraccion_api_a_base,
+    redis_s: apiS * p.comandos_redis_por_solicitud_api,
     eventos_pedido_s: eventosPedidoS,
     eventos_negocio_s: eventosNegocioS,
     telegram_s: (pedidosHoraPico * p.mensajes_telegram_por_pedido) / 3600,
@@ -146,12 +149,32 @@ function apiIa(p, pico, mes) {
   };
 }
 
-const capacidadNodo = (id) => {
+// Capacidad μ de un nodo según cómo la declara el grafo:
+//   mu_por_s                     valor fijo
+//   mu_por_replica + servicio    capacidad por réplica × réplicas del servicio en servicios_de_despliegue
+//   nivel_anthropic              el menor de los tres límites del nivel (llamadas, tokens de entrada sin caché y de salida)
+function capacidadNodo(id, p) {
   const nodo = grafo.nodos.find((n) => n.id === id);
-  const mu = nodo?.capacidad?.mu_por_s;
-  if (typeof mu !== "number") throw new Error(`El nodo ${id} no tiene capacidad en el grafo`);
-  return { mu, nombre: nodo.nombre };
-};
+  const c = nodo?.capacidad;
+  if (!c) throw new Error(`El nodo ${id} no tiene capacidad en el grafo`);
+  if (typeof c.mu_por_s === "number") return { mu: c.mu_por_s, nombre: nodo.nombre };
+  if (typeof c.mu_por_replica === "number") {
+    const servicio = grafo.servicios_de_despliegue?.[c.servicio];
+    if (typeof servicio?.replicas !== "number") throw new Error(`El nodo ${id} usa el servicio ${c.servicio}, que no tiene réplicas en servicios_de_despliegue`);
+    return { mu: c.mu_por_replica * servicio.replicas, nombre: nodo.nombre, servicio: c.servicio, mu_por_replica: c.mu_por_replica, replicas: servicio.replicas };
+  }
+  if (c.nivel_anthropic) {
+    const n = limite("anthropic_niveles_haiku_5_5").find((x) => x.nivel === c.nivel_anthropic);
+    if (!n) throw new Error(`El nodo ${id} declara un nivel de Anthropic desconocido: ${c.nivel_anthropic}`);
+    const mu = Math.min(
+      n.rpm / 60,
+      n.itpm / (60 * p.tokens_entrada_por_llamada * (1 - p.fraccion_entrada_cacheada)),
+      n.otpm / (60 * p.tokens_salida_por_llamada),
+    );
+    return { mu, nombre: nodo.nombre, nivel_anthropic: c.nivel_anthropic };
+  }
+  throw new Error(`El nodo ${id} no declara su capacidad con mu_por_s, mu_por_replica ni nivel_anthropic`);
+}
 
 function estadoRho(rho) {
   if (rho >= 1) return "saturado";
@@ -166,8 +189,8 @@ function calcular() {
     const p = parametrosDe(e);
     const picos = { normal: tasasPico(p, 1), evento: tasasPico(p, p.factor_pico_evento) };
     const utilizacion = modelo.mapa_de_capacidad.map(({ nodo, tipo, carga }) => {
-      const { mu, nombre } = capacidadNodo(nodo);
-      const fila = { nodo, nombre, tipo, carga, mu_por_s: mu };
+      const { mu, ...cap } = capacidadNodo(nodo, p);
+      const fila = { nodo, tipo, carga, mu_por_s: mu, ...cap };
       for (const pico of PICOS) {
         fila[`lambda_${pico}`] = picos[pico][carga];
         fila[`rho_${pico}`] = picos[pico][carga] / mu;
@@ -175,8 +198,25 @@ function calcular() {
       // Capacidad necesaria para que el pico de evento quede en la utilización objetivo.
       fila.mu_requerida = fila.lambda_evento / RHO_OBJETIVO;
       fila.veces_a_escalar = fila.mu_requerida / mu;
+      if (cap.mu_por_replica) fila.replicas_necesarias = Math.max(1, Math.ceil(fila.mu_requerida / cap.mu_por_replica));
       fila.estado = estadoRho(fila.rho_evento);
       return fila;
+    });
+    // Réplicas que necesita cada servicio: las de su nodo más exigido.
+    const servicios = Object.fromEntries(
+      Object.entries(grafo.servicios_de_despliegue ?? {})
+        .filter(([, s]) => typeof s?.replicas === "number")
+        .map(([nombre, s]) => {
+          const necesarias = utilizacion.filter((u) => u.servicio === nombre).map((u) => u.replicas_necesarias);
+          return [nombre, { replicas_provistas: s.replicas, replicas_necesarias: Math.max(1, ...necesarias) }];
+        }),
+    );
+    // Tasa de cada arista mapeada: una magnitud de la hora pico por un factor estructural.
+    const aristas = (modelo.mapa_de_aristas ?? []).map(({ arista, carga, factor = 1 }) => {
+      const a = grafo.aristas.find((x) => x.id === arista);
+      if (!a) throw new Error(`La arista ${arista} del modelo no existe en el grafo`);
+      if (typeof picos.normal[carga] !== "number") throw new Error(`La carga ${carga} de la arista ${arista} no existe en el modelo`);
+      return { arista, origen: a.origen, destino: a.destino, carga, factor, tasa_normal_s: picos.normal[carga] * factor, tasa_evento_s: picos.evento[carga] * factor };
     });
     const limites = [
       { limite: "Telegram, mensajes por segundo en total", valor: limite("telegram_mensajes_s_total"), carga: "telegram_s" },
@@ -189,7 +229,7 @@ function calcular() {
       return fila;
     });
     const mes = volumenesMes(p);
-    escenarios[e] = { picos, mes, ia: apiIa(p, picos.evento, mes), utilizacion, limites };
+    escenarios[e] = { picos, mes, ia: apiIa(p, picos.evento, mes), utilizacion, servicios, aristas, limites };
   }
   return escenarios;
 }
@@ -268,6 +308,10 @@ function generarReporte(r) {
       L.push(`- En el escenario ${nombreEsc(e)}, Upstash por uso costaría US$${num(r[e].mes.costo_upstash_usd_mes)} al mes; por encima de US$${num(limite("upstash_plan_fijo_usd_mes"))} conviene evaluar su plan fijo.`);
     }
   }
+  const listaReplicas = (e) => Object.entries(r[e].servicios).map(([s, v]) => `${v.replicas_necesarias} de \`${s}\``).join(", ");
+  if (Object.keys(r.capacidad.servicios).length) {
+    L.push(`- Réplicas necesarias en el pico de capacidad: ${listaReplicas("capacidad")}. En el MVP alcanzan ${listaReplicas("mvp")}.`);
+  }
   L.push("");
 
   L.push("## Escenarios", "");
@@ -315,6 +359,19 @@ function generarReporte(r) {
       : "Ningún nodo necesita escalar.",
     "",
   );
+
+  const nombresServicios = Object.keys(r.capacidad.servicios);
+  if (nombresServicios.length) {
+    L.push("## Réplicas por servicio", "");
+    L.push(`Réplicas que necesita cada servicio para que todos sus nodos queden en ρ ≤ ${num(RHO_OBJETIVO)} en el pico de evento, frente a las provistas en \`servicios_de_despliegue\` del grafo v${grafo.version}. La capacidad de cada nodo es su capacidad por réplica por las réplicas provistas.`, "");
+    L.push(
+      tabla(
+        ["Servicio", "Réplicas provistas", ...ESCENARIOS.map((e) => `Necesarias: ${nombreEsc(e)}`)],
+        nombresServicios.map((s) => [`\`${s}\``, num(r.capacidad.servicios[s].replicas_provistas), ...ESCENARIOS.map((e) => num(r[e].servicios[s].replicas_necesarias))]),
+      ),
+      "",
+    );
+  }
 
   L.push("## API de IA", "");
   L.push(`Agente del usuario con Claude Haiku 5.5. Demanda en el pico de evento, costos y nivel mínimo de cuenta de Anthropic que la cubre con utilización ${num(RHO_OBJETIVO)} en llamadas, tokens y tope de gasto mensual. Los tokens leídos de caché no cuentan para el límite de entrada.`, "");
@@ -364,11 +421,26 @@ function generarReporte(r) {
   L.push(tabla(["Límite", "Valor", ...ESCENARIOS.map(nombreEsc)], r.mvp.limites.map((l, i) => [l.limite, num(l.valor), ...ESCENARIOS.map((e) => `${num(r[e].limites[i].uso_normal)} (${num(r[e].limites[i].uso_evento)})`)])), "");
   L.push("Fracción del límite usada en el pico normal y, entre paréntesis, en el pico de evento.", "");
 
+  if (r.mvp.aristas.length) {
+    L.push("## Tasas por arista", "");
+    L.push(`Tasa en la hora pico de cada arista del grafo v${grafo.version} que lleva carga en tiempo de ejecución, por segundo: pico normal y, entre paréntesis, pico de evento. El factor es estructural (por ejemplo, tres botones por pedido).`, "");
+    L.push(
+      tabla(
+        ["Arista", "Origen → destino", "Magnitud", "Factor", ...ESCENARIOS.map(nombreEsc)],
+        r.mvp.aristas.map((a0, i) => [a0.arista, `${a0.origen} → ${a0.destino}`, a0.carga, num(a0.factor), ...ESCENARIOS.map((e) => `${num(r[e].aristas[i].tasa_normal_s)} (${num(r[e].aristas[i].tasa_evento_s)})`)]),
+      ),
+      "",
+    );
+    const mapeadas = new Set(r.mvp.aristas.map((a) => a.arista));
+    const sinTasa = grafo.aristas.filter((a) => !mapeadas.has(a.id)).map((a) => a.id);
+    L.push(`Sin tasa modelada (${sinTasa.length}): ${sinTasa.join(", ")}. Son aristas de control y gobierno, de construcción, del cliente, de Noticias, de telemetría o de fase 2; su tasa se agrega al modelo cuando haga falta dimensionarlas.`, "");
+  }
+
   L.push("## Comparación con los supuestos anteriores", "");
   const gem = modelo.referencias_previas.gemini_fg03;
   L.push(
     tabla(
-      ["Magnitud", `Grafo v${grafo.version}`, "Gemini (FG-03)", ...ESCENARIOS.map(nombreEsc)],
+      ["Magnitud", `Grafo v${ref.version} (supuestos_pico)`, "Gemini (FG-03)", ...ESCENARIOS.map(nombreEsc)],
       [
         ["Sesiones simultáneas en pico", num(ref.concurrentes_pico), `${num(gem.concurrentes_pico[0])} a ${num(gem.concurrentes_pico[1])}`, ...ESCENARIOS.map((e) => num(r[e].picos.normal.concurrentes))],
         ["Pedidos en la hora pico", num(ref.pedidos_hora_pico), "—", ...ESCENARIOS.map((e) => num(r[e].picos.normal.pedidos_hora_pico))],
@@ -378,7 +450,7 @@ function generarReporte(r) {
     ),
     "",
   );
-  L.push(`El grafo v${grafo.version} supone ${num(ref.pedidos_hora_pico)} pedidos en la hora pico y ${num(ref.pedidos_mes)} pedidos al mes (${num(ref.pedidos_mes / 30)} por día): la hora pico tendría más pedidos que el día entero. Este modelo deriva las dos cifras de las mismas definiciones.`, "");
+  L.push(`Los supuestos_pico del grafo v${ref.version} ponían ${num(ref.pedidos_hora_pico)} pedidos en la hora pico y ${num(ref.pedidos_mes)} pedidos al mes (${num(ref.pedidos_mes / 30)} por día): la hora pico tenía más pedidos que el día entero. Este modelo los reemplazó y deriva las dos cifras de las mismas definiciones.`, "");
 
   L.push("## Por definir", "");
   const abiertos = [
