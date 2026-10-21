@@ -13,6 +13,7 @@
 |---|---|---|
 | AUD-17 | Kernel, grafo y esta auditoría confirmados en git y fusionados en `main` (PR #1, commit `bbc5595`) | 2026-10-20 |
 | AUD-12 | Topología de despliegue aprobada: [ADR-0001](../adr/ADR-0001-topologia-de-despliegue.md), opción C. Aplicada en el kernel 1.2.0 y el grafo v0.3 | 2026-10-20 |
+| AUD-11 | Modelo de carga único (v0.2): `arquitectura/modelo-de-carga.json`, calculadora en `tools/modelo-de-carga/` y [reporte](../modelo-de-carga.md), con el requisito de 10.000 sesiones simultáneas y el plan de capacidad. Las capacidades del grafo y sus supuestos se actualizan con PEN-14 | 2026-10-20 |
 
 ## Resumen ejecutivo
 
