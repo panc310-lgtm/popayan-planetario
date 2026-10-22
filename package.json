@@ -10,6 +10,7 @@
     "validar": "node tools/validar-arquitectura/validar.mjs",
     "probar": "node tools/validar-arquitectura/pruebas.mjs",
     "modelo": "node tools/modelo-de-carga/calcular.mjs",
+    "grafo": "node tools/vista-del-grafo/generar.mjs",
     "verificar": "node tools/validar-arquitectura/validar.mjs && node tools/modelo-de-carga/calcular.mjs --estricto"
   },
   "devDependencies": {

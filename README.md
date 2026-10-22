@@ -24,10 +24,12 @@ Diseño de arquitectura; la implementación no ha empezado.
 | [`arquitectura/schemas/`](arquitectura/schemas/kernel.schema.json) | JSON Schema 2020-12 de los tres archivos de arquitectura |
 | [`docs/adr/`](docs/adr/README.md) | Decisiones de arquitectura (ADR) |
 | [`docs/modelo-de-carga.md`](docs/modelo-de-carga.md) | Reporte del modelo de carga: tasas, capacidad, réplicas y costo de la IA (generado) |
+| [`docs/grafo-operacional.html`](docs/grafo-operacional.html) | Vista interactiva del grafo: lienzo de nodos, vistas por tema y recorrido de la ruta del pedido (generada; se abre en el navegador) |
 | [`docs/auditorias/`](docs/auditorias/AUD-2026-10-20-insumos-gemini.md) | Auditorías y su seguimiento |
 | [`docs/fuentes/`](docs/fuentes/README.md) | Registro de insumos: conversaciones con IA, documentos y su estado |
 | [`tools/modelo-de-carga/`](tools/modelo-de-carga/README.md) | Calculadora del modelo de carga |
 | [`tools/validar-arquitectura/`](tools/validar-arquitectura/README.md) | Validador de esquemas, estructura y referencias, con sus pruebas |
+| [`tools/vista-del-grafo/`](tools/vista-del-grafo/README.md) | Generador de la vista interactiva del grafo |
 | `blender/`, `scene_popayan.py` | Prototipo visual en Blender; desactualizado frente a las 9 galaxias (AUD-09) |
 | `.github/workflows/` | Integración continua |
 
@@ -56,6 +58,7 @@ La integración continua corre en cada pull request y en cada cambio de `main`:
 - Que el validador detecte cada tipo de error (sus propias pruebas).
 - Que los archivos generados del modelo de carga estén al día con sus parámetros y con el grafo.
 - Que ningún nodo de infraestructura quede en zona crítica en ningún escenario, incluido el requisito de 10.000 sesiones simultáneas.
+- Que la vista interactiva del grafo esté al día y que su disposición cubra todos los nodos y la ruta del pedido.
 
 Para correrlas en local, una vez:
 
@@ -77,4 +80,10 @@ Después de cambiar un parámetro del modelo o una capacidad del grafo, se regen
 
 ```bash
 node tools/modelo-de-carga/calcular.mjs
+```
+
+Después de cambiar el grafo o el modelo de carga, se regenera también la vista del grafo, que lee los resultados del modelo:
+
+```bash
+node tools/vista-del-grafo/generar.mjs
 ```

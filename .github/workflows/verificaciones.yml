@@ -43,3 +43,6 @@ jobs:
 
       - name: Capacidad para el requisito de 10.000 sesiones simultáneas
         run: node tools/modelo-de-carga/calcular.mjs --estricto
+
+      - name: Vista interactiva del grafo al día
+        run: node tools/vista-del-grafo/generar.mjs --check
