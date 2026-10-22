@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:popayan-planetario:schema:modelo-de-carga",
+  "title": "Modelo de carga de Popayán Planetario",
+  "description": "Entradas del modelo de carga: definiciones, escenarios, parámetros, límites externos y mapas hacia el grafo. Ver arquitectura/modelo-de-carga.json.",
+  "type": "object",
+  "required": [
+    "proyecto",
+    "documento",
+    "version",
+    "fecha",
+    "estado",
+    "resuelve",
+    "alineado_con",
+    "como_se_usa",
+    "definiciones",
+    "escenarios",
+    "parametros",
+    "limites_externos",
+    "mapa_de_capacidad",
+    "mapa_de_aristas",
+    "referencias_previas"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "proyecto": { "const": "Popayán Planetario" },
+    "documento": { "$ref": "#/$defs/texto" },
+    "version": { "type": "string", "pattern": "^\\d+\\.\\d+$" },
+    "fecha": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "estado": { "$ref": "#/$defs/texto" },
+    "resuelve": { "$ref": "#/$defs/texto" },
+    "alineado_con": {
+      "type": "array",
+      "prefixItems": [
+        { "type": "string", "pattern": "^arquitectura/kernel-durable\\.json \\(\\d+\\.\\d+\\.\\d+-DURABLE-KERNEL\\)$" },
+        { "type": "string", "pattern": "^arquitectura/grafo-operacional\\.json \\(\\d+\\.\\d+\\)$" }
+      ],
+      "minItems": 2,
+      "items": false
+    },
+    "como_se_usa": { "$ref": "#/$defs/texto" },
+    "definiciones": { "type": "object", "minProperties": 1, "additionalProperties": { "$ref": "#/$defs/texto" } },
+    "escenarios": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "pattern": "^[a-z_]+$" },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["nombre", "periodo", "marcas", "descripcion"],
+        "properties": {
+          "nombre": { "$ref": "#/$defs/texto" },
+          "periodo": { "$ref": "#/$defs/texto" },
+          "marcas": { "$ref": "#/$defs/texto" },
+          "descripcion": { "$ref": "#/$defs/texto" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "parametros": {
+      "type": "object",
+      "minProperties": 1,
+      "propertyNames": { "pattern": "^[a-z][a-z0-9_]*$" },
+      "additionalProperties": {
+        "type": "object",
+        "required": ["unidad", "valores", "estado", "origen", "como_se_mide"],
+        "properties": {
+          "unidad": { "$ref": "#/$defs/texto" },
+          "valores": {
+            "type": "object",
+            "minProperties": 1,
+            "additionalProperties": { "anyOf": [{ "type": "number" }, { "type": "null" }] }
+          },
+          "estado": {
+            "anyOf": [
+              { "$ref": "#/$defs/estado_parametro" },
+              { "type": "object", "minProperties": 1, "additionalProperties": { "$ref": "#/$defs/estado_parametro" } }
+            ]
+          },
+          "origen": { "$ref": "#/$defs/texto" },
+          "como_se_mide": { "$ref": "#/$defs/texto" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "limites_externos": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "object",
+        "required": ["valor", "origen"],
+        "properties": {
+          "valor": {
+            "anyOf": [
+              { "type": "number" },
+              { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nivel_de_cuenta" } }
+            ]
+          },
+          "origen": { "$ref": "#/$defs/texto" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "mapa_de_capacidad": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["nodo", "tipo", "carga", "descripcion", "palanca"],
+        "properties": {
+          "nodo": { "type": "string", "pattern": "^(N0|[GAPDX]\\d{1,2})$" },
+          "tipo": { "enum": ["infraestructura", "externo", "humano"] },
+          "carga": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "descripcion": { "$ref": "#/$defs/texto" },
+          "palanca": { "$ref": "#/$defs/texto" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "mapa_de_aristas": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["arista", "carga"],
+        "properties": {
+          "arista": { "type": "string", "pattern": "^E\\d{2}$" },
+          "carga": { "type": "string", "pattern": "^[a-z][a-z0-9_]*$" },
+          "factor": { "type": "number", "exclusiveMinimum": 0 },
+          "nota": { "$ref": "#/$defs/texto" }
+        },
+        "additionalProperties": false
+      }
+    },
+    "referencias_previas": { "type": "object" }
+  },
+  "patternProperties": {
+    "^cambios_\\d+_\\d+$": { "$ref": "#/$defs/texto" }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "texto": { "type": "string", "minLength": 1 },
+    "estado_parametro": { "enum": ["decidido", "heredado", "supuesto", "por_confirmar"] },
+    "nivel_de_cuenta": {
+      "type": "object",
+      "required": ["nivel", "rpm", "itpm", "otpm", "tope_gasto_usd_mes"],
+      "properties": {
+        "nivel": { "$ref": "#/$defs/texto" },
+        "rpm": { "type": "number", "exclusiveMinimum": 0 },
+        "itpm": { "type": "number", "exclusiveMinimum": 0 },
+        "otpm": { "type": "number", "exclusiveMinimum": 0 },
+        "tope_gasto_usd_mes": { "type": "number", "exclusiveMinimum": 0 }
+      },
+      "additionalProperties": false
+    }
+  }
+}

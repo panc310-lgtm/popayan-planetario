@@ -1,8 +1,17 @@
 {
+  "$schema": "./schemas/kernel.schema.json",
   "kernel_id": "POPAYAN_PLANETARIO_ORGANIZATIONAL_CORE",
-  "schema_version": "1.5.0-DURABLE-KERNEL",
-  "last_updated": "2026-10-21",
+  "schema_version": "1.6.1-DURABLE-KERNEL",
+  "last_updated": "2026-10-22",
   "estado": "Decisiones aprobadas por el usuario; implementación sin empezar. Lo marcado 'por definir' o 'propuesta' no está decidido.",
+  "changelog_1_6_1": [
+    "INV_01 cita la carga del modelo de carga v0.5 (48,1 eventos de negocio por segundo en el pico de capacidad, el 6 % del techo) en lugar de los 0,22 ev/s de supuestos_pico del grafo v0.3, que el modelo reemplazó.",
+    "Grafo v0.8: la verificación de R02 cita el validador real (tools/validar-arquitectura/validar.mjs, regla G4)."
+  ],
+  "changelog_1_6_0": [
+    "PEN-07 resuelto: JSON Schema 2020-12 del kernel, el grafo y el modelo de carga en arquitectura/schemas/, y validador estructural en tools/validar-arquitectura/validar.mjs, ejecutado por la integración continua.",
+    "Los tres archivos declaran su $schema."
+  ],
   "changelog_1_5_0": [
     "Verificación de pagos aprobada (ADR-0003): Bold condicionado a su aprobación escrita antes del 31-oct-2026; contingencia: confirmación manual. Nueva sección L1_payment_verification.",
     "gate_1_to_mvp ajustada a los dos caminos.",
@@ -90,12 +99,12 @@
       "N5_FULFILLMENT_SERVICES": "3 modalidades de compra + flujo de servicios (cita y anticipo por WhatsApp directo con la marca) con Verificación Automática de Pagos (proveedor por definir); el comprador ve el estado de su pedido dentro de la app",
       "N6_AUDIT_&_AI_TELEMETRY": "Telemetría JSON Senior para segunda auditoría de IA y monitoreo de latencia tau_lat(t) y fricción zonal delta_zona(t)"
     },
-    "detalle_operacional": "arquitectura/grafo-operacional.json (v0.6): nodos, aristas, servicios de despliegue, restricciones R01-R10 y telemetría T01-T23.",
-    "modelo_de_carga": "arquitectura/modelo-de-carga.json (v0.4): tasas por nodo y por arista, volúmenes, costo de la API de IA, réplicas y plan de capacidad de los escenarios MVP, capacidad objetivo (10.000 sesiones simultáneas) y diseño, calculados con tools/modelo-de-carga/calcular.mjs."
+    "detalle_operacional": "arquitectura/grafo-operacional.json (v0.8): nodos, aristas, servicios de despliegue, restricciones R01-R10 y telemetría T01-T23.",
+    "modelo_de_carga": "arquitectura/modelo-de-carga.json (v0.5): tasas por nodo y por arista, volúmenes, costo de la API de IA, réplicas y plan de capacidad de los escenarios MVP, capacidad objetivo (10.000 sesiones simultáneas) y diseño, calculados con tools/modelo-de-carga/calcular.mjs."
   },
   "L1_engineering_invariants": {
     "estado": "Diseño; sin implementar ni verificar.",
-    "INV_01_commit_order_visibility": "Asignación de posición canónica al COMMIT con trigger diferido y pg_advisory_xact_lock (techo ~800 ev/s por medir, para hechos confirmados; borradores y lecturas van por Redis). El pico estimado en grafo-operacional.json es 0,22 ev/s.",
+    "INV_01_commit_order_visibility": "Asignación de posición canónica al COMMIT con trigger diferido y pg_advisory_xact_lock (techo ~800 ev/s por medir, para hechos confirmados; borradores y lecturas van por Redis). En el pico de capacidad (10.000 sesiones simultáneas) el modelo de carga v0.5 estima 48,1 eventos de negocio por segundo, el 6 % de ese techo (docs/modelo-de-carga.md).",
     "INV_02_canonical_event_writer": "Puerto único appendCanonicalEvent. La idempotencia usa una clave determinista de la fuente: update_id o callback_query.id de Telegram, id del evento del proveedor de pagos, o encabezado Idempotency-Key del cliente reutilizado en cada reintento. UNIQUE(idempotency_key) y comparación JSONB del payload para detectar una clave reutilizada con otro contenido. event_id = UUIDv7 generado en la app (PostgreSQL 17 de Supabase no trae uuidv7(); llegó en la versión 18).",
     "INV_03_poison_event_isolation": "Procesamiento en proyectores bajo SAVEPOINT individual; desvío a dead-letter sin frenar a las demás marcas y cortacircuitos en lotes de hasta 60 eventos.",
     "INV_04_three_failure_clocks": "Separación estricta de contadores: attempts (negocio), transient_failures (contención SQL con backoff exponencial) y lease_expiries (infraestructura).",
@@ -198,7 +207,7 @@
     {"id": "PEN-04", "tema": "Redis", "estado": "resuelto el 2026-10-20 (ADR-0001)", "nota": "Upstash en us-east-1, pago por uso: 0 dentro del nivel gratuito de 500.000 comandos al mes."},
     {"id": "PEN-05", "tema": "Google Maps", "estado": "por presupuestar o descartar", "nota": "googlemaps/js-three exige API key con facturación; el mapa base es el GLB con polígonos de OpenStreetMap."},
     {"id": "PEN-06", "tema": "Presupuesto de producción del 17-oct", "estado": "por actualizar", "nota": "Quitar WhatsApp Cloud API y Vercel Pro; agregar el host de contenedores y Upstash según ADR-0001 (infraestructura estimada en US$35 a 61 al mes); agregar cuentas de desarrollador de Apple y Google para la App Móvil."},
-    {"id": "PEN-07", "tema": "Validador del kernel", "estado": "por construir", "nota": "No existen el JSON Schema del kernel ni validar_grafo.py."},
+    {"id": "PEN-07", "tema": "Validador del kernel", "estado": "resuelto el 2026-10-21", "nota": "JSON Schema 2020-12 en arquitectura/schemas/ y validador en tools/validar-arquitectura/validar.mjs (Ajv 8 más reglas estructurales y de referencias); la integración continua lo ejecuta en cada pull request."},
     {"id": "PEN-08", "tema": "Bucle de retroalimentación del índice", "estado": "por definir", "nota": "El Índice de Relevancia usa compras y flujo, que salen de S: los líderes se refuerzan solos. Definir dentro de M el incentivo para marcas nuevas."},
     {"id": "PEN-09", "tema": "Mediciones reales", "estado": "por medir", "nota": "Los tiempos del benchmark y el techo de 800 ev/s son sintéticos; confirmarlos con prueba de carga."},
     {"id": "PEN-10", "tema": "Parámetros abiertos de la ecuación", "estado": "por definir", "nota": "Distancia de referencia de delta_hat, pesos de psi y el umbral k de cobertura."},

@@ -27,16 +27,22 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
+          cache: npm
 
-      - name: JSON válidos en arquitectura/
-        run: |
-          for f in arquitectura/*.json; do
-            node -e 'JSON.parse(require("node:fs").readFileSync(process.argv[1], "utf8"))' "$f"
-            echo "OK $f"
-          done
+      - name: Dependencias exactas del lockfile
+        run: npm ci --no-audit --no-fund
+
+      - name: Esquemas, estructura y referencias de la arquitectura
+        run: node tools/validar-arquitectura/validar.mjs
+
+      - name: Pruebas del validador
+        run: node tools/validar-arquitectura/pruebas.mjs
 
       - name: Archivos generados del modelo de carga al día
         run: node tools/modelo-de-carga/calcular.mjs --check
 
       - name: Capacidad para el requisito de 10.000 sesiones simultáneas
         run: node tools/modelo-de-carga/calcular.mjs --estricto
+
+      - name: Vista interactiva del grafo al día
+        run: node tools/vista-del-grafo/generar.mjs --check

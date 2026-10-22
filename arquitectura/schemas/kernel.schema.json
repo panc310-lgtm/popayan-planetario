@@ -1,0 +1,203 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:popayan-planetario:schema:kernel",
+  "title": "Kernel durable de Popayán Planetario",
+  "description": "Decisiones aprobadas, invariantes, despliegue, arquitectura y pendientes. Ver arquitectura/kernel-durable.json.",
+  "type": "object",
+  "required": [
+    "kernel_id",
+    "schema_version",
+    "last_updated",
+    "estado",
+    "governance_law",
+    "architectural_separation_guardrail",
+    "L0_mathematical_and_graph_core",
+    "L1_engineering_invariants",
+    "L2_product_stages_and_v1_1_rules",
+    "L3_distilled_sota_mapping",
+    "pendientes"
+  ],
+  "properties": {
+    "$schema": { "type": "string" },
+    "kernel_id": { "const": "POPAYAN_PLANETARIO_ORGANIZATIONAL_CORE" },
+    "schema_version": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+-DURABLE-KERNEL$" },
+    "last_updated": { "$ref": "#/$defs/fecha" },
+    "estado": { "$ref": "#/$defs/texto" },
+    "governance_law": { "$ref": "#/$defs/texto" },
+    "architectural_separation_guardrail": {
+      "type": "object",
+      "required": ["product_under_construction", "learning_reference_only"],
+      "properties": {
+        "product_under_construction": { "$ref": "#/$defs/texto" },
+        "learning_reference_only": { "$ref": "#/$defs/texto" }
+      },
+      "additionalProperties": false
+    },
+    "L0_mathematical_and_graph_core": {
+      "type": "object",
+      "required": [
+        "master_unified_equation",
+        "simbolos",
+        "dominio",
+        "calculation_engines_selected",
+        "selected_graph_topology",
+        "operational_nodes",
+        "detalle_operacional",
+        "modelo_de_carga"
+      ],
+      "properties": {
+        "master_unified_equation": {
+          "type": "object",
+          "required": ["definicion", "nucleo_de_flujo", "identidad_de_calculo"],
+          "properties": {
+            "definicion": { "$ref": "#/$defs/texto" },
+            "nucleo_de_flujo": { "$ref": "#/$defs/texto" },
+            "identidad_de_calculo": { "$ref": "#/$defs/texto" },
+            "eficiencia_propuesta": { "type": "object" }
+          },
+          "additionalProperties": false
+        },
+        "simbolos": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "$ref": "#/$defs/texto" }
+        },
+        "dominio": {
+          "type": "object",
+          "required": ["escala_de_diseno", "escala_mvp", "capacidad_requerida"],
+          "properties": {
+            "escala_de_diseno": { "$ref": "#/$defs/texto" },
+            "escala_mvp": { "$ref": "#/$defs/texto" },
+            "capacidad_requerida": { "$ref": "#/$defs/texto" }
+          },
+          "additionalProperties": { "$ref": "#/$defs/texto" }
+        },
+        "calculation_engines_selected": {
+          "type": "object",
+          "additionalProperties": { "$ref": "#/$defs/texto" }
+        },
+        "selected_graph_topology": { "$ref": "#/$defs/texto" },
+        "operational_nodes": {
+          "type": "object",
+          "required": [
+            "N0_ORG_CORE",
+            "N1_SPATIAL_DISCOVERY",
+            "N2_BRAND_ORCHESTRATOR",
+            "N3_EVENT_BROKER_ENGINE",
+            "N4_MATCHING_&_CATALOG_INDEX",
+            "N5_FULFILLMENT_SERVICES",
+            "N6_AUDIT_&_AI_TELEMETRY"
+          ],
+          "properties": {
+            "N0_ORG_CORE": { "$ref": "#/$defs/texto" },
+            "N1_SPATIAL_DISCOVERY": { "$ref": "#/$defs/texto" },
+            "N2_BRAND_ORCHESTRATOR": { "$ref": "#/$defs/texto" },
+            "N3_EVENT_BROKER_ENGINE": { "$ref": "#/$defs/texto" },
+            "N4_MATCHING_&_CATALOG_INDEX": { "$ref": "#/$defs/texto" },
+            "N5_FULFILLMENT_SERVICES": { "$ref": "#/$defs/texto" },
+            "N6_AUDIT_&_AI_TELEMETRY": { "$ref": "#/$defs/texto" }
+          },
+          "propertyNames": { "pattern": "^N[0-9]_[A-Z0-9_&]+$" },
+          "additionalProperties": { "$ref": "#/$defs/texto" }
+        },
+        "detalle_operacional": { "$ref": "#/$defs/texto" },
+        "modelo_de_carga": { "$ref": "#/$defs/texto" }
+      },
+      "additionalProperties": false
+    },
+    "L1_engineering_invariants": {
+      "type": "object",
+      "required": ["estado"],
+      "properties": { "estado": { "$ref": "#/$defs/texto" } },
+      "patternProperties": { "^INV_\\d{2}_[a-z0-9_]+$": { "$ref": "#/$defs/texto" } },
+      "additionalProperties": false
+    },
+    "L2_product_stages_and_v1_1_rules": {
+      "type": "object",
+      "required": ["stage_gates", "reglas_nucleo", "spatial_and_visual_budgets", "privacy_and_agent_guardrails"],
+      "properties": {
+        "stage_gates": {
+          "type": "object",
+          "required": ["stage_1_mockup", "gate_1_to_mvp", "stage_2_mvp_v1_1", "gate_2_to_final", "stage_3_final_product"],
+          "properties": {
+            "stage_1_mockup": { "$ref": "#/$defs/texto" },
+            "gate_1_to_mvp": { "$ref": "#/$defs/texto" },
+            "stage_2_mvp_v1_1": { "$ref": "#/$defs/texto" },
+            "gate_2_to_final": { "$ref": "#/$defs/texto" },
+            "stage_3_final_product": { "$ref": "#/$defs/texto" }
+          },
+          "additionalProperties": false
+        },
+        "reglas_nucleo": { "type": "object", "additionalProperties": { "$ref": "#/$defs/texto" } },
+        "spatial_and_visual_budgets": { "type": "object", "additionalProperties": { "$ref": "#/$defs/texto" } },
+        "privacy_and_agent_guardrails": { "type": "object", "additionalProperties": { "$ref": "#/$defs/texto" } }
+      },
+      "additionalProperties": false
+    },
+    "L3_distilled_sota_mapping": {
+      "type": "object",
+      "required": ["verificacion", "herramientas_de_desarrollo"],
+      "properties": {
+        "verificacion": { "$ref": "#/$defs/texto" },
+        "herramientas_de_desarrollo": {
+          "type": "object",
+          "required": ["descripcion", "repos"],
+          "properties": {
+            "descripcion": { "$ref": "#/$defs/texto" },
+            "repos": { "type": "array", "items": { "$ref": "#/$defs/repositorio" } }
+          },
+          "additionalProperties": false
+        }
+      },
+      "patternProperties": {
+        "^N[0-9]_[A-Z0-9_&]+$": { "type": "array", "items": { "$ref": "#/$defs/repositorio" } }
+      },
+      "additionalProperties": false
+    },
+    "pendientes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "tema", "estado", "nota"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^PEN-\\d{2}$" },
+          "tema": { "$ref": "#/$defs/texto" },
+          "estado": { "$ref": "#/$defs/texto" },
+          "bloquea": { "$ref": "#/$defs/texto" },
+          "nota": { "$ref": "#/$defs/texto" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "patternProperties": {
+    "^changelog_\\d+_\\d+_\\d+$": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/texto" }
+    },
+    "^L1_(?!engineering_invariants$)[a-z_]+$": { "$ref": "#/$defs/seccion_con_adr" }
+  },
+  "additionalProperties": false,
+  "$defs": {
+    "texto": { "type": "string", "minLength": 1 },
+    "fecha": { "type": "string", "pattern": "^\\d{4}-\\d{2}-\\d{2}$" },
+    "repositorio": { "type": "string", "pattern": "^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+( \\(.+\\))?$" },
+    "seccion_con_adr": {
+      "description": "Sección del kernel que registra una decisión de arquitectura aprobada en un ADR.",
+      "type": "object",
+      "required": ["adr", "estado"],
+      "properties": {
+        "adr": { "type": "string", "pattern": "^docs/adr/ADR-\\d{4}-[a-z0-9-]+\\.md$" },
+        "estado": { "$ref": "#/$defs/texto" }
+      },
+      "additionalProperties": {
+        "anyOf": [
+          { "$ref": "#/$defs/texto" },
+          { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/texto" } }
+        ]
+      }
+    }
+  }
+}
