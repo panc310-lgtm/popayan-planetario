@@ -7,8 +7,8 @@
   "estado": "propuesta",
   "resuelve": "AUD-11",
   "alineado_con": [
-    "arquitectura/kernel-durable.json (1.6.0-DURABLE-KERNEL)",
-    "arquitectura/grafo-operacional.json (0.7)"
+    "arquitectura/kernel-durable.json (1.6.1-DURABLE-KERNEL)",
+    "arquitectura/grafo-operacional.json (0.8)"
   ],
   "cambios_0_5": "Declara su $schema (arquitectura/schemas/modelo-de-carga.schema.json); lo valida tools/validar-arquitectura/validar.mjs.",
   "cambios_0_4": "Plan de capacidad aplicado al grafo v0.5 (PEN-14): la capacidad de los nodos de api, worker y agentes sale de su capacidad por réplica por las réplicas del servicio; la de la API de IA, del nivel de cuenta de Anthropic. Las tasas de las aristas que llevan carga salen de este modelo (mapa_de_aristas) y reemplazan a supuestos_pico.",

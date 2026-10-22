@@ -1,8 +1,8 @@
 # Modelo de carga — resultados
 
-> Generado por `tools/modelo-de-carga/calcular.mjs` desde `arquitectura/modelo-de-carga.json` (v0.5) y `arquitectura/grafo-operacional.json` (v0.7). No se edita a mano: se cambian los parámetros y se vuelve a ejecutar.
+> Generado por `tools/modelo-de-carga/calcular.mjs` desde `arquitectura/modelo-de-carga.json` (v0.5) y `arquitectura/grafo-operacional.json` (v0.8). No se edita a mano: se cambian los parámetros y se vuelve a ejecutar.
 
-El requisito es sostener **10.000 sesiones simultáneas**. Con las capacidades actuales del grafo v0.7, ningún nodo de infraestructura queda en zona crítica en ese pico. Como referencia, el uso esperado es de 2,7 sesiones simultáneas en una hora pico normal del MVP, 45,9 el día de lanzamiento y 90 en el escenario de diseño.
+El requisito es sostener **10.000 sesiones simultáneas**. Con las capacidades actuales del grafo v0.8, ningún nodo de infraestructura queda en zona crítica en ese pico. Como referencia, el uso esperado es de 2,7 sesiones simultáneas en una hora pico normal del MVP, 45,9 el día de lanzamiento y 90 en el escenario de diseño.
 
 ## Lectura
 
@@ -40,7 +40,7 @@ Pico normal y, entre paréntesis, pico de evento. En el escenario de capacidad l
 
 ## Plan de capacidad
 
-Capacidad μ que necesita cada nodo para que el pico de evento más alto de los tres escenarios quede en ρ = 0,7, frente a la μ actual del grafo v0.7. Solo se listan los nodos que hay que escalar.
+Capacidad μ que necesita cada nodo para que el pico de evento más alto de los tres escenarios quede en ρ = 0,7, frente a la μ actual del grafo v0.8. Solo se listan los nodos que hay que escalar.
 
 | Nodo | Tipo | Escenario | Carga en el pico por segundo | μ actual | μ requerida | Veces | Cómo se escala |
 |---|---|---|---|---|---|---|---|
@@ -48,7 +48,7 @@ Capacidad μ que necesita cada nodo para que el pico de evento más alto de los 
 
 ## Réplicas por servicio
 
-Réplicas que necesita cada servicio para que todos sus nodos queden en ρ ≤ 0,7 en el pico de evento, frente a las provistas en `servicios_de_despliegue` del grafo v0.7. La capacidad de cada nodo es su capacidad por réplica por las réplicas provistas.
+Réplicas que necesita cada servicio para que todos sus nodos queden en ρ ≤ 0,7 en el pico de evento, frente a las provistas en `servicios_de_despliegue` del grafo v0.8. La capacidad de cada nodo es su capacidad por réplica por las réplicas provistas.
 
 | Servicio | Réplicas provistas | Necesarias: MVP | Necesarias: Capacidad objetivo | Necesarias: Diseño |
 |---|---|---|---|---|
@@ -72,7 +72,7 @@ Agente del usuario con Claude Haiku 5.5. Demanda en el pico de evento, costos y 
 
 ## Utilización de los nodos del grafo
 
-Utilización ρ = carga / capacidad actual del nodo (μ en el grafo v0.7). Alerta desde 0,7, crítico desde 0,9 (T01). Pico normal y, entre paréntesis, pico de evento; el estado corresponde al pico de evento.
+Utilización ρ = carga / capacidad actual del nodo (μ en el grafo v0.8). Alerta desde 0,7, crítico desde 0,9 (T01). Pico normal y, entre paréntesis, pico de evento; el estado corresponde al pico de evento.
 
 | Nodo | Tipo | μ por segundo | MVP | Capacidad objetivo | Diseño | Estado más alto |
 |---|---|---|---|---|---|---|
@@ -118,7 +118,7 @@ Fracción del límite usada en el pico normal y, entre paréntesis, en el pico d
 
 ## Tasas por arista
 
-Tasa en la hora pico de cada arista del grafo v0.7 que lleva carga en tiempo de ejecución, por segundo: pico normal y, entre paréntesis, pico de evento. El factor es estructural (por ejemplo, tres botones por pedido).
+Tasa en la hora pico de cada arista del grafo v0.8 que lleva carga en tiempo de ejecución, por segundo: pico normal y, entre paréntesis, pico de evento. El factor es estructural (por ejemplo, tres botones por pedido).
 
 | Arista | Origen → destino | Magnitud | Factor | MVP | Capacidad objetivo | Diseño |
 |---|---|---|---|---|---|---|
