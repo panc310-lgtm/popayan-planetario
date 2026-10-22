@@ -17,6 +17,7 @@
 | AUD-19 | `README`, `.gitignore` y `.gitattributes` agregados; finales de línea LF; archivos 3D en Git LFS; ramas fusionadas borradas. Quedan el nombre de `blender/Sin_nombre.blend` y la ubicación de `scene_popayan.py` | 2026-10-21 |
 | AUD-20 | JSON Schema 2020-12 de los tres archivos y validador estructural y de referencias con 16 pruebas, en la integración continua (PEN-07). La regla de bloqueo del grafo se hace cumplir en cada PR | 2026-10-21 |
 | AUD-16 | Parcial: el validador exige que las versiones citadas entre el kernel, el grafo y el modelo coincidan y que cada versión tenga su changelog. La separación entre versión de producto y de esquema sigue como propuesta | 2026-10-21 |
+| AUD-04 | La conversación de origen se aportó como [FG-04](../fuentes/gemini/FG-04-estado-del-arte-repositorios.md) (`base durable 2.1.pdf`): contiene la ecuación `S_Planetario` con `Ω0`, el kernel `1.1.0-DURABLE-KERNEL` y los 11 repositorios del registro L3. Sus JSON siguen truncados en el PDF | 2026-10-22 |
 | AUD-11 | Modelo de carga único (v0.2): `arquitectura/modelo-de-carga.json`, calculadora en `tools/modelo-de-carga/` y [reporte](../modelo-de-carga.md), con el requisito de 10.000 sesiones simultáneas y el plan de capacidad. Desde el 2026-10-21 el grafo v0.5 toma sus tasas del modelo v0.4 y cumple el requisito en diseño (PEN-14; falta la prueba de carga) | 2026-10-20 |
 
 ## Resumen ejecutivo

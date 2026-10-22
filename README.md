@@ -27,6 +27,7 @@ Diseño de arquitectura; la implementación no ha empezado.
 | [`docs/grafo-operacional.html`](docs/grafo-operacional.html) | Vista interactiva del grafo: lienzo de nodos, vistas por tema y recorrido de la ruta del pedido (generada; se abre en el navegador) |
 | [`docs/auditorias/`](docs/auditorias/AUD-2026-10-20-insumos-gemini.md) | Auditorías y su seguimiento |
 | [`docs/fuentes/`](docs/fuentes/README.md) | Registro de insumos: conversaciones con IA, documentos y su estado |
+| [`docs/investigacion/`](docs/investigacion/README.md) | Investigaciones de estado del arte que preparan decisiones, con su verificación |
 | [`tools/modelo-de-carga/`](tools/modelo-de-carga/README.md) | Calculadora del modelo de carga |
 | [`tools/validar-arquitectura/`](tools/validar-arquitectura/README.md) | Validador de esquemas, estructura y referencias, con sus pruebas |
 | [`tools/vista-del-grafo/`](tools/vista-del-grafo/README.md) | Generador de la vista interactiva del grafo |
