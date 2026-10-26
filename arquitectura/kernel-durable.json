@@ -1,9 +1,15 @@
 {
   "$schema": "./schemas/kernel.schema.json",
   "kernel_id": "POPAYAN_PLANETARIO_ORGANIZATIONAL_CORE",
-  "schema_version": "1.6.1-DURABLE-KERNEL",
-  "last_updated": "2026-10-22",
+  "schema_version": "1.7.0-DURABLE-KERNEL",
+  "last_updated": "2026-10-26",
   "estado": "Decisiones aprobadas por el usuario; implementación sin empezar. Lo marcado 'por definir' o 'propuesta' no está decidido.",
+  "changelog_1_7_0": [
+    "AGENTS.md en la raíz del repositorio, importado por CLAUDE.md, es la constitución operativa: rige al agente de ingeniería y baja L1_agent_architecture a reglas de construcción para P7, P8 y P13, con el detalle en docs/agentes/. Si contradice a este kernel o a un ADR, prevalecen estos. Sus valores marcados como propuestos quedan en PEN-16.",
+    "P13, motor de decisión, aprobado por el usuario el 2026-10-26: ejecuta real_time_production en el servicio worker y publica los vectores Π en D4, sin modelos de IA. Grafo v0.9 y modelo de carga v0.6.",
+    "INV_07: lecturas y escrituras separadas por puerto (MasterWriteDatabasePort y SlaveReadDatabasePort, este último precedido por la caché de D4) sobre la misma base D1. La réplica de lectura sigue siendo una palanca, sin cambios en ADR-0001.",
+    "PEN-08 sigue abierto: Theta_s y el desvío de rule_02 atienden la saturación, no el arranque de las marcas nuevas. ADR-0004 (propuesta) compara incentivos y T26 mide la concentración por nicho."
+  ],
   "changelog_1_6_1": [
     "INV_01 cita la carga del modelo de carga v0.5 (48,1 eventos de negocio por segundo en el pico de capacidad, el 6 % del techo) en lugar de los 0,22 ev/s de supuestos_pico del grafo v0.3, que el modelo reemplazó.",
     "Grafo v0.8: la verificación de R02 cita el validador real (tools/validar-arquitectura/validar.mjs, regla G4)."
@@ -87,7 +93,8 @@
     "calculation_engines_selected": {
       "real_time_production": "Fold/Reduce incremental por evento confirmado (acumulador dx en PostgreSQL 17 de Supabase + Redis de Upstash). Benchmark sintético: 0.059 a 1.711 ms (1k a 50k usuarios); pendiente medir con datos reales.",
       "biweekly_90d_reputation_batch": "Agregación SQL exacta (SUM/COUNT sobre la ventana de 90 días) particionada por galaxia, nicho y marca, publicada cada 15 días. Simpson / Gauss-Legendre solo para simular lambda(t) continua en proyecciones.",
-      "client_spatial_interpolation": "Float32Array pre-reducido en Redis + THREE.InstancedMesh y Shaders GLSL en GPU"
+      "client_spatial_interpolation": "Float32Array pre-reducido en Redis + THREE.InstancedMesh y Shaders GLSL en GPU",
+      "decision_vectors_p13": "Aprobado por el usuario el 2026-10-26. P13 (servicio worker) corre real_time_production sobre los eventos confirmados del bus y publica en D4 un vector Π por galaxia, nicho y franja horaria: agregados públicos por marca (posición en el índice, calificación agregada, recompra), carga L_m(t), Theta_s y mu_m^Tg, con la posición del registro de eventos que refleja. Aplica rule_02: amortigua con Theta_s y señala alternas del mismo nicho y galaxia con calificación de al menos 4,0 para el desvío; en el MVP, con una marca por nicho, no hay alternas y rige la pausa automática (R06). Lee D3 a través del bus y las tablas públicas de D1; no escribe en D3. Cero llamadas a modelos. Detalle en docs/agentes/p13-motor-decision.md."
     },
     "selected_graph_topology": "Grafo 3: Grafo Multicapa Híbrido (Capa 0 Gobernanza N0 + Capa 1 Bipartita Espacial 9 Galaxias + Capa 2 Sub-Grafo DAG Transaccional con Pago Automático (proveedor por definir) y Telegram)",
     "operational_nodes": {
@@ -99,17 +106,18 @@
       "N5_FULFILLMENT_SERVICES": "3 modalidades de compra + flujo de servicios (cita y anticipo por WhatsApp directo con la marca) con Verificación Automática de Pagos (proveedor por definir); el comprador ve el estado de su pedido dentro de la app",
       "N6_AUDIT_&_AI_TELEMETRY": "Telemetría JSON Senior para segunda auditoría de IA y monitoreo de latencia tau_lat(t) y fricción zonal delta_zona(t)"
     },
-    "detalle_operacional": "arquitectura/grafo-operacional.json (v0.8): nodos, aristas, servicios de despliegue, restricciones R01-R10 y telemetría T01-T23.",
-    "modelo_de_carga": "arquitectura/modelo-de-carga.json (v0.5): tasas por nodo y por arista, volúmenes, costo de la API de IA, réplicas y plan de capacidad de los escenarios MVP, capacidad objetivo (10.000 sesiones simultáneas) y diseño, calculados con tools/modelo-de-carga/calcular.mjs."
+    "detalle_operacional": "arquitectura/grafo-operacional.json (v0.9): nodos, aristas, servicios de despliegue, restricciones R01-R10 y telemetría T01-T26.",
+    "modelo_de_carga": "arquitectura/modelo-de-carga.json (v0.6): tasas por nodo y por arista, volúmenes, costo de la API de IA, réplicas y plan de capacidad de los escenarios MVP, capacidad objetivo (10.000 sesiones simultáneas) y diseño, calculados con tools/modelo-de-carga/calcular.mjs."
   },
   "L1_engineering_invariants": {
     "estado": "Diseño; sin implementar ni verificar.",
-    "INV_01_commit_order_visibility": "Asignación de posición canónica al COMMIT con trigger diferido y pg_advisory_xact_lock (techo ~800 ev/s por medir, para hechos confirmados; borradores y lecturas van por Redis). En el pico de capacidad (10.000 sesiones simultáneas) el modelo de carga v0.5 estima 48,1 eventos de negocio por segundo, el 6 % de ese techo (docs/modelo-de-carga.md).",
+    "INV_01_commit_order_visibility": "Asignación de posición canónica al COMMIT con trigger diferido y pg_advisory_xact_lock (techo ~800 ev/s por medir, para hechos confirmados; borradores y lecturas van por Redis). En el pico de capacidad (10.000 sesiones simultáneas) el modelo de carga v0.6 estima 48,1 eventos de negocio por segundo, el 6 % de ese techo (docs/modelo-de-carga.md).",
     "INV_02_canonical_event_writer": "Puerto único appendCanonicalEvent. La idempotencia usa una clave determinista de la fuente: update_id o callback_query.id de Telegram, id del evento del proveedor de pagos, o encabezado Idempotency-Key del cliente reutilizado en cada reintento. UNIQUE(idempotency_key) y comparación JSONB del payload para detectar una clave reutilizada con otro contenido. event_id = UUIDv7 generado en la app (PostgreSQL 17 de Supabase no trae uuidv7(); llegó en la versión 18).",
     "INV_03_poison_event_isolation": "Procesamiento en proyectores bajo SAVEPOINT individual; desvío a dead-letter sin frenar a las demás marcas y cortacircuitos en lotes de hasta 60 eventos.",
     "INV_04_three_failure_clocks": "Separación estricta de contadores: attempts (negocio), transient_failures (contención SQL con backoff exponencial) y lease_expiries (infraestructura).",
     "INV_05_external_io_decoupling": "Prohibición absoluta de retener conexiones SQL abiertas durante llamadas HTTP a pasarelas de pago, API de Telegram o inferencia de LLMs.",
-    "INV_06_pure_hexagonal_ports": "Inversión de dependencias estricta: packages/domain y packages/ports jamás importan Fastify, pg, grammY ni SDKs externos."
+    "INV_06_pure_hexagonal_ports": "Inversión de dependencias estricta: packages/domain y packages/ports jamás importan Fastify, pg, grammY ni SDKs externos.",
+    "INV_07_cqrs_ports_single_base": "Aprobado por el usuario el 2026-10-26. Toda mutación pasa por MasterWriteDatabasePort y toda consulta de catálogo, exploración e hidratación de agentes por SlaveReadDatabasePort, precedido por la caché de D4. Los dos puertos usan pools de conexión propios hacia la misma base D1 (pooler de Supabase en modo sesión, ADR-0001): mientras no se apruebe una réplica de lectura, el adaptador de lectura apunta a la base principal, y cuando se agregue, cambia el adaptador y no el dominio."
   },
   "L1_deployment_topology": {
     "adr": "docs/adr/ADR-0001-topologia-de-despliegue.md",
@@ -145,7 +153,8 @@
     "aprobacion_humana": "interrupt() pausa el grafo; la API ejecuta el comando del dominio con la sesión de la persona y el grafo se reanuda con Command({ resume }). Lo que un nodo hace antes de pausar es idempotente.",
     "concurrencia": "Un turno a la vez por conversación con un candado en Upstash; semáforo de llamadas al modelo por instancia; límite de turnos por usuario; degradación a búsqueda clásica cerca del límite de la API de IA.",
     "presupuesto": "1,5 llamadas al modelo por turno en promedio; p95 del agente menor a 6 s (T03).",
-    "servicio": "agentes, en la imagen de ADR-0001, escalado aparte de api."
+    "servicio": "agentes, en la imagen de ADR-0001, escalado aparte de api.",
+    "constitucion_operativa": "AGENTS.md (raíz del repositorio) y docs/agentes/: plano-b-runtime.md, p7-agente-usuario.md, p8-agente-marca.md y p13-motor-decision.md bajan esta sección a reglas de construcción. Ante un conflicto prevalecen este kernel y ADR-0002."
   },
   "L1_payment_verification": {
     "adr": "docs/adr/ADR-0003-verificacion-de-pagos.md",
@@ -208,13 +217,14 @@
     {"id": "PEN-05", "tema": "Google Maps", "estado": "por presupuestar o descartar", "nota": "googlemaps/js-three exige API key con facturación; el mapa base es el GLB con polígonos de OpenStreetMap."},
     {"id": "PEN-06", "tema": "Presupuesto de producción del 17-oct", "estado": "por actualizar", "nota": "Quitar WhatsApp Cloud API y Vercel Pro; agregar el host de contenedores y Upstash según ADR-0001 (infraestructura estimada en US$35 a 61 al mes); agregar cuentas de desarrollador de Apple y Google para la App Móvil."},
     {"id": "PEN-07", "tema": "Validador del kernel", "estado": "resuelto el 2026-10-21", "nota": "JSON Schema 2020-12 en arquitectura/schemas/ y validador en tools/validar-arquitectura/validar.mjs (Ajv 8 más reglas estructurales y de referencias); la integración continua lo ejecuta en cada pull request."},
-    {"id": "PEN-08", "tema": "Bucle de retroalimentación del índice", "estado": "por definir", "nota": "El Índice de Relevancia usa compras y flujo, que salen de S: los líderes se refuerzan solos. Definir dentro de M el incentivo para marcas nuevas."},
+    {"id": "PEN-08", "tema": "Bucle de retroalimentación del índice", "estado": "en curso: ADR-0004 en propuesta desde el 2026-10-26", "bloquea": "la cartera de 100 marcas del lanzamiento oficial (gate_2_to_final); en el MVP hay una marca por nicho y no compiten", "nota": "El Índice de Relevancia usa compras y flujo, que salen de S: los líderes se refuerzan solos. Definir dentro de M el incentivo para marcas nuevas. Theta_s y el desvío de rule_02 no lo resuelven: actúan solo con la marca saturada y el desvío exige calificación de al menos 4,0, que una marca nueva aún no tiene. docs/adr/ADR-0004-incentivo-marcas-nuevas.md compara opciones; T26 mide la concentración por nicho y E70 la lleva a G1."},
     {"id": "PEN-09", "tema": "Mediciones reales", "estado": "por medir", "nota": "Los tiempos del benchmark y el techo de 800 ev/s son sintéticos; confirmarlos con prueba de carga."},
     {"id": "PEN-10", "tema": "Parámetros abiertos de la ecuación", "estado": "por definir", "nota": "Distancia de referencia de delta_hat, pesos de psi y el umbral k de cobertura."},
     {"id": "PEN-11", "tema": "Prueba de humo de ADR-0001", "estado": "por hacer antes del 10-nov-2026", "bloquea": "la elección final del host de contenedores", "nota": "Desplegar api y worker desde una imagen; probar INV_01, INV_02 y R10; medir la latencia p95 desde Popayán (< 300 ms, T02); restaurar un respaldo de Supabase; revisar el gasto a los 7 días. Si falla, se reconsidera la opción A (VPS)."},
     {"id": "PEN-12", "tema": "Exportación horaria de planetario_events a R2", "estado": "propuesta", "nota": "Con respaldos diarios se pueden perder hasta 24 horas de datos; exportar cada hora los eventos nuevos baja esa pérdida para el registro de eventos sin pagar la recuperación a un punto en el tiempo (US$100 al mes)."},
     {"id": "PEN-13", "tema": "Parámetros del modelo de carga por confirmar", "estado": "resuelto el 2026-10-20, salvo el número de nichos del MVP", "nota": "El usuario fijó 1.000 usuarios el día de lanzamiento del MVP y el requisito de 10.000 sesiones simultáneas. El número de nichos no cambia las tasas del sistema, solo la carga por marca. El resto de supuestos se calibra con la telemetría del MVP."},
     {"id": "PEN-14", "tema": "Plan de capacidad para 10.000 sesiones simultáneas", "estado": "aplicado al grafo v0.5 el 2026-10-21; falta confirmarlo con prueba de carga", "bloquea": "el lanzamiento oficial", "nota": "El grafo v0.5 cumple el requisito en diseño: api 4 réplicas, worker 2, agentes 5, D1 con objetivo de 1.900 operaciones por segundo y la API de IA en nivel Scale; calcular.mjs --estricto pasa. Falta: (1) prueba de carga de 10.000 sesiones que confirme la capacidad por réplica y el tamaño de cómputo de Supabase; (2) solicitar a Anthropic el nivel Scale antes del lanzamiento oficial (unas 2.970 llamadas por minuto; una cuenta nueva empieza más abajo); (3) estimar el costo de infraestructura en el pico, que el presupuesto de ADR-0001 (US$35 a 61 al mes) no incluye porque supone una réplica por servicio y cómputo Micro."},
-    {"id": "PEN-15", "tema": "Arquitectura multiagente sobre el núcleo de dominio central", "estado": "resuelto el 2026-10-21 (ADR-0002, opción C); ver L1_agent_architecture", "nota": "Objetivo del usuario (2026-10-20): los agentes de IA cumplen sus objetivos operando solo mediante comandos del núcleo de dominio (N0, hexagonal), con ingeniería multiagente. Definir agentes, herramientas, límites, orquestación y cómo escalan al pico de 10.000 sesiones (P7 y X3 son los nodos más exigidos)."}
+    {"id": "PEN-15", "tema": "Arquitectura multiagente sobre el núcleo de dominio central", "estado": "resuelto el 2026-10-21 (ADR-0002, opción C); ver L1_agent_architecture", "nota": "Objetivo del usuario (2026-10-20): los agentes de IA cumplen sus objetivos operando solo mediante comandos del núcleo de dominio (N0, hexagonal), con ingeniería multiagente. Definir agentes, herramientas, límites, orquestación y cómo escalan al pico de 10.000 sesiones (P7 y X3 son los nodos más exigidos)."},
+    {"id": "PEN-16", "tema": "Supuestos propuestos en AGENTS.md", "estado": "por ratificar", "nota": "AGENTS.md (sección 11) marca como propuestos, entre otros: aleatoriedad e identificadores inyectados por puerto en el núcleo (S1); lecturas que deciden una mutación por el puerto de escritura (S2); tres ciclos del crítico antes de escalar (S3); vencimiento de 15 s del candado de turno con token de comparación (S4); purga de puntos de control cada 15 minutos (S5); tres llamadas a herramientas por turno del agente del usuario (S6); tres regeneraciones de landing (S7); y las dos escrituras en D4 por evento de P13 que supone el modelo de carga (S8). Cada uno se ratifica o se descarta aquí o en un ADR."}
   ]
 }

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Pruebas del validador de la arquitectura.
-// Cada caso copia arquitectura/, docs/ y tools/ a una carpeta temporal, introduce un error, y exige que
+// Cada caso copia arquitectura/, docs/, tools/, .claude/ y AGENTS.md a una carpeta temporal, introduce un error, y exige que
 // validar.mjs falle con el código esperado. Los archivos del repositorio nunca se modifican.
 // Uso: node tools/validar-arquitectura/pruebas.mjs
 
@@ -12,13 +12,14 @@ import { spawnSync } from "node:child_process";
 
 const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const VALIDADOR = join(RAIZ, "tools/validar-arquitectura/validar.mjs");
-const CARPETAS = ["arquitectura", "docs", "tools"];
+const CARPETAS = ["arquitectura", "docs", "tools", ".claude", "AGENTS.md"];
 
 const RUTAS = {
   kernel: "arquitectura/kernel-durable.json",
   grafo: "arquitectura/grafo-operacional.json",
   modelo: "arquitectura/modelo-de-carga.json",
   indice: "docs/adr/README.md",
+  agents: "AGENTS.md",
 };
 
 // Mutaciones: cada una recibe la carpeta temporal y modifica un archivo.
@@ -52,6 +53,10 @@ const CASOS = [
   ["versión sin changelog", "V2", json("grafo", (d) => { d.version = "9.9"; })],
   ["ruta citada que no existe", "F1", json("kernel", (d) => { d.estado += " Ver docs/inexistente.md."; })],
   ["estado del ADR distinto en el índice", "A1", texto("indice", (t) => t.replace(/(\| \[ADR-0001\]\([^)]+\) \| [^|]+\| )Aprobada/, "$1Propuesta"))],
+  ["AGENTS.md cita una ruta que no existe", "F2", texto("agents", (t) => `${t}\nVer docs/agentes/inexistente.md.\n`)],
+  ["AGENTS.md cita un ADR que no está en el índice", "F2", texto("agents", (t) => `${t}\nVer ADR-0099.\n`)],
+  ["AGENTS.md cita un kernel desalineado", "V3", texto("agents", (t) => t.replaceAll(/\d+\.\d+\.\d+-DURABLE-KERNEL/g, "0.0.0-DURABLE-KERNEL"))],
+  ["AGENTS.md cita un grafo desalineado", "V3", texto("agents", (t) => t.replace(/grafo operacional `v\d+\.\d+`/, "grafo operacional `v0.0`"))],
 ];
 
 let fallas = 0;

@@ -26,7 +26,11 @@ Las pruebas del validador introducen un error a la vez en una copia temporal del
 npm run probar
 ```
 
-La integración continua corre las tres cosas en cada pull request y en cada cambio de `main`.
+La integración continua corre las tres cosas en cada pull request y en cada cambio de `main`. Las cinco verificaciones de la integración continua juntas, que son la Definición de terminado de la fase documental (`AGENTS.md` §5):
+
+```bash
+npm run verificar:todo
+```
 
 ## Qué verifica
 
@@ -52,7 +56,9 @@ La integración continua corre las tres cosas en cada pull request y en cada cam
 | `M3` | El mapa de aristas usa aristas del grafo, sin repetir |
 | `V1` | El grafo y el modelo citan las versiones vigentes del kernel y del grafo, y el kernel cita las del grafo y el modelo |
 | `V2` | La versión vigente de cada archivo tiene su changelog |
+| `V3` | `AGENTS.md` cita las versiones vigentes del kernel, del grafo y del modelo de carga |
 | `F1` | Toda ruta de archivo citada (`docs/`, `arquitectura/`, `tools/`) existe |
+| `F2` | `AGENTS.md` existe en la raíz y solo cita rutas (`docs/`, `arquitectura/`, `tools/`, `.claude/`) y ADR que existen |
 | `A1` | El estado de cada ADR coincide en el kernel, en el índice de ADRs y en el propio ADR |
 
 ## Cómo se extiende

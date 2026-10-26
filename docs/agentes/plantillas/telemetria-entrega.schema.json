@@ -1,0 +1,480 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:popayan-planetario:schema:telemetria-entrega",
+  "title": "Telemetría de entrega — protocolo de doble salida",
+  "description": "Bloque 1 de toda entrega de cierre o auditoría del plano A (AGENTS.md §6). COMPLETADO es imposible con una verificación de la fase en rojo, una invariante sin cumplir o un crítico que no aprobó.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "protocolo",
+    "traza",
+    "tipo_entrega",
+    "fase",
+    "estado",
+    "fecha",
+    "agente",
+    "baseline",
+    "cambios",
+    "invariantes",
+    "verificaciones",
+    "critico",
+    "riesgos_abiertos",
+    "siguiente_paso"
+  ],
+  "properties": {
+    "protocolo": {
+      "const": "doble-salida/1.0"
+    },
+    "traza": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "description": "Qué justifica la entrega: pendiente, ADR, auditoría, insumo, o nodo, arista, métrica, restricción o invariante del grafo y del kernel.",
+      "items": {
+        "type": "string",
+        "pattern": "^(PEN-\\d{2}|ADR-\\d{4}|AUD-[0-9A-Za-z-]+|FG-\\d{2}|N0|[GAPDX]\\d{1,2}|E\\d{2}|T\\d{2}|R\\d{2}|INV_\\d{2}|rule_\\d{2})$"
+      }
+    },
+    "tipo_entrega": {
+      "enum": [
+        "CIERRE",
+        "AUDITORIA"
+      ]
+    },
+    "fase": {
+      "enum": [
+        "DOCUMENTAL",
+        "CODIGO"
+      ],
+      "description": "DOCUMENTAL mientras no exista packages/; CODIGO desde el primer paquete."
+    },
+    "estado": {
+      "enum": [
+        "COMPLETADO",
+        "BLOQUEADO",
+        "ESCALADO"
+      ]
+    },
+    "fecha": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "agente": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "rol",
+        "modelo"
+      ],
+      "properties": {
+        "rol": {
+          "const": "actor"
+        },
+        "modelo": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kernel",
+        "grafo",
+        "modelo_de_carga",
+        "adrs"
+      ],
+      "properties": {
+        "kernel": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+\\.\\d+-DURABLE-KERNEL$"
+        },
+        "grafo": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+$"
+        },
+        "modelo_de_carga": {
+          "type": "string",
+          "pattern": "^\\d+\\.\\d+$"
+        },
+        "adrs": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^ADR-\\d{4}$"
+          }
+        }
+      }
+    },
+    "cambios": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "archivo",
+          "tipo"
+        ],
+        "properties": {
+          "archivo": {
+            "type": "string",
+            "minLength": 1
+          },
+          "tipo": {
+            "enum": [
+              "CREADO",
+              "MODIFICADO",
+              "REGENERADO",
+              "ELIMINADO"
+            ]
+          }
+        }
+      }
+    },
+    "invariantes": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "estado",
+          "evidencia"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "pattern": "^(INV_\\d{2}|rule_\\d{2}|R\\d{2})$"
+          },
+          "estado": {
+            "enum": [
+              "CUMPLE",
+              "NO_APLICA",
+              "NO_VERIFICADA",
+              "VIOLADA"
+            ]
+          },
+          "evidencia": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      }
+    },
+    "verificaciones": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "comando",
+          "resultado"
+        ],
+        "properties": {
+          "comando": {
+            "enum": [
+              "node tools/validar-arquitectura/validar.mjs",
+              "node tools/validar-arquitectura/pruebas.mjs",
+              "node tools/modelo-de-carga/calcular.mjs --check",
+              "node tools/modelo-de-carga/calcular.mjs --estricto",
+              "node tools/vista-del-grafo/generar.mjs --check",
+              "npm run verify:hexagon",
+              "npm run verify:contracts",
+              "npm run verify:3d-budgets",
+              "npm run test:integral"
+            ]
+          },
+          "resultado": {
+            "enum": [
+              "VERDE",
+              "ROJO",
+              "NO_EJECUTADO"
+            ]
+          },
+          "resumen": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "critico": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "veredicto",
+        "ciclos",
+        "hallazgos_abiertos"
+      ],
+      "properties": {
+        "veredicto": {
+          "enum": [
+            "APROBADO",
+            "RECHAZADO",
+            "NO_EJECUTADO"
+          ]
+        },
+        "ciclos": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 3
+        },
+        "hallazgos_abiertos": {
+          "type": "integer",
+          "minimum": 0
+        }
+      }
+    },
+    "metricas": {
+      "type": "object",
+      "description": "Cifras del cambio, por ejemplo rho_max o el costo mensual de Upstash.",
+      "additionalProperties": {
+        "type": "number"
+      }
+    },
+    "riesgos_abiertos": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1
+      }
+    },
+    "motivo_escalamiento": {
+      "type": "string",
+      "minLength": 1
+    },
+    "siguiente_paso": {
+      "type": "string",
+      "minLength": 1
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "estado": {
+            "const": "COMPLETADO"
+          }
+        },
+        "required": [
+          "estado"
+        ]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "verificaciones": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "resultado": {
+                  "const": "VERDE"
+                }
+              }
+            },
+            "allOf": [
+              {
+                "contains": {
+                  "type": "object",
+                  "properties": {
+                    "comando": {
+                      "const": "node tools/validar-arquitectura/validar.mjs"
+                    }
+                  },
+                  "required": [
+                    "comando"
+                  ]
+                }
+              },
+              {
+                "contains": {
+                  "type": "object",
+                  "properties": {
+                    "comando": {
+                      "const": "node tools/validar-arquitectura/pruebas.mjs"
+                    }
+                  },
+                  "required": [
+                    "comando"
+                  ]
+                }
+              },
+              {
+                "contains": {
+                  "type": "object",
+                  "properties": {
+                    "comando": {
+                      "const": "node tools/modelo-de-carga/calcular.mjs --check"
+                    }
+                  },
+                  "required": [
+                    "comando"
+                  ]
+                }
+              },
+              {
+                "contains": {
+                  "type": "object",
+                  "properties": {
+                    "comando": {
+                      "const": "node tools/modelo-de-carga/calcular.mjs --estricto"
+                    }
+                  },
+                  "required": [
+                    "comando"
+                  ]
+                }
+              },
+              {
+                "contains": {
+                  "type": "object",
+                  "properties": {
+                    "comando": {
+                      "const": "node tools/vista-del-grafo/generar.mjs --check"
+                    }
+                  },
+                  "required": [
+                    "comando"
+                  ]
+                }
+              }
+            ]
+          },
+          "critico": {
+            "type": "object",
+            "properties": {
+              "veredicto": {
+                "const": "APROBADO"
+              },
+              "hallazgos_abiertos": {
+                "const": 0
+              }
+            }
+          },
+          "invariantes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "estado": {
+                  "enum": [
+                    "CUMPLE",
+                    "NO_APLICA"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "estado": {
+            "const": "COMPLETADO"
+          },
+          "fase": {
+            "const": "CODIGO"
+          }
+        },
+        "required": [
+          "estado",
+          "fase"
+        ]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "verificaciones": {
+            "type": "array",
+            "allOf": [
+              {
+                "contains": {
+                  "type": "object",
+                  "properties": {
+                    "comando": {
+                      "const": "npm run verify:hexagon"
+                    }
+                  },
+                  "required": [
+                    "comando"
+                  ]
+                }
+              },
+              {
+                "contains": {
+                  "type": "object",
+                  "properties": {
+                    "comando": {
+                      "const": "npm run verify:contracts"
+                    }
+                  },
+                  "required": [
+                    "comando"
+                  ]
+                }
+              },
+              {
+                "contains": {
+                  "type": "object",
+                  "properties": {
+                    "comando": {
+                      "const": "npm run verify:3d-budgets"
+                    }
+                  },
+                  "required": [
+                    "comando"
+                  ]
+                }
+              },
+              {
+                "contains": {
+                  "type": "object",
+                  "properties": {
+                    "comando": {
+                      "const": "npm run test:integral"
+                    }
+                  },
+                  "required": [
+                    "comando"
+                  ]
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "type": "object",
+        "properties": {
+          "estado": {
+            "const": "ESCALADO"
+          }
+        },
+        "required": [
+          "estado"
+        ]
+      },
+      "then": {
+        "type": "object",
+        "properties": {
+          "motivo_escalamiento": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "required": [
+          "motivo_escalamiento"
+        ]
+      }
+    }
+  ]
+}

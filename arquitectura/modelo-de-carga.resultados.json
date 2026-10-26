@@ -1,8 +1,8 @@
 {
   "documento": "Resultados del modelo de carga",
   "generado_por": "tools/modelo-de-carga/calcular.mjs — no editar a mano",
-  "modelo": "Modelo de carga único v0.5 (2026-10-21)",
-  "grafo": "grafo-operacional v0.8",
+  "modelo": "Modelo de carga único v0.6 (2026-10-26)",
+  "grafo": "grafo-operacional v0.9",
   "rho_objetivo": 0.7,
   "escenarios": {
     "mvp": {
@@ -16,6 +16,7 @@
           "pedidos_abiertos": 3.75,
           "lecturas_catalogo_base_s": 0.135,
           "redis_s": 0.54,
+          "redis_p13_s": 0.04222,
           "eventos_pedido_s": 0.01111,
           "eventos_negocio_s": 0.02111,
           "telegram_s": 0.008333,
@@ -34,6 +35,7 @@
           "pedidos_abiertos": 63.75,
           "lecturas_catalogo_base_s": 2.295,
           "redis_s": 9.18,
+          "redis_p13_s": 0.7178,
           "eventos_pedido_s": 0.1889,
           "eventos_negocio_s": 0.3589,
           "telegram_s": 0.1417,
@@ -54,7 +56,7 @@
         "meses_hasta_llenar_disco_incluido": 651,
         "turnos_agente_mes": 30000,
         "solicitudes_api_mes": 388800,
-        "comandos_redis_mes": 388800,
+        "comandos_redis_mes": 412800,
         "costo_upstash_usd_mes": 0,
         "salida_cdn_gb_mes": 9,
         "lecturas_cdn_mes": 24000
@@ -138,6 +140,24 @@
           "rho_evento": 0.003589,
           "mu_requerida": 0.5127,
           "veces_a_escalar": 0.005127,
+          "replicas_necesarias": 1,
+          "estado": "ok"
+        },
+        {
+          "nodo": "P13",
+          "tipo": "infraestructura",
+          "carga": "eventos_negocio_s",
+          "mu_por_s": 200,
+          "nombre": "Motor de decisión",
+          "servicio": "worker",
+          "mu_por_replica": 100,
+          "replicas": 2,
+          "lambda_normal": 0.02111,
+          "rho_normal": 0.0001056,
+          "lambda_evento": 0.3589,
+          "rho_evento": 0.001794,
+          "mu_requerida": 0.5127,
+          "veces_a_escalar": 0.002563,
           "replicas_necesarias": 1,
           "estado": "ok"
         },
@@ -488,6 +508,24 @@
           "factor": 1,
           "tasa_normal_s": 0.54,
           "tasa_evento_s": 9.18
+        },
+        {
+          "arista": "E67",
+          "origen": "P5",
+          "destino": "P13",
+          "carga": "eventos_negocio_s",
+          "factor": 1,
+          "tasa_normal_s": 0.02111,
+          "tasa_evento_s": 0.3589
+        },
+        {
+          "arista": "E68",
+          "origen": "P13",
+          "destino": "D4",
+          "carga": "redis_p13_s",
+          "factor": 1,
+          "tasa_normal_s": 0.04222,
+          "tasa_evento_s": 0.7178
         }
       ],
       "limites": [
@@ -528,6 +566,7 @@
           "pedidos_abiertos": 3750,
           "lecturas_catalogo_base_s": 500,
           "redis_s": 2000,
+          "redis_p13_s": 96.3,
           "eventos_pedido_s": 11.11,
           "eventos_negocio_s": 48.15,
           "telegram_s": 8.333,
@@ -546,6 +585,7 @@
           "pedidos_abiertos": 3750,
           "lecturas_catalogo_base_s": 500,
           "redis_s": 2000,
+          "redis_p13_s": 96.3,
           "eventos_pedido_s": 11.11,
           "eventos_negocio_s": 48.15,
           "telegram_s": 8.333,
@@ -637,6 +677,24 @@
           "mu_requerida": 68.78,
           "veces_a_escalar": 0.6878,
           "replicas_necesarias": 2,
+          "estado": "ok"
+        },
+        {
+          "nodo": "P13",
+          "tipo": "infraestructura",
+          "carga": "eventos_negocio_s",
+          "mu_por_s": 200,
+          "nombre": "Motor de decisión",
+          "servicio": "worker",
+          "mu_por_replica": 100,
+          "replicas": 2,
+          "lambda_normal": 48.15,
+          "rho_normal": 0.2407,
+          "lambda_evento": 48.15,
+          "rho_evento": 0.2407,
+          "mu_requerida": 68.78,
+          "veces_a_escalar": 0.3439,
+          "replicas_necesarias": 1,
           "estado": "ok"
         },
         {
@@ -986,6 +1044,24 @@
           "factor": 1,
           "tasa_normal_s": 2000,
           "tasa_evento_s": 2000
+        },
+        {
+          "arista": "E67",
+          "origen": "P5",
+          "destino": "P13",
+          "carga": "eventos_negocio_s",
+          "factor": 1,
+          "tasa_normal_s": 48.15,
+          "tasa_evento_s": 48.15
+        },
+        {
+          "arista": "E68",
+          "origen": "P13",
+          "destino": "D4",
+          "carga": "redis_p13_s",
+          "factor": 1,
+          "tasa_normal_s": 96.3,
+          "tasa_evento_s": 96.3
         }
       ],
       "limites": [
@@ -1026,6 +1102,7 @@
           "pedidos_abiertos": 250,
           "lecturas_catalogo_base_s": 4.5,
           "redis_s": 18,
+          "redis_p13_s": 2.148,
           "eventos_pedido_s": 0.7407,
           "eventos_negocio_s": 1.074,
           "telegram_s": 0.5556,
@@ -1044,6 +1121,7 @@
           "pedidos_abiertos": 750,
           "lecturas_catalogo_base_s": 13.5,
           "redis_s": 54,
+          "redis_p13_s": 6.444,
           "eventos_pedido_s": 2.222,
           "eventos_negocio_s": 3.222,
           "telegram_s": 1.667,
@@ -1064,8 +1142,8 @@
         "meses_hasta_llenar_disco_incluido": 13.95,
         "turnos_agente_mes": 1000000,
         "solicitudes_api_mes": 12960000,
-        "comandos_redis_mes": 12960000,
-        "costo_upstash_usd_mes": 24.92,
+        "comandos_redis_mes": 14080000,
+        "costo_upstash_usd_mes": 27.16,
         "salida_cdn_gb_mes": 300,
         "lecturas_cdn_mes": 800000
       },
@@ -1148,6 +1226,24 @@
           "rho_evento": 0.03222,
           "mu_requerida": 4.603,
           "veces_a_escalar": 0.04603,
+          "replicas_necesarias": 1,
+          "estado": "ok"
+        },
+        {
+          "nodo": "P13",
+          "tipo": "infraestructura",
+          "carga": "eventos_negocio_s",
+          "mu_por_s": 200,
+          "nombre": "Motor de decisión",
+          "servicio": "worker",
+          "mu_por_replica": 100,
+          "replicas": 2,
+          "lambda_normal": 1.074,
+          "rho_normal": 0.00537,
+          "lambda_evento": 3.222,
+          "rho_evento": 0.01611,
+          "mu_requerida": 4.603,
+          "veces_a_escalar": 0.02302,
           "replicas_necesarias": 1,
           "estado": "ok"
         },
@@ -1498,6 +1594,24 @@
           "factor": 1,
           "tasa_normal_s": 18,
           "tasa_evento_s": 54
+        },
+        {
+          "arista": "E67",
+          "origen": "P5",
+          "destino": "P13",
+          "carga": "eventos_negocio_s",
+          "factor": 1,
+          "tasa_normal_s": 1.074,
+          "tasa_evento_s": 3.222
+        },
+        {
+          "arista": "E68",
+          "origen": "P13",
+          "destino": "D4",
+          "carga": "redis_p13_s",
+          "factor": 1,
+          "tasa_normal_s": 2.148,
+          "tasa_evento_s": 6.444
         }
       ],
       "limites": [

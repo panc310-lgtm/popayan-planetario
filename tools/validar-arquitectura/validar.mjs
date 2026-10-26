@@ -18,6 +18,7 @@ const ARCHIVOS = {
   modelo: { datos: "arquitectura/modelo-de-carga.json", esquema: "arquitectura/schemas/modelo-de-carga.schema.json" },
 };
 const INDICE_ADR = "docs/adr/README.md";
+const AGENTS = "AGENTS.md";
 
 const errores = [];
 const error = (codigo, mensaje) => errores.push(`${codigo}: ${mensaje}`);
@@ -194,6 +195,22 @@ for (const [seccion, s] of Object.entries(kernel)) {
     const lineaEstado = leer(s.adr).split(/\r?\n/).find((l) => l.startsWith("| Estado |")) ?? "";
     if (lineaEstado.includes("Aprobada") !== aprobadaEnKernel) error("A1", `${seccion} y ${s.adr} no coinciden en el estado`);
   }
+}
+
+// F2 AGENTS.md solo cita rutas y ADR que existen
+// V3 AGENTS.md cita las versiones vigentes del kernel, del grafo y del modelo de carga
+if (!existsSync(resolve(RAIZ, AGENTS))) {
+  error("F2", `falta ${AGENTS} en la raíz del repositorio`);
+} else {
+  const agents = leer(AGENTS);
+  const citadas = agents.match(/(?:\b(?:docs|arquitectura|tools)|\.claude)\/[A-Za-z0-9_./-]+\.(?:md|json|mjs)\b/g) ?? [];
+  for (const r of new Set(citadas)) if (!existsSync(resolve(RAIZ, r))) error("F2", `${AGENTS} cita ${r}, que no existe`);
+  for (const adr of new Set(agents.match(/\bADR-\d{4}\b/g) ?? [])) {
+    if (!indice.some((l) => l.includes(`[${adr}]`))) error("F2", `${AGENTS} cita ${adr}, que no está en ${INDICE_ADR}`);
+  }
+  if (!agents.includes(kernel.schema_version)) error("V3", `${AGENTS} no cita el kernel vigente ${kernel.schema_version}`);
+  if (!agents.includes(`grafo operacional \`v${grafo.version}\``)) error("V3", `${AGENTS} no cita el grafo operacional vigente v${grafo.version}`);
+  if (!agents.includes(`modelo de carga \`v${modelo.version}\``)) error("V3", `${AGENTS} no cita el modelo de carga vigente v${modelo.version}`);
 }
 
 terminar();

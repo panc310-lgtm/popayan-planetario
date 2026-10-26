@@ -76,6 +76,7 @@ function tasasPico(p, m) {
     pedidos_abiertos: (pedidosHoraPico / 3600) * p.duracion_pedido_s, // ley de Little
     lecturas_catalogo_base_s: apiS * p.fraccion_api_catalogo * p.fraccion_api_a_base,
     redis_s: apiS * p.comandos_redis_por_solicitud_api,
+    redis_p13_s: eventosNegocioS * p.comandos_redis_por_evento_p13, // vectores Π y carga por marca (P13 → D4)
     eventos_pedido_s: eventosPedidoS,
     eventos_negocio_s: eventosNegocioS,
     telegram_s: (pedidosHoraPico * p.mensajes_telegram_por_pedido) / 3600,
@@ -99,7 +100,7 @@ function volumenesMes(p) {
   const eventosMes = pedidosMes * p.eventos_por_pedido + dau * p.otros_eventos_por_dau * 30;
   const crecimientoGb = (eventosMes * p.bytes_por_evento) / 1e9;
   const solicitudesApiMes = dau * p.sesiones_por_dau * p.duracion_sesion_s * p.solicitudes_api_por_usuario_activo_s * 30;
-  const comandosRedisMes = solicitudesApiMes * p.comandos_redis_por_solicitud_api;
+  const comandosRedisMes = solicitudesApiMes * p.comandos_redis_por_solicitud_api + eventosMes * p.comandos_redis_por_evento_p13;
   const excedenteRedis = Math.max(0, comandosRedisMes - limite("upstash_comandos_gratis_mes"));
   return {
     mau,

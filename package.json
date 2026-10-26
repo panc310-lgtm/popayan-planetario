@@ -11,7 +11,8 @@
     "probar": "node tools/validar-arquitectura/pruebas.mjs",
     "modelo": "node tools/modelo-de-carga/calcular.mjs",
     "grafo": "node tools/vista-del-grafo/generar.mjs",
-    "verificar": "node tools/validar-arquitectura/validar.mjs && node tools/modelo-de-carga/calcular.mjs --estricto"
+    "verificar": "node tools/validar-arquitectura/validar.mjs && node tools/modelo-de-carga/calcular.mjs --estricto",
+    "verificar:todo": "node tools/validar-arquitectura/validar.mjs && node tools/validar-arquitectura/pruebas.mjs && node tools/modelo-de-carga/calcular.mjs --check && node tools/modelo-de-carga/calcular.mjs --estricto && node tools/vista-del-grafo/generar.mjs --check"
   },
   "devDependencies": {
     "ajv": "8.20.0"
