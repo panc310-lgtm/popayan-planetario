@@ -213,6 +213,27 @@ if (!existsSync(resolve(RAIZ, AGENTS))) {
   if (!agents.includes(`modelo de carga \`v${modelo.version}\``)) error("V3", `${AGENTS} no cita el modelo de carga vigente v${modelo.version}`);
 }
 
+// PL1 El ejemplo de la plantilla de doble salida cumple el esquema de telemetría (AGENTS.md §6)
+const PLANTILLA = { texto: "docs/agentes/plantillas/doble-salida.md", esquema: "docs/agentes/plantillas/telemetria-entrega.schema.json" };
+if (existsSync(resolve(RAIZ, PLANTILLA.texto)) && existsSync(resolve(RAIZ, PLANTILLA.esquema))) {
+  const bloque = leer(PLANTILLA.texto).match(/```json\r?\n([\s\S]*?)\r?\n```/);
+  let ejemplo = null;
+  try {
+    ejemplo = bloque ? JSON.parse(bloque[1]) : null;
+  } catch (e) {
+    error("PL1", `el ejemplo de ${PLANTILLA.texto} no es JSON válido: ${e.message}`);
+  }
+  if (!bloque) error("PL1", `${PLANTILLA.texto} no tiene un ejemplo en un bloque json`);
+  if (ejemplo) {
+    const validarTelemetria = ajv.compile(JSON.parse(leer(PLANTILLA.esquema)));
+    if (!validarTelemetria(ejemplo)) {
+      for (const e of validarTelemetria.errors) error("PL1", `el ejemplo de ${PLANTILLA.texto} no cumple el esquema en ${e.instancePath || "/"}: ${e.message}`);
+    }
+  }
+} else {
+  error("PL1", `faltan ${PLANTILLA.texto} o ${PLANTILLA.esquema}`);
+}
+
 terminar();
 console.log(
   `Arquitectura válida: kernel ${kernel.schema_version}, grafo v${grafo.version} ` +

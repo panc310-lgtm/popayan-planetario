@@ -24,7 +24,7 @@ Etiquetas de estado: las mismas de [FG-01](FG-01-arquitectura-grafos-operacional
 | P7: 1,5 llamadas al modelo por turno y p95 < 6 s (T03) | `[VIGENTE]` (kernel, ADR-0002) |
 | P13: lectura < 10 ms en D4, cero tokens, μ = 200 eventos/s | `[VIGENTE]` desde el kernel 1.7.0: aprobado por el usuario el 2026-10-26; μ se registra como 100 por réplica con las 2 réplicas del worker |
 | `rule_01` como `IF policy_check == FALSE THEN ABORT_TRANSACTION (Ω₀ = 0)` | `[CORREGIDO]`: el kernel 1.1.1 reemplazó Ω₀ global por Ω(u, m, t) por transacción |
-| `rule_02`: `L_m = pendientes/15 ≥ 0,90` (T10), amortiguación Θ_s y desvío a marcas ≥ 4,0 "en la misma galaxia" | Θ_s `[VIGENTE]` (kernel 1.1.1). Desvío `[VIGENTE]` desde 1.7.0 con P13, `[CORREGIDO]` a "mismo nicho y galaxia". En el MVP no hay alternas: una marca por nicho |
+| `rule_02`: `L_m = pendientes/15 ≥ 0,90` (T10), amortiguación Θ_s y desvío a marcas ≥ 4,0 "en la misma galaxia" | Θ_s `[VIGENTE]` (kernel 1.1.1). Desvío `[VIGENTE]` desde 1.7.0, aprobado con P13. Que las alternas sean también del mismo nicho es una precisión de Claude, `[ABIERTO]` (S11) |
 | `rule_03` con actor, agente, versión del contrato, modelo y turno | `[VIGENTE]` (ADR-0002) |
 
 ### Reglas de ingeniería
@@ -70,9 +70,21 @@ Etiquetas de estado: las mismas de [FG-01](FG-01-arquitectura-grafos-operacional
 | Grafo `v0.9-SoC` | `[CORREGIDO]`: el esquema exige versión `n.n`; queda `0.9`, y "SoC" se registra en `cambios_0_9` |
 | P13 lee "`P12` (saturación `L_m(t)`)" | `[CORREGIDO]`: `P12` es Telemetría; la carga `L_m` sale de los eventos de pedidos (`T10`) |
 | Cerrar PEN-08 con Θ_s y el desvío | `[CORREGIDO]`: no cubre marcas sin calificación. El usuario decidió el 2026-10-26 dejarlo abierto con ADR-0004 en propuesta |
-| P13 en el worker con ρ < 0,70 verificado por `calcular.mjs --estricto` | `[VIGENTE]`: ρ = 0,24 en el pico de 10.000 sesiones |
+| P13 en el worker con ρ < 0,70 verificado por `calcular.mjs --estricto` | P13 en ρ = 0,24 en el pico de 10.000 sesiones `[VIGENTE]`. Que `--estricto` verifique 0,70 es `[INCORRECTO]`: solo falla en zona crítica (ρ ≥ 0,90). El 0,70 se revisa en el reporte (AGENTS.md §5) |
 | Lazo de P12 hacia el gobierno (G1 a G4) y métricas T24 a T26 | `[VIGENTE]`: aristas E70 a E73 y métricas definidas en el grafo v0.9 |
 | Quitar la ruta `continuity/`, PostgreSQL 17, documentar los scripts por fase, crear los seis documentos de `docs/agentes/` | `[VIGENTE]` |
+
+## Origen de cada sección de AGENTS.md 1.0.0
+
+| Sección | Origen |
+|---|---|
+| Encabezado, §1 doble plano, §6 doble salida, §7.1 niveles de modelos, §7.2 agentes | Borrador del usuario (T1), corregido según las tablas de arriba |
+| §3 leyes `rule_01` a `rule_03` | Borrador del usuario (T1), corregido contra el kernel |
+| §4.1 a §4.4 invariantes, §7.3 principios de producción | Kernel y ADR-0001 a ADR-0003; las extensiones van marcadas (S1, S2, S10) |
+| §4.2 `INV_07` | Decisión del usuario del 2026-10-26 (puertos sobre la misma base) |
+| §2 enrutamiento de contexto, §8 bucles | Borrador del usuario (T1); la sección 8.1 completa el paso que el borrador dejó cortado |
+| §0 precedencia | Redactada por Claude sobre `docs/fuentes/README.md` (S9) |
+| §4.5 contratos, §4.6 traza y puerta de atrás, §5 Definición de terminado por fase, §9 escalamiento, §10 glosario, §11 supuestos | Redactadas por Claude; las ratifica el usuario al aprobar el pull request, salvo los valores marcados como propuestos, que siguen en PEN-16 |
 
 ## Qué se conserva de FG-05
 

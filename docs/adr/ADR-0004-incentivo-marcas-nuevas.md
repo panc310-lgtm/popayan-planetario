@@ -74,9 +74,9 @@ Una marca que entra a un nicho ocupado arranca con compras = flujo = 0 y sin cal
 ### Consecuencias
 
 **Positivas**
-- Una marca nueva es vista desde su primera quincena y su calificación arranca en la media del nicho.
+- La calificación de una marca nueva arranca en la media del nicho, y la marca entra al cupo en las quincenas que le toca por rotación. Si hay más marcas elegibles que cupos, la espera depende de cuántas compiten; la simulación de "Cómo se confirma" la mide.
 - Cierra también el hallazgo de AUD-2026-10-20: el promedio bayesiano es la defensa estándar contra pocas notas extremas.
-- El Líder del nicho no cambia; la estabilidad del centro se conserva.
+- El cupo no toca el índice ni el Líder del nicho. El ajuste bayesiano sí puede cambiar al Líder una vez, cuando se aplica, y después lo hace más estable frente a pocas notas extremas.
 - Todo es determinista y se explica en una frase a cada marca.
 
 **Negativas y riesgos**
@@ -124,10 +124,10 @@ Puntajes de 1 a 5 por juicio de ingeniería; el total es el promedio ponderado.
 | F3 Manipulación (15) | 4 | 5 | 4 | 2 | 3 | 4 |
 | F4 Explicabilidad (15) | 5 | 4 | 3 | 3 | 4 | 4 |
 | F5 Simplicidad (10) | 5 | 4 | 4 | 3 | 3 | 3 |
-| F6 Estabilidad (10) | 5 | 4 | 3 | 3 | 5 | 5 |
-| **Total ponderado** | **3,60** | **4,15** | **3,50** | **3,10** | **3,85** | **4,50** |
+| F6 Estabilidad (10) | 5 | 4 | 3 | 3 | 5 | 4 |
+| **Total ponderado** | **3,60** | **4,15** | **3,50** | **3,10** | **3,85** | **4,40** |
 
-F gana aun duplicando el peso de la simplicidad (F 4,36; B 4,14; A 3,73). A no queda último porque es simple y estable, pero falla en lo único que PEN-08 pide.
+F lleva el mismo 4 de B en estabilidad, porque hereda su ajuste de la calificación; el cupo no la mejora ni la empeora. F gana aun duplicando el peso de la simplicidad (F 4,27; B 4,14; A 3,73). A no queda último porque es simple y estable, pero falla en lo único que PEN-08 pide.
 
 ## Información adicional y fuentes
 

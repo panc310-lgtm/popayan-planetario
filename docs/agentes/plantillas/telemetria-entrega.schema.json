@@ -57,7 +57,8 @@
     },
     "fecha": {
       "type": "string",
-      "format": "date-time"
+      "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}(\\.\\d+)?(Z|[+-]\\d{2}:\\d{2})$",
+      "description": "Fecha y hora ISO 8601 con zona horaria."
     },
     "agente": {
       "type": "object",
@@ -223,7 +224,8 @@
         },
         "hallazgos_abiertos": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "description": "Hallazgos BLOQUEANTE y ALTA del crítico sin corregir. Los MEDIA y BAJA que queden van en riesgos_abiertos."
         }
       }
     },

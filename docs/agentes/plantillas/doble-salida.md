@@ -4,7 +4,8 @@
 
 ## Bloque 1 — Telemetría JSON de nivel principal
 
-- Valida contra [`telemetria-entrega.schema.json`](telemetria-entrega.schema.json) con Ajv 8 (`ajv/dist/2020.js`) y `ajv-formats` (por `format: date-time`).
+- Valida contra [`telemetria-entrega.schema.json`](telemetria-entrega.schema.json) con el Ajv 8 del repositorio (`ajv/dist/2020.js`, modo estricto), sin dependencias extra. `validar.mjs` (regla `PL1`) comprueba en la integración continua que el ejemplo de esta plantilla cumple el esquema.
+- `critico.hallazgos_abiertos` cuenta los hallazgos `BLOQUEANTE` y `ALTA` sin corregir; los `MEDIA` y `BAJA` que queden se anotan en `riesgos_abiertos`.
 - `fase` es `DOCUMENTAL` mientras no exista `packages/`, y `CODIGO` desde el primer paquete.
 - El esquema hace imposible declarar `COMPLETADO` si falta alguna verificación de la fase o alguna no está en `VERDE`, si una invariante queda `NO_VERIFICADA` o `VIOLADA`, o si el crítico no aprobó con cero hallazgos abiertos.
 - `ESCALADO` exige `motivo_escalamiento`.
@@ -46,7 +47,7 @@ Cinco apartados cortos, en este orden:
   ],
   "verificaciones": [
     { "comando": "node tools/validar-arquitectura/validar.mjs", "resultado": "VERDE" },
-    { "comando": "node tools/validar-arquitectura/pruebas.mjs", "resultado": "VERDE", "resumen": "19 casos correctos" },
+    { "comando": "node tools/validar-arquitectura/pruebas.mjs", "resultado": "VERDE", "resumen": "22 casos correctos" },
     { "comando": "node tools/modelo-de-carga/calcular.mjs --check", "resultado": "VERDE" },
     { "comando": "node tools/modelo-de-carga/calcular.mjs --estricto", "resultado": "VERDE", "resumen": "ρ máx = 0,67 en D1" },
     { "comando": "node tools/vista-del-grafo/generar.mjs --check", "resultado": "VERDE" }

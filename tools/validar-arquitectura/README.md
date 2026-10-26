@@ -60,6 +60,7 @@ npm run verificar:todo
 | `F1` | Toda ruta de archivo citada (`docs/`, `arquitectura/`, `tools/`) existe |
 | `F2` | `AGENTS.md` existe en la raíz y solo cita rutas (`docs/`, `arquitectura/`, `tools/`, `.claude/`) y ADR que existen |
 | `A1` | El estado de cada ADR coincide en el kernel, en el índice de ADRs y en el propio ADR |
+| `PL1` | El ejemplo de `docs/agentes/plantillas/doble-salida.md` cumple `telemetria-entrega.schema.json` (Ajv 8, modo estricto) |
 
 ## Cómo se extiende
 

@@ -27,7 +27,7 @@ pedido ─► espera_aprobacion ── interrupt() ── la persona confirma en
 - Punto de control de la conversación desde `PostgresSaver` (`@langchain/langgraph-checkpoint-postgres`) en el esquema `agentes`, por el pooler de Supabase en modo sesión.
 - Perfil reducido de menos de 800 tokens: intereses, comuna, favoritos recientes y pedidos abiertos, más los últimos turnos. Todo lo demás se pide con herramientas.
 - Las lecturas del dominio pasan por `SlaveReadDatabasePort` precedido por la caché de `D4` (`INV_07`).
-- **`PostgresSaver` se construye sobre un pool, nunca sobre un cliente dedicado**, para que cada operación tome y devuelva su conexión. Escribe entre pasos del grafo, nunca durante una llamada al modelo (`INV_05`).
+- **`PostgresSaver` se construye sobre un pool, nunca sobre un cliente dedicado**, para que cada operación tome y devuelva su conexión. Escribe entre pasos del grafo, nunca durante una llamada al modelo (`INV_05`). Es un tercer pool por réplica, fuera de los dos puertos de `INV_07`, porque guarda estado de la conversación y no muta el dominio. Su tamaño cuenta contra los 200 clientes del pooler en cómputo Micro (PEN-14).
 - Prueba de integración esperada: durante la llamada a `@anthropic-ai/sdk`, ninguna conexión del pool está prestada.
 
 ### 2.3 Enrutador
@@ -89,8 +89,8 @@ Interfaz (sesión de la persona) ─► P2 API ─► P4 Pedidos
 | :--- | :--- | :--- |
 | `candado:conv:{conversacion_id}` | Token del turno en curso | Servicio `agentes` |
 | `borrador:{conversacion_id}` | Borrador de pedido | `P4` por el agente `pedido` |
-| `pi:{galaxia_id}:{nicho_id}:{franja}` | Vector de decisión | Solo `P13` |
-| `carga:marca:{marca_id}` | `L_m(t)`, `Theta_s` y `mu_m^Tg` | Solo `P13` |
+| `pi:{galaxia_id}:{nicho_id}:{franja}` | Vector de decisión | Solo el consumidor de `P13` de ese nicho |
+| `carga:marca:{marca_id}` | `L_m(t)`, `Theta_s` y `mu_m^Tg` | Solo el consumidor de `P13` de esa marca |
 
 ## 5. Degradación
 

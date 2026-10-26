@@ -20,6 +20,7 @@ const RUTAS = {
   modelo: "arquitectura/modelo-de-carga.json",
   indice: "docs/adr/README.md",
   agents: "AGENTS.md",
+  plantilla: "docs/agentes/plantillas/doble-salida.md",
 };
 
 // Mutaciones: cada una recibe la carpeta temporal y modifica un archivo.
@@ -57,6 +58,8 @@ const CASOS = [
   ["AGENTS.md cita un ADR que no está en el índice", "F2", texto("agents", (t) => `${t}\nVer ADR-0099.\n`)],
   ["AGENTS.md cita un kernel desalineado", "V3", texto("agents", (t) => t.replaceAll(/\d+\.\d+\.\d+-DURABLE-KERNEL/g, "0.0.0-DURABLE-KERNEL"))],
   ["AGENTS.md cita un grafo desalineado", "V3", texto("agents", (t) => t.replace(/grafo operacional `v\d+\.\d+`/, "grafo operacional `v0.0`"))],
+  ["AGENTS.md cita un modelo de carga desalineado", "V3", texto("agents", (t) => t.replace(/modelo de carga `v\d+\.\d+`/, "modelo de carga `v0.0`"))],
+  ["plantilla COMPLETADO con una verificación en rojo", "PL1", texto("plantilla", (t) => t.replace('"resultado": "VERDE"', '"resultado": "ROJO"'))],
 ];
 
 let fallas = 0;
