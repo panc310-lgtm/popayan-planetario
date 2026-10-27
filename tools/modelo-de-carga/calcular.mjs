@@ -8,7 +8,7 @@
 //   node tools/modelo-de-carga/calcular.mjs              escribe los dos archivos
 //   node tools/modelo-de-carga/calcular.mjs --check      no escribe; falla si los archivos no coinciden con el cálculo
 //   node tools/modelo-de-carga/calcular.mjs --estricto   además falla si un nodo de infraestructura llega a ρ ≥ 0,7
-//                                                        o si las conexiones a la base no caben (PEN-14)
+//                                                        o si las conexiones a la base no caben (PEN-14, PEN-17)
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -180,32 +180,54 @@ function capacidadNodo(id, p) {
   throw new Error(`El nodo ${id} no declara su capacidad con mu_por_s, mu_por_replica ni nivel_anthropic`);
 }
 
-// Conexiones a D1 por el pooler de Supabase en modo sesión (PEN-14 (4)). Cada servicio declara sus conexiones
-// por réplica en el parámetro conexiones_<servicio>_por_replica (suma de sus pools). En modo sesión cada cliente
-// retiene una conexión directa, así que se comparan los clientes con el límite del pooler y las conexiones
-// directas necesarias (clientes + reservadas) con las del cómputo previsto para el escenario.
+// Conexiones a D1 por el pooler de Supabase (PEN-14 (4) y PEN-17, decidido por el usuario el 2026-10-27). Cada servicio
+// declara dos pools por réplica: conexiones_sesion_<servicio>_por_replica (MasterWriteDatabasePort y PostgresSaver, en
+// modo sesión) y conexiones_transaccion_<servicio>_por_replica (SlaveReadDatabasePort, en modo transacción). El pool size
+// de Supavisor es el máximo de conexiones directas por combinación de usuario, base y modo: en modo sesión cada cliente
+// retiene la suya, así que los clientes de sesión no pueden pasar del pool size; en modo transacción comparten a lo sumo
+// pool size conexiones. Directas = min(sesión, pool size) + min(transacción, pool size) + reservadas, y deben quedar por
+// debajo de las del cómputo (el usuario pidió menos de 60 en Micro).
 function presupuestoConexiones(p, servicios) {
+  const parametro = (modo, s) => {
+    const v = p[`conexiones_${modo}_${s}_por_replica`];
+    if (typeof v !== "number") throw new Error(`Falta el parámetro conexiones_${modo}_${s}_por_replica para el servicio ${s}`);
+    return v;
+  };
   const porServicio = Object.fromEntries(
     Object.entries(servicios).map(([s, v]) => {
-      const porReplica = p[`conexiones_${s}_por_replica`];
-      if (typeof porReplica !== "number") throw new Error(`Falta el parámetro conexiones_${s}_por_replica para el servicio ${s}`);
-      return [s, { replicas: v.replicas_necesarias, por_replica: porReplica, total: v.replicas_necesarias * porReplica }];
+      const sesion = parametro("sesion", s);
+      const transaccion = parametro("transaccion", s);
+      const r = v.replicas_necesarias;
+      return [s, { replicas: r, sesion_por_replica: sesion, transaccion_por_replica: transaccion, sesion: r * sesion, transaccion: r * transaccion }];
     }),
   );
-  const clientes = Object.values(porServicio).reduce((a, s) => a + s.total, 0);
-  const directas = clientes + p.conexiones_reservadas_supabase;
+  const suma = (k) => Object.values(porServicio).reduce((a, s) => a + s[k], 0);
+  const sesion = suma("sesion");
+  const transaccion = suma("transaccion");
+  const clientes = sesion + transaccion;
+  const poolSize = p.supavisor_pool_size;
+  const directasSesion = Math.min(sesion, poolSize);
+  const directasTransaccion = Math.min(transaccion, poolSize);
+  const directas = directasSesion + directasTransaccion + p.conexiones_reservadas_supabase;
   const disponibles = p.conexiones_directas_disponibles;
   const cabeClientes = clientes <= limite("supabase_clientes_pooler_micro");
-  const cabeDirectas = disponibles === null ? null : directas <= disponibles;
+  const cabeSesion = sesion <= poolSize;
+  const cabeDirectas = disponibles === null ? null : directas < disponibles;
   return {
     por_servicio: porServicio,
+    clientes_sesion: sesion,
+    clientes_transaccion: transaccion,
     clientes_pooler: clientes,
+    supavisor_pool_size: poolSize,
+    directas_sesion: directasSesion,
+    directas_transaccion: directasTransaccion,
     reservadas: p.conexiones_reservadas_supabase,
     conexiones_directas_necesarias: directas,
     conexiones_directas_disponibles: disponibles,
     cabe_en_clientes_pooler: cabeClientes,
+    cabe_sesion_en_pool_size: cabeSesion,
     cabe_en_conexiones_directas: cabeDirectas,
-    estado: !cabeClientes || cabeDirectas === false ? "no cabe" : cabeDirectas === null ? "cómputo por elegir" : "ok",
+    estado: !cabeClientes || !cabeSesion || cabeDirectas === false ? "no cabe" : cabeDirectas === null ? "cómputo por elegir" : "ok",
   };
 }
 
@@ -320,8 +342,8 @@ function generarReporte(r) {
   L.push(`- En el pico de capacidad la integral de eventos recibe ${num(cap.eventos_negocio_s)} eventos de negocio por segundo, el ${num((cap.eventos_negocio_s / limite("techo_eventos_s")) * 100)} % del techo de ~${num(limite("techo_eventos_s"))} por segundo de INV_01 (por medir en PEN-09). El registro de eventos no es el cuello de botella.`);
   const conCap = r.capacidad.conexiones;
   L.push(
-    `- En el pico de capacidad las ${num(Object.values(conCap.por_servicio).reduce((a, s) => a + s.replicas, 0))} réplicas abren ${num(conCap.clientes_pooler)} conexiones al pooler de Supabase en modo sesión, ` +
-      `${conCap.cabe_en_clientes_pooler ? "dentro" : "por encima"} de los ${num(limite("supabase_clientes_pooler_micro"))} clientes de Micro. Según la documentación de Supavisor, en modo sesión cada cliente retiene una conexión directa a Postgres; si es así, con las ${num(conCap.reservadas)} reservadas para Supabase el cómputo debe admitir al menos **${num(conCap.conexiones_directas_necesarias)} conexiones directas**, y Micro, el cómputo del MVP, admite ${num(r.mvp.conexiones.conexiones_directas_disponibles)}. Es un hallazgo en revisión, en tensión con ADR-0001 (PEN-17, por decidir); mientras tanto rige ADR-0001. El cómputo del pico se elige con prueba de carga (PEN-14).`,
+    `- En el pico de capacidad las ${num(Object.values(conCap.por_servicio).reduce((a, s) => a + s.replicas, 0))} réplicas abren ${num(conCap.clientes_sesion)} clientes del pooler de Supabase en modo sesión (escritura y PostgresSaver) y ${num(conCap.clientes_transaccion)} en modo transacción (lectura), ` +
+      `${num(conCap.clientes_pooler)} en total, ${conCap.cabe_en_clientes_pooler ? "dentro" : "por encima"} de los ${num(limite("supabase_clientes_pooler_micro"))} de Micro. Con el pool size de ${num(conCap.supavisor_pool_size)} (PEN-17), los de sesión ${conCap.cabe_sesion_en_pool_size ? "caben" : "no caben"} en su pool, y las conexiones directas son a lo sumo ${num(conCap.directas_sesion)} + ${num(conCap.directas_transaccion)} + ${num(conCap.reservadas)} reservadas = **${num(conCap.conexiones_directas_necesarias)}**, ${conCap.cabe_en_conexiones_directas === false ? "no por debajo" : "por debajo"} de las ${num(conCap.conexiones_directas_disponibles)} de Micro. El cómputo definitivo se confirma con prueba de carga (PEN-14).`,
   );
   if (infraCriticos.length) {
     const mayor = [...infraCriticos].sort((a, b) => b.veces_a_escalar - a.veces_a_escalar)[0];
@@ -414,22 +436,27 @@ function generarReporte(r) {
 
   L.push("## Conexiones a la base", "");
   L.push(
-    `Conexiones que abre cada servicio hacia D1 por el pooler de Supabase en modo sesión (PEN-14 (4)): réplicas necesarias por conexiones por réplica, sumando sus pools (escritura y lectura de INV_07 y el guardado de los agentes). Según la documentación de Supavisor, en modo sesión cada cliente retiene una conexión directa a Postgres mientras está conectado; si es así, el límite son las conexiones directas del cómputo y no los clientes del pooler, como dice ADR-0001. Es un hallazgo en revisión (PEN-17, por decidir), y la comprobación de conexiones directas es propuesta (S16). A las de los servicios se suman las reservadas para los servicios propios de Supabase y la administración.`,
+    `Conexiones que abre cada servicio hacia D1 por el pooler de Supabase (PEN-14 (4) y PEN-17, decidido por el usuario el 2026-10-27): réplicas necesarias por clientes por réplica en cada modo. En modo sesión van MasterWriteDatabasePort y PostgresSaver; en modo transacción, SlaveReadDatabasePort. El pool size de Supavisor es el máximo de conexiones directas por combinación de usuario, base y modo: los clientes de sesión retienen cada uno la suya y no pueden pasar de ese tamaño, y los de transacción comparten a lo sumo ese número. A las directas se suman las reservadas para los servicios propios de Supabase y la administración, y el total debe quedar por debajo de las del cómputo.`,
     "",
   );
   const filasConexiones = [
     ...Object.keys(r.capacidad.conexiones.por_servicio).map((s) => [
-      `\`${s}\`: réplicas × conexiones por réplica`,
+      `\`${s}\`: réplicas × (sesión + transacción)`,
       ...ESCENARIOS.map((e) => {
         const c = r[e].conexiones.por_servicio[s];
-        return `${num(c.replicas)} × ${num(c.por_replica)} = ${num(c.total)}`;
+        return `${num(c.replicas)} × (${num(c.sesion_por_replica)} + ${num(c.transaccion_por_replica)}) = ${num(c.sesion)} + ${num(c.transaccion)}`;
       }),
     ]),
+    ["Clientes en modo sesión", ...ESCENARIOS.map((e) => num(r[e].conexiones.clientes_sesion))],
+    ["Clientes en modo transacción", ...ESCENARIOS.map((e) => num(r[e].conexiones.clientes_transaccion))],
     ["Clientes del pooler", ...ESCENARIOS.map((e) => num(r[e].conexiones.clientes_pooler))],
     [`Límite de clientes del pooler (Micro)`, ...ESCENARIOS.map(() => num(limite("supabase_clientes_pooler_micro")))],
+    ["Pool size de Supavisor", ...ESCENARIOS.map((e) => num(r[e].conexiones.supavisor_pool_size))],
+    ["Directas en modo sesión", ...ESCENARIOS.map((e) => num(r[e].conexiones.directas_sesion))],
+    ["Directas en modo transacción (a lo sumo)", ...ESCENARIOS.map((e) => num(r[e].conexiones.directas_transaccion))],
     ["Reservadas para Supabase", ...ESCENARIOS.map((e) => num(r[e].conexiones.reservadas))],
     ["Conexiones directas necesarias", ...ESCENARIOS.map((e) => num(r[e].conexiones.conexiones_directas_necesarias))],
-    ["Conexiones directas del cómputo previsto", ...ESCENARIOS.map((e) => (r[e].conexiones.conexiones_directas_disponibles === null ? "por elegir (PEN-14)" : num(r[e].conexiones.conexiones_directas_disponibles)))],
+    ["Conexiones directas del cómputo", ...ESCENARIOS.map((e) => (r[e].conexiones.conexiones_directas_disponibles === null ? "por elegir (PEN-14)" : num(r[e].conexiones.conexiones_directas_disponibles)))],
     ["Estado", ...ESCENARIOS.map((e) => r[e].conexiones.estado)],
   ];
   L.push(tabla(["Magnitud", ...ESCENARIOS.map(nombreEsc)], filasConexiones), "");
@@ -536,12 +563,16 @@ const salidas = [
   [RUTA_REPORTE, generarReporte(resultados)],
 ];
 // Requisito del usuario (kernel, capacidad_requerida; decisión del 2026-10-26): ningún nodo de infraestructura
-// llega a la utilización objetivo (ρ ≥ 0,7) y las conexiones a la base caben en el pooler y en el cómputo previsto.
+// llega a la utilización objetivo (ρ ≥ 0,7) y las conexiones a la base caben en el pooler, en el pool size del modo
+// sesión y por debajo de las conexiones directas del cómputo (PEN-17, decisión del 2026-10-27).
 const sobreObjetivo = ESCENARIOS.flatMap((e) =>
   resultados[e].utilizacion.filter((u) => u.tipo === "infraestructura" && u.rho_evento >= RHO_OBJETIVO).map((u) => `${e}/${u.nodo} (ρ = ${num(u.rho_evento)})`),
 );
 const sinConexiones = ESCENARIOS.filter((e) => resultados[e].conexiones.estado === "no cabe").map(
-  (e) => `${e}: ${num(resultados[e].conexiones.clientes_pooler)} clientes del pooler y ${num(resultados[e].conexiones.conexiones_directas_necesarias)} conexiones directas necesarias`,
+  (e) => {
+    const c = resultados[e].conexiones;
+    return `${e}: ${num(c.clientes_pooler)} clientes del pooler de ${num(limite("supabase_clientes_pooler_micro"))}, ${num(c.clientes_sesion)} en modo sesión con pool size ${num(c.supavisor_pool_size)} y ${num(c.conexiones_directas_necesarias)} conexiones directas, que deben quedar por debajo de ${num(c.conexiones_directas_disponibles)}`;
+  },
 );
 const estricto = process.argv.includes("--estricto");
 

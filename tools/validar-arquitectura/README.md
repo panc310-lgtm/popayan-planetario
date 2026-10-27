@@ -20,13 +20,13 @@ Termina con error y lista cada problema con su código. Para correr también la 
 npm run verificar
 ```
 
-Las pruebas del validador introducen un error a la vez en una copia temporal del repositorio y exigen que se detecte. También prueban la compuerta de capacidad: en la copia regeneran el modelo de carga y exigen que `calcular.mjs --estricto` falle con un nodo de infraestructura entre ρ 0,7 y 0,9, con conexiones por encima de los 200 clientes del pooler y, en el MVP, con más de las 60 conexiones directas de Micro. Nunca modifican los archivos del repositorio:
+Las pruebas del validador introducen un error a la vez en una copia temporal del repositorio y exigen que se detecte. También prueban la compuerta de capacidad: en la copia regeneran el modelo de carga y exigen que `calcular.mjs --estricto` falle con un nodo de infraestructura entre ρ 0,7 y 0,9, con más de 200 clientes del pooler, con clientes en modo sesión por encima del pool size de Supavisor, con exactamente 60 conexiones directas en el pico (el usuario pidió menos de 60) y, en el MVP, con más de las 60 de Micro. Nunca modifican los archivos del repositorio:
 
 ```bash
 npm run probar
 ```
 
-La integración continua corre las tres cosas en cada pull request y en cada cambio de `main`. Las cinco verificaciones de la integración continua juntas, que son la Definición de terminado de la fase documental (`AGENTS.md` §5):
+La integración continua corre las tres cosas en cada pull request y en cada cambio de `main`. Las nueve verificaciones de la integración continua juntas, que son la Definición de terminado de la fase de código (`AGENTS.md` §5):
 
 ```bash
 npm run verificar:todo
@@ -54,15 +54,16 @@ npm run verificar:todo
 | `M1` | Cada parámetro del modelo de carga tiene un valor por escenario, solo para escenarios declarados |
 | `M2` | El mapa de capacidad usa nodos del grafo con capacidad y con tipo coherente (humano: marca; externo: externo; infraestructura: servicio o datos) |
 | `M3` | El mapa de aristas usa aristas del grafo, sin repetir |
-| `M4` | Cada servicio de despliegue tiene su presupuesto de conexiones (`conexiones_<servicio>_por_replica`), y solo esos servicios (PEN-14) |
+| `M4` | Cada servicio de despliegue tiene su presupuesto de conexiones en los dos modos del pooler (`conexiones_sesion_<servicio>_por_replica` y `conexiones_transaccion_<servicio>_por_replica`), y solo esos servicios (PEN-14, PEN-17) |
 | `V1` | El grafo y el modelo citan las versiones vigentes del kernel y del grafo, y el kernel cita las del grafo y el modelo |
 | `V2` | La versión vigente de cada archivo tiene su changelog |
 | `V3` | `AGENTS.md` cita las versiones vigentes del kernel, del grafo y del modelo de carga |
 | `F1` | Toda ruta de archivo citada (`docs/`, `arquitectura/`, `tools/`) existe |
-| `F2` | `AGENTS.md` existe en la raíz y solo cita rutas (`docs/`, `arquitectura/`, `tools/`, `.claude/`) y ADR que existen |
+| `F2` | `AGENTS.md` existe en la raíz y solo cita rutas (`docs/`, `arquitectura/`, `tools/`, `packages/`, `test/`, `.claude/`) y ADR que existen |
 | `F3` | Las huellas SHA-256 de los textos originales de las fuentes (`docs/fuentes/*/*-texto-original.md`) coinciden con el texto guardado, también la del original con finales de línea CRLF y la del texto con un salto de línea final cuando la fila las declara |
 | `A1` | El estado de cada ADR coincide en el kernel, en el índice de ADRs y en el propio ADR |
 | `PL1` | El ejemplo de `docs/agentes/plantillas/doble-salida.md` cumple `telemetria-entrega.schema.json` (Ajv 8, modo estricto) |
+| `DT1` | Con `packages/` en el repositorio, `package.json` declara `verify:hexagon`, `verify:contracts`, `verify:3d-budgets` y `test:integral`, `verificar:todo` las corre y la integración continua también (`AGENTS.md` §5, fase de código) |
 
 ## Cómo se extiende
 

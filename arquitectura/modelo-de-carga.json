@@ -2,14 +2,15 @@
   "$schema": "./schemas/modelo-de-carga.schema.json",
   "proyecto": "Popayán Planetario",
   "documento": "Modelo de carga único",
-  "version": "0.6",
+  "version": "0.7",
   "fecha": "2026-10-27",
   "estado": "propuesta",
   "resuelve": "AUD-11",
   "alineado_con": [
-    "arquitectura/kernel-durable.json (1.7.0-DURABLE-KERNEL)",
-    "arquitectura/grafo-operacional.json (0.9)"
+    "arquitectura/kernel-durable.json (1.8.0-DURABLE-KERNEL)",
+    "arquitectura/grafo-operacional.json (0.10)"
   ],
+  "cambios_0_7": "PEN-17, decidido por el usuario el 2026-10-27: cada servicio declara dos pools por réplica, conexiones_sesion_<servicio>_por_replica (MasterWriteDatabasePort y PostgresSaver, en modo sesión) y conexiones_transaccion_<servicio>_por_replica (SlaveReadDatabasePort, en modo transacción), en lugar de conexiones_<servicio>_por_replica. Nuevo supavisor_pool_size = 19. Las conexiones directas son min(sesión, pool size) + min(transacción, pool size) + reservadas, y el cómputo es Micro (60) en los tres escenarios. calcular.mjs --estricto falla si los clientes del pooler pasan de 200, si los de sesión pasan del pool size o si las directas llegan a 60. Los supuestos S8, S14 y S16 quedan ratificados (PEN-16).",
   "cambios_0_6": "P13, motor de decisión, entra al mapa de capacidad dentro del servicio worker con la carga de eventos de negocio. Sus 3 comandos en D4 por evento (comandos_redis_por_evento_p13: escribe la carga de la marca, lee con un MGET la carga viva del nicho y escribe el vector Π) suman a los comandos de Upstash del mes y se reparten entre E75 y E68. E67 y E74 llevan los eventos de negocio del bus a sus dos consumidores. Su lectura del agregado de recompra de P10 en D1, una por pedido (lecturas_base_por_pedido_p13, E69), suma a la carga de la base. Presupuesto de conexiones a D1 por servicio (PEN-14 (4)). Decisión del usuario del 2026-10-26: calcular.mjs --estricto falla si un nodo de infraestructura llega a ρ ≥ 0,7 o si las réplicas pasan de 200 clientes del pooler. Propuesto (S16): las conexiones por réplica de cada servicio, las reservadas para Supabase y que --estricto compruebe también las conexiones directas del cómputo previsto (PEN-17).",
   "cambios_0_5": "Declara su $schema (arquitectura/schemas/modelo-de-carga.schema.json); lo valida tools/validar-arquitectura/validar.mjs.",
   "cambios_0_4": "Plan de capacidad aplicado al grafo v0.5 (PEN-14): la capacidad de los nodos de api, worker y agentes sale de su capacidad por réplica por las réplicas del servicio; la de la API de IA, del nivel de cuenta de Anthropic. Las tasas de las aristas que llevan carga salen de este modelo (mapa_de_aristas) y reemplazan a supuestos_pico.",
@@ -200,50 +201,78 @@
     "comandos_redis_por_evento_p13": {
       "unidad": "comandos en D4 por evento de negocio",
       "valores": {"mvp": 3, "capacidad": 3, "diseno": 3},
-      "estado": "supuesto",
-      "origen": "AGENTS.md (S8) y docs/agentes/p13-motor-decision.md. El usuario decidió el 2026-10-26 que las lecturas de la carga viva cuentan aquí. Supuesto: por cada evento confirmado, el consumidor de carga reescribe la carga de la marca (E75) y el consumidor de vectores lee con un solo MGET la carga viva de las marcas candidatas y reescribe el vector Π (E68). Son 2 escrituras y 1 lectura.",
+      "estado": "decidido",
+      "origen": "AGENTS.md (S8, ratificado por el usuario el 2026-10-27) y docs/agentes/p13-motor-decision.md. El usuario decidió el 2026-10-26 que las lecturas de la carga viva cuentan aquí. Por cada evento confirmado, el consumidor de carga reescribe la carga de la marca (E75) y el consumidor de vectores lee con un solo MGET la carga viva de las marcas candidatas y reescribe el vector Π (E68). Son 2 escrituras y 1 lectura.",
       "como_se_mide": "Comandos de Upstash emitidos por P13 / eventos que procesa (T25)."
     },
     "lecturas_base_por_pedido_p13": {
       "unidad": "consultas a D1 por pedido",
       "valores": {"mvp": 1, "capacidad": 1, "diseno": 1},
-      "estado": "supuesto",
-      "origen": "Decisión del usuario del 2026-10-26: P13 lee de D1 el agregado de recompra que P10 mantiene por marca (pedidos_recompra_90d y compradores_unicos_90d), sin identificadores de compradores. Supuesto (S14, docs/agentes/p13-motor-decision.md): lo relee una vez por cada pedido completado de esa marca, porque solo entonces cambia. El índice de P9 se relee cada 15 días y al arrancar, con carga despreciable. P10 actualiza el agregado en la escritura de proyección que ya cuenta escrituras_base_por_evento. Si P13 leyera D1 por evento de negocio (unas 48 por segundo en el pico), D1 quedaría en ρ 0,697.",
+      "estado": "decidido",
+      "origen": "Decisión del usuario del 2026-10-26: P13 lee de D1 el agregado de recompra que P10 mantiene por marca (pedidos_recompra_90d y compradores_unicos_90d), sin identificadores de compradores. S14 (docs/agentes/p13-motor-decision.md), ratificado por el usuario el 2026-10-27: lo relee una vez por cada pedido completado de esa marca, porque solo entonces cambia. El índice de P9 se relee cada 15 días y al arrancar, con carga despreciable. P10 actualiza el agregado en la escritura de proyección que ya cuenta escrituras_base_por_evento. Si P13 leyera D1 por evento de negocio (unas 48 por segundo en el pico), D1 quedaría en ρ 0,697.",
       "como_se_mide": "Consultas a D1 del rol de base de datos de P13 / pedidos completados."
     },
-    "conexiones_api_por_replica": {
-      "unidad": "conexiones al pooler por réplica",
-      "valores": {"mvp": 8, "capacidad": 8, "diseno": 8},
-      "estado": "supuesto",
-      "origen": "PEN-14 (4): el usuario pidió el 2026-10-26 declarar el presupuesto por pool de las 11 réplicas del pico con un total de a lo sumo 200 clientes del pooler. Valores propuestos por Claude (S16): pool de escritura (MasterWriteDatabasePort) 4, para pedidos y webhooks; pool de lectura (SlaveReadDatabasePort) 4, para catálogo y Noticias cuando la caché de D4 no responde. Se ajustan con prueba de carga.",
-      "como_se_mide": "Máximo de conexiones abiertas por réplica de api (pg_stat_activity por application_name)."
+    "conexiones_sesion_api_por_replica": {
+      "unidad": "conexiones al pooler en modo sesión por réplica",
+      "valores": {"mvp": 1, "capacidad": 1, "diseno": 1},
+      "estado": "decidido",
+      "origen": "Decisión del usuario del 2026-10-27 (PEN-17, FG-08): en modo sesión van solo MasterWriteDatabasePort y PostgresSaver, con pools de 1 conexión por réplica. api: 1 de escritura, para pedidos y webhooks.",
+      "como_se_mide": "Máximo de conexiones abiertas en modo sesión por réplica de api (pg_stat_activity por application_name)."
     },
-    "conexiones_worker_por_replica": {
-      "unidad": "conexiones al pooler por réplica",
-      "valores": {"mvp": 5, "capacidad": 5, "diseno": 5},
-      "estado": "supuesto",
-      "origen": "PEN-14 (4): el usuario pidió el 2026-10-26 declarar el presupuesto por pool de las 11 réplicas del pico con un total de a lo sumo 200 clientes del pooler. Valores propuestos por Claude (S16): pool de escritura 3, para el relay del bus, los proyectores, el despachador del outbox y las colas de pg-boss, que se configuran dentro de este presupuesto; pool de lectura 1, para las lecturas de P13 en D1; guardado de los agentes (PostgresSaver) 1, para la purga de puntos de control. Se ajustan con prueba de carga.",
-      "como_se_mide": "Máximo de conexiones abiertas por réplica de worker (pg_stat_activity por application_name)."
+    "conexiones_sesion_worker_por_replica": {
+      "unidad": "conexiones al pooler en modo sesión por réplica",
+      "valores": {"mvp": 2, "capacidad": 2, "diseno": 2},
+      "estado": "decidido",
+      "origen": "Decisión del usuario del 2026-10-27 (PEN-17, FG-08): en modo sesión van solo MasterWriteDatabasePort y PostgresSaver, con pools de 1 conexión por réplica. worker: 1 de escritura, para el relay del bus, los proyectores, el despachador del outbox y las colas de pg-boss, que se configuran dentro de ese presupuesto, y 1 de PostgresSaver, para la purga de puntos de control.",
+      "como_se_mide": "Máximo de conexiones abiertas en modo sesión por réplica de worker (pg_stat_activity por application_name)."
     },
-    "conexiones_agentes_por_replica": {
-      "unidad": "conexiones al pooler por réplica",
-      "valores": {"mvp": 5, "capacidad": 5, "diseno": 5},
-      "estado": "supuesto",
-      "origen": "PEN-14 (4): el usuario pidió el 2026-10-26 declarar el presupuesto por pool de las 11 réplicas del pico con un total de a lo sumo 200 clientes del pooler. Valores propuestos por Claude (S16): pool de escritura 1, para los comandos del dominio de los agentes; pool de lectura 2, para la hidratación del perfil; guardado de los agentes (PostgresSaver) 2, para unos 4 puntos de control por turno. Se ajustan con prueba de carga.",
-      "como_se_mide": "Máximo de conexiones abiertas por réplica de agentes (pg_stat_activity por application_name)."
+    "conexiones_sesion_agentes_por_replica": {
+      "unidad": "conexiones al pooler en modo sesión por réplica",
+      "valores": {"mvp": 2, "capacidad": 2, "diseno": 2},
+      "estado": "decidido",
+      "origen": "Decisión del usuario del 2026-10-27 (PEN-17, FG-08): en modo sesión van solo MasterWriteDatabasePort y PostgresSaver, con pools de 1 conexión por réplica. agentes: 1 de escritura, para los comandos del dominio de los agentes, y 1 de PostgresSaver, para unos 4 puntos de control por turno.",
+      "como_se_mide": "Máximo de conexiones abiertas en modo sesión por réplica de agentes (pg_stat_activity por application_name)."
+    },
+    "conexiones_transaccion_api_por_replica": {
+      "unidad": "clientes del pooler en modo transacción por réplica",
+      "valores": {"mvp": 4, "capacidad": 4, "diseno": 4},
+      "estado": "decidido",
+      "origen": "Pool de lectura (SlaveReadDatabasePort) en modo transacción por decisión del usuario del 2026-10-27 (PEN-17). El valor es el de S16, que el usuario ratificó el mismo día (PEN-16). api: catálogo y Noticias cuando la caché de D4 no responde.",
+      "como_se_mide": "Máximo de clientes del pool de lectura por réplica de api hacia el puerto 6543."
+    },
+    "conexiones_transaccion_worker_por_replica": {
+      "unidad": "clientes del pooler en modo transacción por réplica",
+      "valores": {"mvp": 1, "capacidad": 1, "diseno": 1},
+      "estado": "decidido",
+      "origen": "Pool de lectura (SlaveReadDatabasePort) en modo transacción por decisión del usuario del 2026-10-27 (PEN-17). El valor es el de S16, que el usuario ratificó el mismo día (PEN-16). worker: las lecturas de P13 en D1 (E69).",
+      "como_se_mide": "Máximo de clientes del pool de lectura por réplica de worker hacia el puerto 6543."
+    },
+    "conexiones_transaccion_agentes_por_replica": {
+      "unidad": "clientes del pooler en modo transacción por réplica",
+      "valores": {"mvp": 2, "capacidad": 2, "diseno": 2},
+      "estado": "decidido",
+      "origen": "Pool de lectura (SlaveReadDatabasePort) en modo transacción por decisión del usuario del 2026-10-27 (PEN-17). El valor es el de S16, que el usuario ratificó el mismo día (PEN-16). agentes: la hidratación del perfil.",
+      "como_se_mide": "Máximo de clientes del pool de lectura por réplica de agentes hacia el puerto 6543."
+    },
+    "supavisor_pool_size": {
+      "unidad": "conexiones directas por combinación de usuario, base y modo",
+      "valores": {"mvp": 19, "capacidad": 19, "diseno": 19},
+      "estado": "decidido",
+      "origen": "Decisión del usuario del 2026-10-27 (PEN-17): pool size del pooler de Supabase. Según la FAQ de Supavisor (https://supabase.com/docs/guides/troubleshooting/supavisor-faq-YyP5tI, consultada el 2026-10-27), es el máximo de conexiones directas por cada combinación de usuario, base y modo: en modo sesión cada cliente retiene la suya y los que sobran esperan en cola hasta un minuto; en modo transacción los clientes comparten a lo sumo esas conexiones. Supone un solo usuario de base para los tres servicios.",
+      "como_se_mide": "Ajuste Pool Size del pooler en la configuración de la base de Supabase."
     },
     "conexiones_reservadas_supabase": {
       "unidad": "conexiones directas",
       "valores": {"mvp": 20, "capacidad": 20, "diseno": 20},
-      "estado": "supuesto",
-      "origen": "Propuesto por Claude (S16): margen para los servicios propios de Supabase que se conectan a la misma base (autenticación, almacenamiento, API automática) y para administración y migraciones. Valor inicial, por medir.",
+      "estado": "decidido",
+      "origen": "S16, propuesto por Claude y ratificado por el usuario el 2026-10-27 (PEN-16): margen para los servicios propios de Supabase que se conectan a la misma base (autenticación, almacenamiento, API automática) y para administración y migraciones. Valor inicial, por medir.",
       "como_se_mide": "Conexiones en pg_stat_activity que no son de los tres servicios, en el pico."
     },
     "conexiones_directas_disponibles": {
       "unidad": "conexiones directas del cómputo de Supabase",
-      "valores": {"mvp": 60, "capacidad": null, "diseno": null},
-      "estado": {"mvp": "decidido", "capacidad": "por_confirmar", "diseno": "por_confirmar"},
-      "origen": "MVP: cómputo Micro, con 60 conexiones directas y 200 clientes del pooler (ADR-0001; valor recomendado de Supabase, ajustable con max_connections). Capacidad y diseño: el cómputo se elige con prueba de carga (PEN-14 (1)) y debe admitir las conexiones directas necesarias que calcula el modelo. Comprobar las conexiones directas, además de los clientes del pooler, es propuesta de Claude (S16, PEN-17).",
+      "valores": {"mvp": 60, "capacidad": 60, "diseno": 60},
+      "estado": "decidido",
+      "origen": "Cómputo Micro, con 60 conexiones directas y 200 clientes del pooler (ADR-0001; https://supabase.com/docs/guides/platform/compute-and-disk, consultado el 2026-10-27; valor recomendado de Supabase, ajustable con max_connections). El usuario decidió el 2026-10-27 que el pico de 10.000 sesiones quede por debajo de 60 dentro de Micro y que ampliar el cómputo dependa solo de la prueba de carga (PEN-17, PEN-14 (1)).",
       "como_se_mide": "max_connections de la base, menos las que Supabase reserva."
     },
     "bytes_por_evento": {
@@ -330,7 +359,7 @@
     "techo_eventos_s": {"valor": 800, "origen": "INV_01, por medir (PEN-09)"},
     "supabase_disco_incluido_gb": {"valor": 8, "origen": "Supabase Pro, consultado 2026-10-20 (ADR-0001)"},
     "supabase_usd_por_gb_extra": {"valor": 0.125, "origen": "Supabase Pro, disco adicional, consultado 2026-10-20 (ADR-0001)"},
-    "supabase_clientes_pooler_micro": {"valor": 200, "origen": "ADR-0001: Supabase Pro con cómputo Micro tiene 200 clientes del pooler y 60 conexiones directas (https://supabase.com/docs/guides/platform/compute-and-disk, consultado 2026-10-27). Según la FAQ de Supavisor (https://github.com/orgs/supabase/discussions/21566, consultado 2026-10-27), en modo sesión cada cliente retiene una conexión directa mientras está conectado; es un hallazgo en revisión, y su consecuencia para ADR-0001 está en PEN-17, por decidir."},
+    "supabase_clientes_pooler_micro": {"valor": 200, "origen": "ADR-0001: Supabase Pro con cómputo Micro tiene 200 clientes del pooler y 60 conexiones directas (https://supabase.com/docs/guides/platform/compute-and-disk, consultado 2026-10-27). El modelo cuenta en este límite los clientes de los dos modos, sesión y transacción, que es la lectura más prudente; el usuario decidió el 2026-10-27 cómo se reparten (PEN-17)."},
     "upstash_comandos_gratis_mes": {"valor": 500000, "origen": "Upstash, nivel gratuito, consultado 2026-10-20 (ADR-0001)"},
     "upstash_usd_por_100k_comandos": {"valor": 0.2, "origen": "Upstash, pago por uso, consultado 2026-10-20 (ADR-0001)"},
     "upstash_plan_fijo_usd_mes": {"valor": 10, "origen": "Upstash, plan fijo más barato (250 MB), consultado 2026-10-20 (ADR-0001)"},

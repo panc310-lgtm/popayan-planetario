@@ -235,6 +235,12 @@ La prueba se hace con el agente de la maqueta, sobre el catálogo ficticio y 2 o
 4. Pasar la batería adversarial al 100 %.
 5. Hacer una prueba de carga del servicio `agentes` con el modelo simulado, para validar su escalado sin gastar en la API de IA.
 
+## Enmiendas
+
+| Fecha | Origen | Cambio |
+|---|---|---|
+| 2026-10-27 | Enmienda de [ADR-0001](ADR-0001-topologia-de-despliegue.md) por PEN-17 | `PostgresSaver` sigue en el pooler en modo sesión, ahora con 1 conexión por réplica. "Como el resto" ya no vale para las lecturas: `SlaveReadDatabasePort` va en modo transacción. El resto de esta decisión no cambia. |
+
 ## Fuentes
 
 Consultadas el 2026-10-20.

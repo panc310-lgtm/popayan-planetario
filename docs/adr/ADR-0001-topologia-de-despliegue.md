@@ -232,6 +232,7 @@ Una prueba de humo de unos tres días, antes del 10-nov-2026. Si alguno de estos
 | Fecha | Origen | Cambio |
 |---|---|---|
 | 2026-10-21 | [ADR-0002](ADR-0002-arquitectura-multiagente.md) | La imagen suma un tercer servicio, `agentes`, con los grafos de los agentes de IA. Escala aparte de `api` y usa la misma conexión a la base (pooler en modo sesión). El resto de esta decisión no cambia. |
+| 2026-10-27 | Decisión del usuario sobre PEN-17 ([FG-08](../fuentes/gemini/FG-08-planetario-core-01.md)) | La conexión a la base deja de ir toda en modo sesión. `SlaveReadDatabasePort` usa el pooler en modo transacción (puerto 6543, `prepare: false`) y solo hace lecturas de una consulta sin estado de sesión: sin sentencias preparadas, candados de sesión, `LISTEN`/`NOTIFY` ni tablas temporales. `MasterWriteDatabasePort` y `PostgresSaver` siguen en modo sesión (5432) con pools de 1 conexión por réplica, y el pool size de Supavisor queda en 19. Motivo: el pool size es el máximo de conexiones directas por cada combinación de usuario, base y modo, y en modo sesión cada cliente retiene su conexión; con todo en sesión, el pico de 10.000 sesiones necesitaba 87 conexiones directas, y Micro admite 60. Con este cambio son a lo sumo 57. INV_01 sigue sin depender del modo transacción, porque la escritura no lo usa. Donde esta decisión dice que el límite son los 200 clientes del pooler, mandan también las 60 conexiones directas de Micro. |
 
 ## Fuentes
 

@@ -1,0 +1,121 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:popayan-planetario:contracts:decision-vector-pi",
+  "title": "Vector de decisión Π de P13",
+  "description": "Vector que P13 publica solo en D4 por galaxia, nicho y franja (E68; decisión del usuario del 2026-10-26). El bloque publico tiene solo los datos que R04 declara públicos; el bloque interno sirve para ordenar y no se muestra al comprador (S12). resultado_publico es lo único que P3 entrega hacia el agente del usuario y la interfaz. Forma de docs/agentes/p13-motor-decision.md §2.",
+  "$ref": "#/$defs/vector_pi",
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "fecha_hora": {
+      "type": "string",
+      "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])T([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(\\.\\d{1,3})?(Z|[+-]([01]\\d|2[0-3]):[0-5]\\d)$"
+    },
+    "galaxia_id": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9
+    },
+    "franja": {
+      "description": "Franja horaria del vector; sus valores los fija P13.",
+      "type": "string",
+      "pattern": "^[a-z0-9_]{1,32}$"
+    },
+    "publico": {
+      "description": "Datos públicos según R04: posición en el índice y calificación agregada, con las insignias que salen de ellas, y la etiqueta del cupo de exploración (ADR-0004).",
+      "type": "object",
+      "required": ["posicion_indice", "calificacion_agregada", "lider_del_nicho", "mejor_evaluado", "nueva_en_el_nicho"],
+      "properties": {
+        "posicion_indice": { "type": "integer", "minimum": 1 },
+        "calificacion_agregada": { "oneOf": [{ "type": "number", "minimum": 1, "maximum": 5 }, { "type": "null" }] },
+        "lider_del_nicho": { "type": "boolean" },
+        "mejor_evaluado": { "type": "boolean" },
+        "nueva_en_el_nicho": { "type": "boolean" }
+      },
+      "additionalProperties": false
+    },
+    "interno": {
+      "description": "Derivados para ordenar; no se muestran al comprador mientras no se amplíe R04 (S12).",
+      "type": "object",
+      "required": ["pedidos_recompra_90d", "compradores_unicos_90d", "recompra_hasta_posicion", "theta_s", "alterna_para_desvio", "carga_leida", "cupo_exploracion"],
+      "properties": {
+        "pedidos_recompra_90d": { "type": "integer", "minimum": 0 },
+        "compradores_unicos_90d": { "type": "integer", "minimum": 0 },
+        "recompra_hasta_posicion": { "type": "integer", "minimum": 0 },
+        "theta_s": { "type": "number", "minimum": 0, "maximum": 1 },
+        "alterna_para_desvio": { "type": "boolean" },
+        "carga_leida": {
+          "type": "object",
+          "required": ["L_m", "marca_de_tiempo", "posicion_registro"],
+          "properties": {
+            "L_m": { "type": "number", "minimum": 0 },
+            "marca_de_tiempo": { "$ref": "#/$defs/fecha_hora" },
+            "posicion_registro": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "cupo_exploracion": {
+          "type": "object",
+          "required": ["elegible", "orden_rotacion"],
+          "properties": {
+            "elegible": { "type": "boolean" },
+            "orden_rotacion": { "oneOf": [{ "type": "integer", "minimum": 0 }, { "type": "null" }] }
+          },
+          "additionalProperties": false
+        }
+      },
+      "additionalProperties": false
+    },
+    "vector_pi": {
+      "type": "object",
+      "required": ["pi_version", "galaxia_id", "nicho_id", "franja", "posicion_registro", "calculado_hasta", "parametros_version", "marcas"],
+      "properties": {
+        "pi_version": { "type": "integer", "minimum": 1 },
+        "galaxia_id": { "$ref": "#/$defs/galaxia_id" },
+        "nicho_id": { "description": "subcategoria_id del nicho.", "$ref": "#/$defs/id" },
+        "franja": { "$ref": "#/$defs/franja" },
+        "posicion_registro": { "description": "Última posición del registro de eventos que procesó el consumidor dueño de la clave.", "type": "integer", "minimum": 0 },
+        "calculado_hasta": { "description": "Marca de tiempo del último evento procesado, no el reloj del proceso.", "$ref": "#/$defs/fecha_hora" },
+        "parametros_version": { "description": "Versión de los parámetros que publica G1 por E76.", "type": "string", "minLength": 1, "maxLength": 64 },
+        "marcas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["marca_id", "publico", "interno"],
+            "properties": {
+              "marca_id": { "$ref": "#/$defs/id" },
+              "publico": { "$ref": "#/$defs/publico" },
+              "interno": { "$ref": "#/$defs/interno" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "resultado_publico": {
+      "description": "Resultados ya ordenados que P3 entrega al agente del usuario (E31) y a la interfaz: solo el bloque público.",
+      "type": "object",
+      "required": ["galaxia_id", "nicho_id", "marcas"],
+      "properties": {
+        "galaxia_id": { "$ref": "#/$defs/galaxia_id" },
+        "nicho_id": { "$ref": "#/$defs/id" },
+        "marcas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["marca_id", "publico"],
+            "properties": {
+              "marca_id": { "$ref": "#/$defs/id" },
+              "publico": { "$ref": "#/$defs/publico" }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

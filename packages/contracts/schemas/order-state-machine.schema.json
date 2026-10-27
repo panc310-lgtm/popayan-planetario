@@ -1,0 +1,205 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:popayan-planetario:contracts:order-state-machine",
+  "title": "Pedido y su máquina de estados (P4)",
+  "description": "Pedido de una sola marca, sin carrito combinado, en una de las tres modalidades de compra (kernel N5_FULFILLMENT_SERVICES), con los estados de ADR-0003 y su tabla de transiciones ($defs.tabla_de_transiciones). La solicitud de servicio es un contrato aparte: los servicios siguen por WhatsApp directo con la marca (E61) y no pasan por los estados de P4. La vista para la marca expone solo lo que permite R03.",
+  "$ref": "#/$defs/pedido",
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "uuid_v7": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "fecha_hora": {
+      "description": "ISO 8601 con zona horaria.",
+      "type": "string",
+      "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])T([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(\\.\\d{1,3})?(Z|[+-]([01]\\d|2[0-3]):[0-5]\\d)$"
+    },
+    "texto": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "galaxia_id": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9
+    },
+    "estado": {
+      "description": "Estados de ADR-0003. pago_informado solo existe en la contingencia manual, entre cobro_emitido y pagado.",
+      "enum": ["creado", "cobro_emitido", "cobro_vencido", "pago_informado", "pagado", "aceptado", "en_camino", "entregado", "evaluado", "cancelado", "reembolsado"]
+    },
+    "modalidad": {
+      "enum": ["domicilio", "recogida_en_establecimiento", "pedido_anticipado"]
+    },
+    "comando": {
+      "enum": ["emitirCobro", "vencerCobro", "informarPago", "confirmarPago", "aceptar", "despachar", "entregar", "evaluar", "cancelar", "registrarReembolso"]
+    },
+    "tipo_de_actor": {
+      "enum": ["comprador", "responsable_marca", "operacion_comercial", "proveedor_pagos", "sistema", "agente"]
+    },
+    "transicion": {
+      "type": "object",
+      "required": ["comando", "desde", "hacia", "actores"],
+      "properties": {
+        "comando": { "$ref": "#/$defs/comando" },
+        "desde": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/estado" } },
+        "hacia": { "$ref": "#/$defs/estado" },
+        "actores": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/tipo_de_actor" } },
+        "modo": { "$ref": "#/$defs/modo_confirmacion" }
+      },
+      "additionalProperties": false
+    },
+    "tabla_de_transiciones": {
+      "description": "La máquina de estados de P4. Estados y confirmación del pago: ADR-0003 y R10; pasos de la marca: E43 a E45. Cancelar y registrar el reembolso son S18 (propuesto, PEN-19): no se cancela con un cobro vigente, que el comprador todavía puede pagar, para que un pago confirmado nunca caiga sobre un pedido cancelado. src/pedido.ts la reproduce como TRANSICIONES y las pruebas exigen que coincidan.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/transicion" },
+      "const": [
+        {"comando": "emitirCobro", "desde": ["creado", "cobro_vencido"], "hacia": "cobro_emitido", "actores": ["comprador", "sistema"]},
+        {"comando": "vencerCobro", "desde": ["cobro_emitido"], "hacia": "cobro_vencido", "actores": ["sistema"]},
+        {"comando": "informarPago", "desde": ["cobro_emitido"], "hacia": "pago_informado", "actores": ["comprador"], "modo": "contingencia_manual"},
+        {"comando": "confirmarPago", "desde": ["cobro_emitido"], "hacia": "pagado", "actores": ["proveedor_pagos", "sistema"], "modo": "automatica"},
+        {"comando": "confirmarPago", "desde": ["pago_informado"], "hacia": "pagado", "actores": ["responsable_marca"], "modo": "contingencia_manual"},
+        {"comando": "aceptar", "desde": ["pagado"], "hacia": "aceptado", "actores": ["responsable_marca"]},
+        {"comando": "despachar", "desde": ["aceptado"], "hacia": "en_camino", "actores": ["responsable_marca"]},
+        {"comando": "entregar", "desde": ["en_camino"], "hacia": "entregado", "actores": ["responsable_marca"]},
+        {"comando": "evaluar", "desde": ["entregado"], "hacia": "evaluado", "actores": ["comprador"]},
+        {"comando": "cancelar", "desde": ["creado", "cobro_vencido"], "hacia": "cancelado", "actores": ["comprador", "responsable_marca"]},
+        {"comando": "cancelar", "desde": ["pago_informado"], "hacia": "cancelado", "actores": ["responsable_marca"], "modo": "contingencia_manual"},
+        {"comando": "registrarReembolso", "desde": ["pagado", "aceptado", "en_camino"], "hacia": "reembolsado", "actores": ["responsable_marca"]}
+      ]
+    },
+    "modo_confirmacion": {
+      "description": "automatica: el proveedor confirma por webhook firmado o consulta autenticada (R10). contingencia_manual: solo el botón del responsable de la marca, desde pago_informado (ADR-0003).",
+      "enum": ["automatica", "contingencia_manual"]
+    },
+    "item": {
+      "type": "object",
+      "required": ["producto_id", "variante_id", "marca_id", "nombre", "cantidad", "precio_unitario_cop"],
+      "properties": {
+        "producto_id": { "$ref": "#/$defs/id" },
+        "variante_id": { "$ref": "#/$defs/id" },
+        "marca_id": { "$ref": "#/$defs/id" },
+        "nombre": { "$ref": "#/$defs/texto" },
+        "cantidad": { "type": "integer", "minimum": 1, "maximum": 99 },
+        "precio_unitario_cop": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "direccion_entrega": {
+      "type": "object",
+      "required": ["direccion"],
+      "properties": {
+        "direccion": { "$ref": "#/$defs/texto" },
+        "barrio": { "$ref": "#/$defs/texto" },
+        "indicaciones": { "$ref": "#/$defs/texto" }
+      },
+      "additionalProperties": false
+    },
+    "cobro": {
+      "type": "object",
+      "required": ["referencia_cobro", "qr_payload", "vence_en"],
+      "properties": {
+        "referencia_cobro": { "$ref": "#/$defs/id" },
+        "qr_payload": { "type": "string", "minLength": 1, "maxLength": 2000 },
+        "vence_en": { "$ref": "#/$defs/fecha_hora" }
+      },
+      "additionalProperties": false
+    },
+    "campos_por_modalidad": {
+      "description": "La dirección de entrega solo existe en domicilio (R03) y la hora estimada de llegada solo en pedido_anticipado (S20, propuesto).",
+      "type": "object",
+      "allOf": [
+        {
+          "if": { "type": "object", "properties": { "modalidad": { "const": "domicilio" } }, "required": ["modalidad"] },
+          "then": { "type": "object", "properties": { "direccion_entrega": { "$ref": "#/$defs/direccion_entrega" } }, "required": ["direccion_entrega"] },
+          "else": { "type": "object", "properties": { "direccion_entrega": false } }
+        },
+        {
+          "if": { "type": "object", "properties": { "modalidad": { "const": "pedido_anticipado" } }, "required": ["modalidad"] },
+          "then": { "type": "object", "properties": { "hora_estimada_llegada": { "$ref": "#/$defs/fecha_hora" } }, "required": ["hora_estimada_llegada"] },
+          "else": { "type": "object", "properties": { "hora_estimada_llegada": false } }
+        }
+      ]
+    },
+    "pedido": {
+      "type": "object",
+      "required": ["pedido_id", "comprador_id", "marca_id", "galaxia_id", "modalidad", "items", "monto_cop", "estado", "version", "modo_confirmacion", "cobro", "creado_en", "actualizado_en"],
+      "properties": {
+        "pedido_id": { "$ref": "#/$defs/uuid_v7" },
+        "comprador_id": { "$ref": "#/$defs/id" },
+        "marca_id": { "description": "Una sola marca por pedido.", "$ref": "#/$defs/id" },
+        "galaxia_id": { "$ref": "#/$defs/galaxia_id" },
+        "modalidad": { "$ref": "#/$defs/modalidad" },
+        "direccion_entrega": { "$ref": "#/$defs/direccion_entrega" },
+        "hora_estimada_llegada": { "$ref": "#/$defs/fecha_hora" },
+        "items": { "type": "array", "minItems": 1, "maxItems": 50, "items": { "$ref": "#/$defs/item" } },
+        "monto_cop": { "description": "Suma de cantidad × precio unitario de los ítems; la comprueba el dominio.", "type": "integer", "minimum": 1 },
+        "estado": { "$ref": "#/$defs/estado" },
+        "version": { "description": "Versión para la concurrencia optimista; sube en cada transición.", "type": "integer", "minimum": 0 },
+        "modo_confirmacion": { "$ref": "#/$defs/modo_confirmacion" },
+        "cobro": { "oneOf": [{ "$ref": "#/$defs/cobro" }, { "type": "null" }] },
+        "creado_en": { "$ref": "#/$defs/fecha_hora" },
+        "actualizado_en": { "$ref": "#/$defs/fecha_hora" }
+      },
+      "$ref": "#/$defs/campos_por_modalidad",
+      "unevaluatedProperties": false
+    },
+    "evaluacion": {
+      "description": "Calificación del comprador por atención, producto, precio y distribución, de 1 a 5; distribución solo con domicilio (kernel, reglas_nucleo.indice_y_calificacion; lo comprueba el dominio).",
+      "type": "object",
+      "required": ["atencion", "producto", "precio"],
+      "properties": {
+        "atencion": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "producto": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "precio": { "type": "integer", "minimum": 1, "maximum": 5 },
+        "distribucion": { "type": "integer", "minimum": 1, "maximum": 5 }
+      },
+      "additionalProperties": false
+    },
+    "vista_para_marca": {
+      "description": "Lo único que la marca recibe del comprador en Telegram (R03, brand_visibility_firewall): nombre, celular, dirección solo en domicilio y el detalle de su propio pedido.",
+      "type": "object",
+      "required": ["pedido_id", "marca_id", "modalidad", "estado", "comprador", "items", "monto_cop"],
+      "properties": {
+        "pedido_id": { "$ref": "#/$defs/uuid_v7" },
+        "marca_id": { "$ref": "#/$defs/id" },
+        "modalidad": { "$ref": "#/$defs/modalidad" },
+        "estado": { "$ref": "#/$defs/estado" },
+        "comprador": {
+          "type": "object",
+          "required": ["nombre", "celular"],
+          "properties": {
+            "nombre": { "$ref": "#/$defs/texto" },
+            "celular": { "type": "string", "pattern": "^\\+[1-9]\\d{6,14}$" }
+          },
+          "additionalProperties": false
+        },
+        "direccion_entrega": { "$ref": "#/$defs/direccion_entrega" },
+        "hora_estimada_llegada": { "$ref": "#/$defs/fecha_hora" },
+        "items": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/item" } },
+        "monto_cop": { "type": "integer", "minimum": 1 }
+      },
+      "$ref": "#/$defs/campos_por_modalidad",
+      "unevaluatedProperties": false
+    },
+    "solicitud_de_servicio": {
+      "description": "Solicitud identificada en la plataforma que lleva al comprador a acordar cita y anticipo por WhatsApp directo con la marca (E61). No es un pedido: no tiene estados de P4 ni pago en la plataforma.",
+      "type": "object",
+      "required": ["solicitud_id", "comprador_id", "marca_id", "galaxia_id", "producto_id", "canal", "creada_en"],
+      "properties": {
+        "solicitud_id": { "$ref": "#/$defs/uuid_v7" },
+        "comprador_id": { "$ref": "#/$defs/id" },
+        "marca_id": { "$ref": "#/$defs/id" },
+        "galaxia_id": { "$ref": "#/$defs/galaxia_id" },
+        "producto_id": { "description": "El servicio del catálogo de la marca.", "$ref": "#/$defs/id" },
+        "canal": { "const": "whatsapp" },
+        "creada_en": { "$ref": "#/$defs/fecha_hora" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

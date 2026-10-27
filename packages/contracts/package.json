@@ -1,0 +1,11 @@
+{
+  "name": "@planetario/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Contratos de Popayán Planetario: esquemas JSON 2020-12 y sus tipos. No importa nada (INV_06, S1).",
+  "exports": {
+    ".": "./src/index.ts",
+    "./schemas/*": "./schemas/*"
+  }
+}

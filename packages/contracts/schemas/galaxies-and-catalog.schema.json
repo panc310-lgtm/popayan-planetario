@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:popayan-planetario:contracts:galaxies-and-catalog",
+  "title": "Galaxias y catálogo jerárquico",
+  "description": "Las 9 galaxias (comunas urbanas de Popayán), el catálogo interés → subcategoría → tipo de oferta → producto → variantes y el sistema de cada nicho. El nicho es la subcategoría (decisión del usuario del 2026-10-27). El Líder del nicho (planeta central, por Índice de Relevancia) y el Mejor evaluado (por calificación ajustada, ADR-0004) son campos distintos, aunque puedan ser la misma marca. Kernel: spatial_and_visual_budgets, N4_MATCHING_&_CATALOG_INDEX y reglas_nucleo.nicho.",
+  "$ref": "#/$defs/catalogo",
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "texto": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "galaxia_id": {
+      "description": "Comuna urbana de Popayán: g ∈ {1..9}.",
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 9
+    },
+    "galaxia": {
+      "type": "object",
+      "required": ["galaxia_id", "nombre"],
+      "properties": {
+        "galaxia_id": { "$ref": "#/$defs/galaxia_id" },
+        "nombre": { "$ref": "#/$defs/texto" }
+      },
+      "additionalProperties": false
+    },
+    "variante": {
+      "type": "object",
+      "required": ["variante_id", "nombre", "precio_cop"],
+      "properties": {
+        "variante_id": { "$ref": "#/$defs/id" },
+        "nombre": { "$ref": "#/$defs/texto" },
+        "precio_cop": { "type": "integer", "minimum": 1 }
+      },
+      "additionalProperties": false
+    },
+    "producto": {
+      "type": "object",
+      "required": ["producto_id", "marca_id", "nombre", "variantes"],
+      "properties": {
+        "producto_id": { "$ref": "#/$defs/id" },
+        "marca_id": { "$ref": "#/$defs/id" },
+        "nombre": { "$ref": "#/$defs/texto" },
+        "variantes": { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/variante" } }
+      },
+      "additionalProperties": false
+    },
+    "tipo_de_oferta": {
+      "type": "object",
+      "required": ["tipo_de_oferta_id", "nombre", "productos"],
+      "properties": {
+        "tipo_de_oferta_id": { "$ref": "#/$defs/id" },
+        "nombre": { "$ref": "#/$defs/texto" },
+        "productos": { "type": "array", "items": { "$ref": "#/$defs/producto" } }
+      },
+      "additionalProperties": false
+    },
+    "subcategoria": {
+      "description": "Subcategoría del catálogo. Es el nicho: en cada galaxia, un sistema con su Líder del nicho.",
+      "type": "object",
+      "required": ["subcategoria_id", "nombre", "tipos_de_oferta"],
+      "properties": {
+        "subcategoria_id": { "$ref": "#/$defs/id" },
+        "nombre": { "$ref": "#/$defs/texto" },
+        "tipos_de_oferta": { "type": "array", "items": { "$ref": "#/$defs/tipo_de_oferta" } }
+      },
+      "additionalProperties": false
+    },
+    "interes": {
+      "type": "object",
+      "required": ["interes_id", "nombre", "subcategorias"],
+      "properties": {
+        "interes_id": { "$ref": "#/$defs/id" },
+        "nombre": { "$ref": "#/$defs/texto" },
+        "subcategorias": { "type": "array", "items": { "$ref": "#/$defs/subcategoria" } }
+      },
+      "additionalProperties": false
+    },
+    "catalogo": {
+      "description": "Catálogo publicado de una galaxia, en su jerarquía de búsqueda.",
+      "type": "object",
+      "required": ["galaxia_id", "intereses"],
+      "properties": {
+        "galaxia_id": { "$ref": "#/$defs/galaxia_id" },
+        "intereses": { "type": "array", "items": { "$ref": "#/$defs/interes" } }
+      },
+      "additionalProperties": false
+    },
+    "quincena": {
+      "description": "Quincena del recálculo del índice: año, mes y mitad del mes (1 del día 1 al 15, 2 del 16 al último).",
+      "type": "string",
+      "pattern": "^\\d{4}-(0[1-9]|1[0-2])-[12]$"
+    },
+    "sistema_del_nicho": {
+      "description": "Un nicho en una galaxia. El Índice de Relevancia se recalcula cada quincena con ventana de 90 días.",
+      "type": "object",
+      "required": ["galaxia_id", "nicho_id", "quincena", "ventana_dias", "lider_del_nicho", "mejor_evaluado", "planetas"],
+      "properties": {
+        "galaxia_id": { "$ref": "#/$defs/galaxia_id" },
+        "nicho_id": { "description": "subcategoria_id del nicho.", "$ref": "#/$defs/id" },
+        "quincena": { "$ref": "#/$defs/quincena" },
+        "ventana_dias": { "const": 90 },
+        "lider_del_nicho": {
+          "description": "Planeta central: la marca con mayor Índice de Relevancia. null si el nicho no tiene marcas.",
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["marca_id", "indice_de_relevancia"],
+              "properties": {
+                "marca_id": { "$ref": "#/$defs/id" },
+                "indice_de_relevancia": { "type": "number", "minimum": 0, "maximum": 100 }
+              },
+              "additionalProperties": false
+            },
+            { "type": "null" }
+          ]
+        },
+        "mejor_evaluado": {
+          "description": "Insignia: la marca con mayor calificación ajustada (ADR-0004). null si el nicho no tiene marcas.",
+          "oneOf": [
+            {
+              "type": "object",
+              "required": ["marca_id", "calificacion_ajustada"],
+              "properties": {
+                "marca_id": { "$ref": "#/$defs/id" },
+                "calificacion_ajustada": { "type": "number", "minimum": 1, "maximum": 5 }
+              },
+              "additionalProperties": false
+            },
+            { "type": "null" }
+          ]
+        },
+        "planetas": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["marca_id", "indice_de_relevancia"],
+            "properties": {
+              "marca_id": { "$ref": "#/$defs/id" },
+              "indice_de_relevancia": { "type": "number", "minimum": 0, "maximum": 100 }
+            },
+            "additionalProperties": false
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

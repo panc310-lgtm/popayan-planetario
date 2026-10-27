@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // Pruebas del validador de la arquitectura y de la compuerta de capacidad.
-// Cada caso copia arquitectura/, docs/, tools/, .claude/ y AGENTS.md a una carpeta temporal, introduce un error, y exige que
+// Cada caso copia arquitectura/, docs/, tools/, .claude/, .github/, packages/, test/, AGENTS.md y package.json a una carpeta
+// temporal, introduce un error, y exige que
 // validar.mjs falle con el código esperado. Los casos de capacidad regeneran el modelo de carga en la copia y exigen que
 // calcular.mjs --estricto falle con el mensaje esperado. Los archivos del repositorio nunca se modifican.
 // Uso: node tools/validar-arquitectura/pruebas.mjs
@@ -13,7 +14,7 @@ import { spawnSync } from "node:child_process";
 
 const RAIZ = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const VALIDADOR = join(RAIZ, "tools/validar-arquitectura/validar.mjs");
-const CARPETAS = ["arquitectura", "docs", "tools", ".claude", "AGENTS.md"];
+const CARPETAS = ["arquitectura", "docs", "tools", ".claude", ".github", "packages", "test", "AGENTS.md", "package.json"];
 
 const RUTAS = {
   kernel: "arquitectura/kernel-durable.json",
@@ -22,6 +23,8 @@ const RUTAS = {
   indice: "docs/adr/README.md",
   agents: "AGENTS.md",
   plantilla: "docs/agentes/plantillas/doble-salida.md",
+  paquete: "package.json",
+  workflow: ".github/workflows/verificaciones.yml",
   fg05: "docs/fuentes/gemini/FG-05-texto-original.md",
 };
 
@@ -62,9 +65,13 @@ const CASOS = [
   ["AGENTS.md cita un grafo desalineado", "V3", texto("agents", (t) => t.replace(/grafo operacional `v\d+\.\d+`/, "grafo operacional `v0.0`"))],
   ["AGENTS.md cita un modelo de carga desalineado", "V3", texto("agents", (t) => t.replace(/modelo de carga `v\d+\.\d+`/, "modelo de carga `v0.0`"))],
   ["plantilla COMPLETADO con una verificación en rojo", "PL1", texto("plantilla", (t) => t.replace('"resultado": "VERDE"', '"resultado": "ROJO"'))],
-  ["servicio sin presupuesto de conexiones", "M4", json("modelo", (d) => { delete d.parametros.conexiones_worker_por_replica; })],
+  ["servicio sin presupuesto de conexiones en modo sesión", "M4", json("modelo", (d) => { delete d.parametros.conexiones_sesion_worker_por_replica; })],
+  ["presupuesto de conexiones sin modo del pooler", "M4", json("modelo", (d) => { d.parametros.conexiones_api_por_replica = d.parametros.conexiones_sesion_api_por_replica; })],
   ["texto original alterado", "F3", texto("fg05", (t) => t.replace("Theta_s", "Theta_x"))],
   ["huella CRLF alterada", "F3", texto("fg05", (t) => t.replace(/(\| T2 \|.*`)([0-9a-f])([0-9a-f]{63}`[^|]*CRLF)/, (_, a, b, c) => `${a}${b === "0" ? "1" : "0"}${c}`))],
+  ["fase de código sin el script verify:3d-budgets", "DT1", json("paquete", (d) => { delete d.scripts["verify:3d-budgets"]; })],
+  ["fase de código sin test:integral en la integración continua", "DT1", texto("workflow", (t) => t.replace("run: npm run test:integral", "run: echo omitido"))],
+  ["AGENTS.md cita un archivo de packages/ que no existe", "F2", texto("agents", (t) => `${t}\nVer packages/domain/src/inexistente.ts.\n`)],
   ["huella con salto de línea final alterada", "F3", texto("fg05", (t) => t.replace(/(\| T1 \|.*`)([0-9a-f])([0-9a-f]{63}`[^|]*salto de línea final)/, (_, a, b, c) => `${a}${b === "0" ? "1" : "0"}${c}`))],
 ];
 
@@ -72,15 +79,17 @@ const CASOS = [
 const CASOS_CAPACIDAD = [
   ["copia sin cambios", null, () => {}],
   ["nodo de infraestructura entre ρ 0,7 y 0,9", "Nodo de infraestructura en ρ ≥ 0,7", json("grafo", (d) => { nodo(d, "D1").capacidad.mu_por_s = 1700; })],
-  ["conexiones por encima de los 200 clientes del pooler", "Las conexiones a la base no caben", json("modelo", (d) => { d.parametros.conexiones_api_por_replica.valores.capacidad = 60; })],
-  ["MVP por encima de las 60 conexiones directas de Micro", "Las conexiones a la base no caben", json("modelo", (d) => { d.parametros.conexiones_api_por_replica.valores.mvp = 50; })],
+  ["conexiones por encima de los 200 clientes del pooler", "Las conexiones a la base no caben", json("modelo", (d) => { d.parametros.conexiones_transaccion_api_por_replica.valores.capacidad = 60; })],
+  ["clientes de sesión por encima del pool size de Supavisor", "Las conexiones a la base no caben", json("modelo", (d) => { d.parametros.conexiones_sesion_api_por_replica.valores.capacidad = 2; })],
+  ["pico con 60 conexiones directas: el usuario pidió menos de 60", "Las conexiones a la base no caben", json("modelo", (d) => { d.parametros.conexiones_reservadas_supabase.valores.capacidad = 23; })],
+  ["MVP por encima de las 60 conexiones directas de Micro", "Las conexiones a la base no caben", json("modelo", (d) => { d.parametros.conexiones_reservadas_supabase.valores.mvp = 50; })],
 ];
 
 let fallas = 0;
 for (const [nombre, codigo, mutar] of CASOS) {
   const dir = mkdtempSync(join(tmpdir(), "validar-arquitectura-"));
   try {
-    for (const c of CARPETAS) cpSync(join(RAIZ, c), join(dir, c), { recursive: true });
+    for (const c of CARPETAS) cpSync(join(RAIZ, c), join(dir, c), { recursive: true, filter: (f) => !f.includes("node_modules") });
     mutar(dir);
     const r = spawnSync(process.execPath, [VALIDADOR, "--raiz", dir], { encoding: "utf8" });
     const salida = `${r.stdout}${r.stderr}`;
@@ -95,7 +104,7 @@ for (const [nombre, codigo, mutar] of CASOS) {
 for (const [nombre, esperado, mutar] of CASOS_CAPACIDAD) {
   const dir = mkdtempSync(join(tmpdir(), "validar-capacidad-"));
   try {
-    for (const c of CARPETAS) cpSync(join(RAIZ, c), join(dir, c), { recursive: true });
+    for (const c of CARPETAS) cpSync(join(RAIZ, c), join(dir, c), { recursive: true, filter: (f) => !f.includes("node_modules") });
     mutar(dir);
     const calcular = join(dir, "tools/modelo-de-carga/calcular.mjs"); // la copia: su raíz es la carpeta temporal
     const regenerado = spawnSync(process.execPath, [calcular], { encoding: "utf8" });

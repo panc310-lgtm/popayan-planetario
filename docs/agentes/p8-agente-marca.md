@@ -20,7 +20,7 @@
 manual ─► propuesta ─► guardián ─► vista previa ─► verificador ─► espera de aprobación ─► publicación
 (Sonnet)   (código + juez Haiku)              (código)        (interrupt)         (la persona, por la API)
               ▲            │
-              └─ hallazgos ┘   ⟨propuesto S7⟩ máximo 3 regeneraciones
+              └─ hallazgos ┘   (S7, ratificado) máximo 3 regeneraciones
 ```
 
 | Etapa | Entrada | Salida | Si falla |

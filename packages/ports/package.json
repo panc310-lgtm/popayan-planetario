@@ -1,0 +1,13 @@
+{
+  "name": "@planetario/ports",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Puertos del hexágono: interfaces que el dominio usa y los adaptadores implementan. Solo depende de los contratos (INV_06).",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@planetario/contracts": "0.1.0"
+  }
+}
