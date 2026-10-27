@@ -77,6 +77,7 @@ function tasasPico(p, m) {
     lecturas_catalogo_base_s: apiS * p.fraccion_api_catalogo * p.fraccion_api_a_base,
     redis_s: apiS * p.comandos_redis_por_solicitud_api,
     redis_p13_s: eventosNegocioS * p.comandos_redis_por_evento_p13, // vectores Π y carga por marca (P13 → D4)
+    lecturas_base_p13_s: eventosNegocioS * p.lecturas_base_por_evento_p13, // lecturas de P13 en D1 (E69)
     eventos_pedido_s: eventosPedidoS,
     eventos_negocio_s: eventosNegocioS,
     telegram_s: (pedidosHoraPico * p.mensajes_telegram_por_pedido) / 3600,
@@ -87,7 +88,8 @@ function tasasPico(p, m) {
     base_ops_s:
       apiS * p.fraccion_api_a_base +
       eventosNegocioS * p.escrituras_base_por_evento +
-      turnosAgenteS * p.escrituras_estado_agente_por_turno, // puntos de control de los agentes (ADR-0002)
+      turnosAgenteS * p.escrituras_estado_agente_por_turno + // puntos de control de los agentes (ADR-0002)
+      eventosNegocioS * p.lecturas_base_por_evento_p13, // lecturas de P13 en D1 (E69)
   };
 }
 

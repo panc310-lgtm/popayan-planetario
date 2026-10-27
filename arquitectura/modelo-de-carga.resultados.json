@@ -17,6 +17,7 @@
           "lecturas_catalogo_base_s": 0.135,
           "redis_s": 0.54,
           "redis_p13_s": 0.04222,
+          "lecturas_base_p13_s": 0,
           "eventos_pedido_s": 0.01111,
           "eventos_negocio_s": 0.02111,
           "telegram_s": 0.008333,
@@ -36,6 +37,7 @@
           "lecturas_catalogo_base_s": 2.295,
           "redis_s": 9.18,
           "redis_p13_s": 0.7178,
+          "lecturas_base_p13_s": 0,
           "eventos_pedido_s": 0.1889,
           "eventos_negocio_s": 0.3589,
           "telegram_s": 0.1417,
@@ -519,13 +521,40 @@
           "tasa_evento_s": 0.3589
         },
         {
+          "arista": "E74",
+          "origen": "P5",
+          "destino": "P13",
+          "carga": "eventos_negocio_s",
+          "factor": 1,
+          "tasa_normal_s": 0.02111,
+          "tasa_evento_s": 0.3589
+        },
+        {
           "arista": "E68",
           "origen": "P13",
           "destino": "D4",
           "carga": "redis_p13_s",
+          "factor": 0.5,
+          "tasa_normal_s": 0.02111,
+          "tasa_evento_s": 0.3589
+        },
+        {
+          "arista": "E75",
+          "origen": "P13",
+          "destino": "D4",
+          "carga": "redis_p13_s",
+          "factor": 0.5,
+          "tasa_normal_s": 0.02111,
+          "tasa_evento_s": 0.3589
+        },
+        {
+          "arista": "E69",
+          "origen": "P13",
+          "destino": "D1",
+          "carga": "lecturas_base_p13_s",
           "factor": 1,
-          "tasa_normal_s": 0.04222,
-          "tasa_evento_s": 0.7178
+          "tasa_normal_s": 0,
+          "tasa_evento_s": 0
         }
       ],
       "limites": [
@@ -567,6 +596,7 @@
           "lecturas_catalogo_base_s": 500,
           "redis_s": 2000,
           "redis_p13_s": 96.3,
+          "lecturas_base_p13_s": 0,
           "eventos_pedido_s": 11.11,
           "eventos_negocio_s": 48.15,
           "telegram_s": 8.333,
@@ -586,6 +616,7 @@
           "lecturas_catalogo_base_s": 500,
           "redis_s": 2000,
           "redis_p13_s": 96.3,
+          "lecturas_base_p13_s": 0,
           "eventos_pedido_s": 11.11,
           "eventos_negocio_s": 48.15,
           "telegram_s": 8.333,
@@ -1055,13 +1086,40 @@
           "tasa_evento_s": 48.15
         },
         {
+          "arista": "E74",
+          "origen": "P5",
+          "destino": "P13",
+          "carga": "eventos_negocio_s",
+          "factor": 1,
+          "tasa_normal_s": 48.15,
+          "tasa_evento_s": 48.15
+        },
+        {
           "arista": "E68",
           "origen": "P13",
           "destino": "D4",
           "carga": "redis_p13_s",
+          "factor": 0.5,
+          "tasa_normal_s": 48.15,
+          "tasa_evento_s": 48.15
+        },
+        {
+          "arista": "E75",
+          "origen": "P13",
+          "destino": "D4",
+          "carga": "redis_p13_s",
+          "factor": 0.5,
+          "tasa_normal_s": 48.15,
+          "tasa_evento_s": 48.15
+        },
+        {
+          "arista": "E69",
+          "origen": "P13",
+          "destino": "D1",
+          "carga": "lecturas_base_p13_s",
           "factor": 1,
-          "tasa_normal_s": 96.3,
-          "tasa_evento_s": 96.3
+          "tasa_normal_s": 0,
+          "tasa_evento_s": 0
         }
       ],
       "limites": [
@@ -1103,6 +1161,7 @@
           "lecturas_catalogo_base_s": 4.5,
           "redis_s": 18,
           "redis_p13_s": 2.148,
+          "lecturas_base_p13_s": 0,
           "eventos_pedido_s": 0.7407,
           "eventos_negocio_s": 1.074,
           "telegram_s": 0.5556,
@@ -1122,6 +1181,7 @@
           "lecturas_catalogo_base_s": 13.5,
           "redis_s": 54,
           "redis_p13_s": 6.444,
+          "lecturas_base_p13_s": 0,
           "eventos_pedido_s": 2.222,
           "eventos_negocio_s": 3.222,
           "telegram_s": 1.667,
@@ -1605,13 +1665,40 @@
           "tasa_evento_s": 3.222
         },
         {
+          "arista": "E74",
+          "origen": "P5",
+          "destino": "P13",
+          "carga": "eventos_negocio_s",
+          "factor": 1,
+          "tasa_normal_s": 1.074,
+          "tasa_evento_s": 3.222
+        },
+        {
           "arista": "E68",
           "origen": "P13",
           "destino": "D4",
           "carga": "redis_p13_s",
+          "factor": 0.5,
+          "tasa_normal_s": 1.074,
+          "tasa_evento_s": 3.222
+        },
+        {
+          "arista": "E75",
+          "origen": "P13",
+          "destino": "D4",
+          "carga": "redis_p13_s",
+          "factor": 0.5,
+          "tasa_normal_s": 1.074,
+          "tasa_evento_s": 3.222
+        },
+        {
+          "arista": "E69",
+          "origen": "P13",
+          "destino": "D1",
+          "carga": "lecturas_base_p13_s",
           "factor": 1,
-          "tasa_normal_s": 2.148,
-          "tasa_evento_s": 6.444
+          "tasa_normal_s": 0,
+          "tasa_evento_s": 0
         }
       ],
       "limites": [

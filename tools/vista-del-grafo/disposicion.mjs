@@ -28,8 +28,11 @@ export const carriles = {
   E43: { carril: 1572, salida: 24, entrada: 24, etiqueta: 0.25 }, E44: { carril: 1584, salida: 32, entrada: 32, etiqueta: 0.5 },
   E45: { carril: 1596, salida: 40, entrada: 40, etiqueta: 0.75 },
   E54: { carril: 2010, salida: 56, entrada: 24 }, E41: { carril: 2034, salida: 24, entrada: 24 },
-  // P13 está a la izquierda del bus y a la derecha de los datos: sus tres aristas cruzan bajo las etiquetas de la fila de D4.
-  E67: { carril: 1212, salida: 24, entrada: 24 }, E68: { carril: 1222, salida: 40, entrada: 24 }, E69: { carril: 1232, salida: 56, entrada: 36 },
+  // P13 está a la izquierda del bus y a la derecha de los datos. Sus dos entradas y sus dos escrituras en Redis
+  // cruzan bajo las etiquetas de la fila de D4; la lectura de D1 baja por debajo de la fila de D1.
+  E67: { carril: 1210, salida: 24, entrada: 24 }, E74: { carril: 1218, salida: 32, entrada: 32 },
+  E68: { carril: 1226, salida: 40, entrada: 24 }, E75: { carril: 1234, salida: 48, entrada: 32 },
+  E69: { carril: 1390, salida: 56, entrada: 40 },
   // Lazo de la telemetría al gobierno: sube por fuera de la nota Asíncrono y corre bajo la nota de gobierno, sin cruzar sus etiquetas.
   E70: { carril: 690, salida: 60, entrada: 24 }, E71: { carril: 698, salida: 72, entrada: 24 }, E73: { carril: 706, salida: 84, entrada: 24 },
 };
@@ -103,10 +106,10 @@ export const vistas = [
     desc: "Cómo se mueve el dinero y quién lo confirma (ADR-0003). El dinero va del banco del comprador a la llave Bre-B de la marca; Bold solo detecta y confirma el pago. Si Bold no lo aprueba por escrito antes del 31-oct-2026, la marca confirma con un botón en Telegram." },
   { id: "agentes", nombre: "Agentes de IA", aristas: ["E29", "E30", "E31", "E32", "E54", "E55", "E56", "E14"],
     desc: "Los agentes de IA (ADR-0002). El del usuario busca, organiza Mi universo y arma borradores de pedido; el de marca propone landings en la fase 2. Ninguno paga ni confirma pedidos; proponen comandos y el dominio decide." },
-  { id: "eventos", nombre: "Eventos", aristas: ["E35", "E36", "E37", "E47", "E48", "E49", "E67", "E63", "E51", "E52", "E53"],
+  { id: "eventos", nombre: "Eventos", aristas: ["E35", "E36", "E37", "E47", "E48", "E49", "E67", "E74", "E63", "E51", "E52", "E53"],
     desc: "Del registro planetario_events al bus y a sus consumidores. Cada hecho confirmado se escribe una vez, en la misma transacción que el estado, y desde ahí se reparte a Telegram, reputación, fidelidad, telemetría, al motor de decisión y al comprador." },
-  { id: "decision", nombre: "Decisión y retroalimentación", aristas: ["E67", "E69", "E68", "E65", "E31", "E49", "E70", "E71", "E72", "E73", "E06"],
-    desc: "P13 convierte los eventos confirmados y las tablas públicas en vectores de decisión que publica en Redis; la búsqueda los lee en menos de 10 ms y el agente del usuario los recibe por su herramienta, sin llamar a un modelo. La telemetría cierra el lazo: cada área de gobierno recibe las métricas con las que ajusta lo que gobierna, y G1 revisa las ponderaciones del índice (PEN-08)." },
+  { id: "decision", nombre: "Decisión y retroalimentación", aristas: ["E67", "E74", "E69", "E75", "E68", "E65", "E31", "E49", "E70", "E71", "E72", "E73", "E06"],
+    desc: "P13 convierte los eventos confirmados y el índice publicado en la carga de cada marca y en vectores de decisión, que publica en Redis; la búsqueda los lee en menos de 10 ms y el agente del usuario recibe los resultados ya ordenados, sin llamar a un modelo. La telemetría cierra el lazo: cada área de gobierno recibe las métricas con las que ajusta lo que gobierna, y G1 revisa las ponderaciones del índice (PEN-08)." },
   { id: "gobierno", nombre: "Gobierno", criterio: "vertical",
     desc: "El núcleo N0 delega en cinco áreas, que gobiernan servicios, marcas y proveedores. Estas líneas salen por debajo de cada nodo, como las conexiones de un subnodo. Incluye los insumos de construcción del mapa y las imágenes." },
 ];

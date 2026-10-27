@@ -21,9 +21,10 @@ Origen: criterios del usuario trabajados con Gemini y con Claude, registrados co
 decisiones del usuario en el kernel y en ADR aprobados  >  kernel-durable.json y grafo-operacional.json  >  documento maestro (FD-01)  >  AGENTS.md  >  docs/agentes/*  >  código existente  >  instrucción de la tarea  >  insumos de IA
 ```
 
-Vigente, porque lo fija `docs/adr/README.md`:
+Vigente, porque lo fija `docs/adr/README.md`: solo el usuario aprueba decisiones, y un ADR en estado Propuesta no es una decisión.
 
-- Solo el usuario aprueba decisiones. Un ADR en estado Propuesta no es una decisión.
+También ⟨propuesto S9⟩, como consecuencias de ese orden:
+
 - Si una instrucción contradice una decisión aprobada, el agente **NO DEBE** ejecutarla: la entrega con estado `ESCALADO` (§9).
 - El código existente no es precedente: si viola una invariante, es deuda.
 
@@ -66,7 +67,7 @@ Orden obligatorio de hidratación:
 ## 3. Leyes universales del núcleo (`N0_ORG_CORE`)
 
 - **`rule_01` — Subordinación al grafo raíz.** Ω(u, m, t) es una compuerta **por transacción**: vale 0 si la transacción viola el aislamiento entre marcas, el firewall de visibilidad o las prohibiciones financieras de los agentes. Con Ω = 0 la transacción no se ejecuta y se registra en `T12`. La evalúa una función en código antes de cada comando; ningún agente la evalúa ni la evade.
-- **`rule_02` — Válvula homeostática por marca.** `L_m(t) = pedidos pendientes / 15` (`T10`) y `Theta_s(L) = min(1, max(0, (1 − L) / 0,10))`: amortigua linealmente desde `L = 0,90` y llega a 0 en `L = 1`; por encima de 15 pendientes rige la pausa automática (`R06`). Con la marca amortiguada, el pedido se desvía hacia alternas de la misma galaxia con calificación de al menos 4,0 (aprobado con `P13`). ⟨propuesto S11⟩ Las alternas son además del mismo nicho; así, en el MVP, con una marca por nicho, no hay alternas.
+- **`rule_02` — Válvula homeostática por marca.** `L_m(t) = pedidos pendientes / 15` (`T10`) y `Theta_s(L) = min(1, max(0, (1 − L) / 0,10))`: amortigua linealmente desde `L = 0,90` y llega a 0 en `L = 1`; por encima de 15 pendientes rige la pausa automática (`R06`). Con la marca amortiguada, el pedido se desvía hacia alternas de la misma galaxia con calificación de al menos 4,0 (aprobado con `P13`). ⟨propuesto S11⟩ Las alternas son además del mismo nicho y no están amortiguadas ellas mismas (`L < 0,90`), y las elige `P13` al publicar Π. Con esa precisión, en el MVP (una marca por nicho) no hay alternas.
 - **`rule_03` — Trazabilidad inmutable.** Toda transición de estado emite un evento canónico a `planetario_events` (`D3`) por `appendCanonicalEvent`; los que origina un agente llevan actor, agente, versión del contrato, modelo y turno.
 
 ---
@@ -162,7 +163,7 @@ Un problema baja al nivel más barato que lo resuelve con exactitud: si un cálc
 | :--- | :--- | :--- | :--- |
 | **`P7`** — usuario y soporte | Enrutador, descubrimiento, Mi universo, pedido en borrador (una marca por pedido) y soporte 24 horas | 1,5 llamadas al modelo por turno · p95 < 6 s (`T03`) · perfil < 800 tokens | [`p7-agente-usuario.md`](docs/agentes/p7-agente-usuario.md) |
 | **`P8`** — marca, fase 2 | Manual de Marca → propuesta → guardián → vista previa → verificador → aprobación del responsable → publicación por la persona | Sesión aislada por marca | [`p8-agente-marca.md`](docs/agentes/p8-agente-marca.md) |
-| **`P13`** — motor de decisión | Vectores Π en `D4` desde los eventos confirmados y las tablas públicas | Lectura < 10 ms (`T24`) · 200 eventos/s · cero tokens | [`p13-motor-decision.md`](docs/agentes/p13-motor-decision.md) |
+| **`P13`** — motor de decisión | Carga por marca y vectores Π en `D4`, desde los eventos confirmados y el índice publicado | Lectura < 10 ms (`T24`) · 200 eventos/s · cero tokens | [`p13-motor-decision.md`](docs/agentes/p13-motor-decision.md) |
 
 ### 7.3 Principios de producción (ADR-0002)
 - **El agente propone; el dominio decide.** Los agentes son adaptadores primarios del hexágono.
@@ -181,8 +182,8 @@ Un problema baja al nivel más barato que lo resuelve con exactitud: si un cálc
 ```text
 [1. Entrada]      Candado por conversación en Upstash (D4); el segundo mensaje espera su turno.
       │
-[2. Hidratación]  Punto de control (PostgresSaver, esquema agentes) y perfil < 800 tokens
-      │           por SlaveReadDatabasePort; conexión devuelta antes de llamar al modelo.
+[2. Hidratación]  Punto de control por el pool de PostgresSaver (esquema agentes) y perfil
+      │           < 800 tokens por SlaveReadDatabasePort; conexiones devueltas antes del modelo.
       │
 [3. Enrutamiento] Acción de la interfaz: directo al agente. Texto libre: Haiku 5.5 con
       │           salida estructurada validada por Ajv. Agentes: descubrimiento,
@@ -268,8 +269,9 @@ Todo valor marcado `⟨propuesto⟩` en este archivo o en `docs/agentes/` es un 
 | S8 | `P13` escribe 2 comandos en `D4` por evento (parámetro del modelo de carga) | `p13-motor-decision.md` |
 | S9 | Orden de precedencia de §0, que extiende el de `docs/fuentes/README.md` | §0 |
 | S10 | La calificación agregada pública (`R04`) puede llegar al agente en los resultados de búsqueda sin contar como "leer la reputación" | §7.3, `p7-agente-usuario.md` §4 |
-| S11 | Las alternas del desvío de `rule_02` son del mismo nicho, además de la misma galaxia | §3, `p13-motor-decision.md` §3 |
+| S11 | Las alternas del desvío de `rule_02` son del mismo nicho, además de la misma galaxia, no están amortiguadas (`L < 0,90`) y las elige `P13` al publicar Π | §3, `p13-motor-decision.md` §3 |
 | S12 | La carga, la velocidad en Telegram y la recompra agregada de una marca ordenan los resultados, pero no se muestran al comprador mientras no se amplíe `R04` | `p13-motor-decision.md` §2, `p7-agente-usuario.md` §4 |
+| S13 | Π se publica solo en `D4`, no también en `D1` como dice la aprobación, porque `D1` es el nodo más cargado y Π se reconstruye desde `D3` | `p13-motor-decision.md` §1 |
 
 ---
 

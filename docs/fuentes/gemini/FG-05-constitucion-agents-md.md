@@ -5,7 +5,8 @@
 | Origen | Criterios del usuario trabajados con Gemini, pegados en una conversación con Claude el 2026-10-26 |
 | T1 | Borrador de `AGENTS.md` pegado como texto en el chat; termina dentro de la sección 6 (`agent loop`), paso 5 |
 | T2 | Instrucciones de sincronización, adjuntas como archivo de texto |
-| SHA-256 de T2 | `5a5ebedc6bb6e59d5f6482e372b373d825ddc30d86606df899c39bcf0a93c889` |
+| SHA-256 de T2 | `5a5ebedc6bb6e59d5f6482e372b373d825ddc30d86606df899c39bcf0a93c889`, el archivo recibido, con finales de línea CRLF |
+| Texto literal | T1 y T2 completos en [FG-05-texto-original.md](FG-05-texto-original.md), con la huella de cada uno |
 | Fidelidad | Texto completo, salvo el corte de T1 |
 | Rol | Base de `AGENTS.md` 1.0.0, de `docs/agentes/` y de los cambios del kernel 1.7.0, el grafo v0.9 y el modelo de carga v0.6 |
 
@@ -69,12 +70,15 @@ Etiquetas de estado: las mismas de [FG-01](FG-01-arquitectura-grafos-operacional
 | Kernel actual `1.5.0-DURABLE-KERNEL`, a actualizar a `1.6.0` | `[INCORRECTO]`: el kernel ya estaba en `1.6.1`; la nueva versión es `1.7.0` |
 | Grafo `v0.9-SoC` | `[CORREGIDO]`: el esquema exige versión `n.n`; queda `0.9`, y "SoC" se registra en `cambios_0_9` |
 | P13 lee "`P12` (saturación `L_m(t)`)" | `[CORREGIDO]`: `P12` es Telemetría; la carga `L_m` sale de los eventos de pedidos (`T10`) |
+| P13 "escribe en D1/D4 (S8) los vectores Π_BigData" | Escritura en D4 `[VIGENTE]` (aprobada). Escritura en D1 `[ABIERTO]` (S13): esta versión publica Π solo en D4, porque D1 es el nodo más cargado (ρ = 0,672 en el pico) y Π se reconstruye desde D3. El kernel cita la aprobación tal como se dio y marca la diferencia como propuesta. El "(S8)" del insumo remite al S8 del primer borrador de AGENTS.md que Claude entregó en la misma conversación ("P13 no escribe en D3; solo lee de D3 y escribe en D1/D4"). En AGENTS.md 1.0.0, S8 es el costo en Redis |
 | Cerrar PEN-08 con Θ_s y el desvío | `[CORREGIDO]`: no cubre marcas sin calificación. El usuario decidió el 2026-10-26 dejarlo abierto con ADR-0004 en propuesta |
 | P13 en el worker con ρ < 0,70 verificado por `calcular.mjs --estricto` | P13 en ρ = 0,24 en el pico de 10.000 sesiones `[VIGENTE]`. Que `--estricto` verifique 0,70 es `[INCORRECTO]`: solo falla en zona crítica (ρ ≥ 0,90). El 0,70 se revisa en el reporte (AGENTS.md §5) |
 | Lazo de P12 hacia el gobierno (G1 a G4) y métricas T24 a T26 | `[VIGENTE]`: aristas E70 a E73 y métricas definidas en el grafo v0.9 |
 | Quitar la ruta `continuity/`, PostgreSQL 17, documentar los scripts por fase, crear los seis documentos de `docs/agentes/` | `[VIGENTE]` |
 
 ## Origen de cada sección de AGENTS.md 1.0.0
+
+Se comprueba contra el texto literal de T1 en [FG-05-texto-original.md](FG-05-texto-original.md).
 
 | Sección | Origen |
 |---|---|

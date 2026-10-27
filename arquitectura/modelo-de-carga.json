@@ -10,7 +10,7 @@
     "arquitectura/kernel-durable.json (1.7.0-DURABLE-KERNEL)",
     "arquitectura/grafo-operacional.json (0.9)"
   ],
-  "cambios_0_6": "P13, motor de decisión, entra al mapa de capacidad dentro del servicio worker con la carga de eventos de negocio. Sus escrituras en D4 (comandos_redis_por_evento_p13) suman a los comandos de Upstash del mes y dan la tasa de E68; E67 lleva los eventos de negocio del bus a P13.",
+  "cambios_0_6": "P13, motor de decisión, entra al mapa de capacidad dentro del servicio worker con la carga de eventos de negocio. Sus escrituras en D4 (comandos_redis_por_evento_p13) suman a los comandos de Upstash del mes y se reparten entre E68 (vectores Π) y E75 (carga por marca). E67 y E74 llevan los eventos de negocio del bus a cada uno de sus dos consumidores. Sus lecturas de D1 (lecturas_base_por_evento_p13, E69) suman a la carga de la base.",
   "cambios_0_5": "Declara su $schema (arquitectura/schemas/modelo-de-carga.schema.json); lo valida tools/validar-arquitectura/validar.mjs.",
   "cambios_0_4": "Plan de capacidad aplicado al grafo v0.5 (PEN-14): la capacidad de los nodos de api, worker y agentes sale de su capacidad por réplica por las réplicas del servicio; la de la API de IA, del nivel de cuenta de Anthropic. Las tasas de las aristas que llevan carga salen de este modelo (mapa_de_aristas) y reemplazan a supuestos_pico.",
   "cambios_0_3": "Costo de la API de IA por llamada, por mes y por hora pico, y nivel mínimo de cuenta de Anthropic que exige cada escenario. La carga de la base suma las escrituras del estado de las conversaciones de los agentes en PostgreSQL (insumos del ADR-0002).",
@@ -204,6 +204,13 @@
       "origen": "AGENTS.md (S8) y docs/agentes/p13-motor-decision.md: por cada evento confirmado, P13 reescribe la carga de la marca y el vector Π de su galaxia y nicho.",
       "como_se_mide": "Comandos de Upstash emitidos por P13 / eventos que procesa (T25)."
     },
+    "lecturas_base_por_evento_p13": {
+      "unidad": "consultas a D1 por evento de negocio",
+      "valores": {"mvp": 0, "capacidad": 0, "diseno": 0},
+      "estado": "supuesto",
+      "origen": "docs/agentes/p13-motor-decision.md: P13 calcula por evento con su propio estado y no consulta D1 en cada evento. Relee el índice que publica P9 cada 15 días y al arrancar, lo que da una carga despreciable. Si el diseño cambia y P13 consulta D1 por evento, cada consulta suma a D1, que es el nodo más cargado.",
+      "como_se_mide": "Consultas a D1 del rol de base de datos de P13 / eventos que procesa."
+    },
     "bytes_por_evento": {
       "unidad": "bytes",
       "valores": {"mvp": 1024, "capacidad": null, "diseno": 1024},
@@ -347,7 +354,10 @@
     {"arista": "E63", "carga": "telegram_s", "nota": "un aviso al comprador por cada mensaje a la marca"},
     {"arista": "E65", "carga": "redis_s"},
     {"arista": "E67", "carga": "eventos_negocio_s"},
-    {"arista": "E68", "carga": "redis_p13_s"}
+    {"arista": "E74", "carga": "eventos_negocio_s"},
+    {"arista": "E68", "carga": "redis_p13_s", "factor": 0.5, "nota": "una de las dos escrituras por evento: el vector Π"},
+    {"arista": "E75", "carga": "redis_p13_s", "factor": 0.5, "nota": "una de las dos escrituras por evento: la carga de la marca"},
+    {"arista": "E69", "carga": "lecturas_base_p13_s"}
   ],
   "referencias_previas": {
     "grafo_v0_3": {"version": "0.3", "concurrentes_pico": 1000, "pedidos_hora_pico": 100, "pedidos_mes": 1000, "eventos_negocio_s": 0.22, "api_s": 200},

@@ -149,9 +149,12 @@ Tasa en la hora pico de cada arista del grafo v0.9 que lleva carga en tiempo de 
 | E63 | P5 → P1 | telegram_s | 1 | 0,00833 (0,142) | 8,33 (8,33) | 0,556 (1,67) |
 | E65 | P3 → D4 | redis_s | 1 | 0,54 (9,18) | 2.000 (2.000) | 18 (54) |
 | E67 | P5 → P13 | eventos_negocio_s | 1 | 0,0211 (0,359) | 48,1 (48,1) | 1,07 (3,22) |
-| E68 | P13 → D4 | redis_p13_s | 1 | 0,0422 (0,718) | 96,3 (96,3) | 2,15 (6,44) |
+| E74 | P5 → P13 | eventos_negocio_s | 1 | 0,0211 (0,359) | 48,1 (48,1) | 1,07 (3,22) |
+| E68 | P13 → D4 | redis_p13_s | 0,5 | 0,0211 (0,359) | 48,1 (48,1) | 1,07 (3,22) |
+| E75 | P13 → D4 | redis_p13_s | 0,5 | 0,0211 (0,359) | 48,1 (48,1) | 1,07 (3,22) |
+| E69 | P13 → D1 | lecturas_base_p13_s | 1 | 0 (0) | 0 (0) | 0 (0) |
 
-Sin tasa modelada (41): E01, E02, E03, E04, E05, E06, E07, E08, E09, E10, E11, E12, E13, E14, E20, E22, E23, E24, E27, E28, E31, E32, E50, E51, E52, E53, E54, E55, E56, E57, E58, E59, E60, E61, E64, E66, E69, E70, E71, E72, E73. Son aristas de control y gobierno, de construcción, del cliente, de Noticias, de telemetría o de fase 2; su tasa se agrega al modelo cuando haga falta dimensionarlas.
+Sin tasa modelada (40): E01, E02, E03, E04, E05, E06, E07, E08, E09, E10, E11, E12, E13, E14, E20, E22, E23, E24, E27, E28, E31, E32, E50, E51, E52, E53, E54, E55, E56, E57, E58, E59, E60, E61, E64, E66, E70, E71, E72, E73. Son aristas de control y gobierno, de construcción, del cliente, de Noticias, de telemetría o de fase 2; su tasa se agrega al modelo cuando haga falta dimensionarlas.
 
 ## Comparación con los supuestos anteriores
 
@@ -186,6 +189,7 @@ Los supuestos_pico del grafo v0.3 ponían 100 pedidos en la hora pico y 1.000 pe
 - **escrituras_base_por_evento** (escrituras en D1 por evento): Escrituras en D1 / eventos (estadísticas de PostgreSQL).
 - **escrituras_estado_agente_por_turno** (escrituras en D1 por turno del agente): Filas escritas en el esquema de puntos de control de los agentes / turnos.
 - **comandos_redis_por_evento_p13** (comandos en D4 por evento de negocio): Comandos de Upstash emitidos por P13 / eventos que procesa (T25).
+- **lecturas_base_por_evento_p13** (consultas a D1 por evento de negocio): Consultas a D1 del rol de base de datos de P13 / eventos que procesa.
 - **bytes_por_evento** (bytes): Tamaño de planetario_events con índices / filas.
 - **tokens_entrada_por_llamada** (tokens): Promedio de input_tokens + cache_read_input_tokens + cache_creation_input_tokens por llamada (T17).
 - **fraccion_entrada_cacheada** (tokens leídos de caché / tokens de entrada): cache_read_input_tokens / tokens de entrada totales (T17).
