@@ -19,7 +19,10 @@ Diseño de arquitectura; la implementación no ha empezado.
 | Ruta | Contenido |
 |---|---|
 | [`arquitectura/kernel-durable.json`](arquitectura/kernel-durable.json) | Fuente de verdad: decisiones aprobadas, invariantes de ingeniería, despliegue, arquitectura de agentes y pendientes (PEN-xx) |
-| [`arquitectura/grafo-operacional.json`](arquitectura/grafo-operacional.json) | Nodos, aristas, servicios de despliegue, restricciones de aislamiento (R01–R10) y telemetría (T01–T23) |
+| [`AGENTS.md`](AGENTS.md) y [`CLAUDE.md`](CLAUDE.md) | Constitución operativa: cómo trabajan los agentes de ingeniería en este repositorio y reglas de construcción de los agentes de producción. `CLAUDE.md` importa `AGENTS.md` para Claude Code |
+| [`docs/agentes/`](docs/agentes/plano-a-harness-ingenieria.md) | Detalle de AGENTS.md por plano y por agente (P7, P8, P13), y la plantilla de la doble salida |
+| [`.claude/agents/`](.claude/agents/critico-adversario.md) | Subagente crítico adversario, en solo lectura |
+| [`arquitectura/grafo-operacional.json`](arquitectura/grafo-operacional.json) | Nodos, aristas, servicios de despliegue, restricciones de aislamiento (R01–R10) y telemetría (T01–T26) |
 | [`arquitectura/modelo-de-carga.json`](arquitectura/modelo-de-carga.json) | Parámetros del modelo de carga; sus resultados se generan |
 | [`arquitectura/schemas/`](arquitectura/schemas/kernel.schema.json) | JSON Schema 2020-12 de los tres archivos de arquitectura |
 | [`docs/adr/`](docs/adr/README.md) | Decisiones de arquitectura (ADR) |
@@ -56,9 +59,10 @@ La integración continua corre en cada pull request y en cada cambio de `main`:
 - Que el kernel, el grafo y el modelo de carga cumplan sus JSON Schema.
 - Que el grafo sea estructuralmente correcto: todo cuelga del núcleo N0, no hay aristas entre marcas, las referencias existen.
 - Que los tres archivos sean coherentes entre sí: versiones alineadas, rutas citadas que existen, estado de los ADR igual en todas partes.
+- Que `AGENTS.md` solo cite rutas y ADR que existen, y las versiones vigentes del kernel, el grafo y el modelo de carga.
 - Que el validador detecte cada tipo de error (sus propias pruebas).
 - Que los archivos generados del modelo de carga estén al día con sus parámetros y con el grafo.
-- Que ningún nodo de infraestructura quede en zona crítica en ningún escenario, incluido el requisito de 10.000 sesiones simultáneas.
+- Que ningún nodo de infraestructura llegue a ρ ≥ 0,70 en ningún escenario, incluido el requisito de 10.000 sesiones simultáneas, y que las conexiones a la base quepan.
 - Que la vista interactiva del grafo esté al día y que su disposición cubra todos los nodos y la ruta del pedido.
 
 Para correrlas en local, una vez:
@@ -75,6 +79,12 @@ npm run verificar
 
 ```bash
 npm run probar
+```
+
+O las cinco verificaciones de la integración continua juntas:
+
+```bash
+npm run verificar:todo
 ```
 
 Después de cambiar un parámetro del modelo o una capacidad del grafo, se regeneran los archivos y se confirman junto con el cambio:

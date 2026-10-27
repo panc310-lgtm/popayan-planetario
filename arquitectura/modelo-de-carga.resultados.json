@@ -1,8 +1,8 @@
 {
   "documento": "Resultados del modelo de carga",
   "generado_por": "tools/modelo-de-carga/calcular.mjs — no editar a mano",
-  "modelo": "Modelo de carga único v0.5 (2026-10-21)",
-  "grafo": "grafo-operacional v0.8",
+  "modelo": "Modelo de carga único v0.6 (2026-10-27)",
+  "grafo": "grafo-operacional v0.9",
   "rho_objetivo": 0.7,
   "escenarios": {
     "mvp": {
@@ -16,6 +16,8 @@
           "pedidos_abiertos": 3.75,
           "lecturas_catalogo_base_s": 0.135,
           "redis_s": 0.54,
+          "redis_p13_vectores_s": 0.04222,
+          "lecturas_base_p13_s": 0.001389,
           "eventos_pedido_s": 0.01111,
           "eventos_negocio_s": 0.02111,
           "telegram_s": 0.008333,
@@ -23,7 +25,7 @@
           "telegram_chat_top_s": 0.001667,
           "turnos_agente_s": 0.00891,
           "llamadas_modelo_s": 0.01336,
-          "base_ops_s": 0.369
+          "base_ops_s": 0.3704
         },
         "evento": {
           "concurrentes": 45.9,
@@ -34,6 +36,8 @@
           "pedidos_abiertos": 63.75,
           "lecturas_catalogo_base_s": 2.295,
           "redis_s": 9.18,
+          "redis_p13_vectores_s": 0.7178,
+          "lecturas_base_p13_s": 0.02361,
           "eventos_pedido_s": 0.1889,
           "eventos_negocio_s": 0.3589,
           "telegram_s": 0.1417,
@@ -41,7 +45,7 @@
           "telegram_chat_top_s": 0.02833,
           "turnos_agente_s": 0.1515,
           "llamadas_modelo_s": 0.2272,
-          "base_ops_s": 6.273
+          "base_ops_s": 6.296
         }
       },
       "mes": {
@@ -54,7 +58,7 @@
         "meses_hasta_llenar_disco_incluido": 651,
         "turnos_agente_mes": 30000,
         "solicitudes_api_mes": 388800,
-        "comandos_redis_mes": 388800,
+        "comandos_redis_mes": 424800,
         "costo_upstash_usd_mes": 0,
         "salida_cdn_gb_mes": 9,
         "lecturas_cdn_mes": 24000
@@ -142,6 +146,24 @@
           "estado": "ok"
         },
         {
+          "nodo": "P13",
+          "tipo": "infraestructura",
+          "carga": "eventos_negocio_s",
+          "mu_por_s": 200,
+          "nombre": "Motor de decisión",
+          "servicio": "worker",
+          "mu_por_replica": 100,
+          "replicas": 2,
+          "lambda_normal": 0.02111,
+          "rho_normal": 0.0001056,
+          "lambda_evento": 0.3589,
+          "rho_evento": 0.001794,
+          "mu_requerida": 0.5127,
+          "veces_a_escalar": 0.002563,
+          "replicas_necesarias": 1,
+          "estado": "ok"
+        },
+        {
           "nodo": "P6",
           "tipo": "infraestructura",
           "carga": "telegram_s",
@@ -212,12 +234,12 @@
           "carga": "base_ops_s",
           "mu_por_s": 1900,
           "nombre": "Base transaccional con aislamiento por marca",
-          "lambda_normal": 0.369,
-          "rho_normal": 0.0001942,
-          "lambda_evento": 6.273,
-          "rho_evento": 0.003301,
-          "mu_requerida": 8.961,
-          "veces_a_escalar": 0.004716,
+          "lambda_normal": 0.3704,
+          "rho_normal": 0.0001949,
+          "lambda_evento": 6.296,
+          "rho_evento": 0.003314,
+          "mu_requerida": 8.995,
+          "veces_a_escalar": 0.004734,
           "estado": "ok"
         },
         {
@@ -262,6 +284,32 @@
           "replicas_provistas": 5,
           "replicas_necesarias": 1
         }
+      },
+      "conexiones": {
+        "por_servicio": {
+          "api": {
+            "replicas": 1,
+            "por_replica": 8,
+            "total": 8
+          },
+          "worker": {
+            "replicas": 1,
+            "por_replica": 5,
+            "total": 5
+          },
+          "agentes": {
+            "replicas": 1,
+            "por_replica": 5,
+            "total": 5
+          }
+        },
+        "clientes_pooler": 18,
+        "reservadas": 20,
+        "conexiones_directas_necesarias": 38,
+        "conexiones_directas_disponibles": 60,
+        "cabe_en_clientes_pooler": true,
+        "cabe_en_conexiones_directas": true,
+        "estado": "ok"
       },
       "aristas": [
         {
@@ -488,6 +536,51 @@
           "factor": 1,
           "tasa_normal_s": 0.54,
           "tasa_evento_s": 9.18
+        },
+        {
+          "arista": "E67",
+          "origen": "P5",
+          "destino": "P13",
+          "carga": "eventos_negocio_s",
+          "factor": 1,
+          "tasa_normal_s": 0.02111,
+          "tasa_evento_s": 0.3589
+        },
+        {
+          "arista": "E74",
+          "origen": "P5",
+          "destino": "P13",
+          "carga": "eventos_negocio_s",
+          "factor": 1,
+          "tasa_normal_s": 0.02111,
+          "tasa_evento_s": 0.3589
+        },
+        {
+          "arista": "E68",
+          "origen": "P13",
+          "destino": "D4",
+          "carga": "redis_p13_vectores_s",
+          "factor": 1,
+          "tasa_normal_s": 0.04222,
+          "tasa_evento_s": 0.7178
+        },
+        {
+          "arista": "E75",
+          "origen": "P13",
+          "destino": "D4",
+          "carga": "eventos_negocio_s",
+          "factor": 1,
+          "tasa_normal_s": 0.02111,
+          "tasa_evento_s": 0.3589
+        },
+        {
+          "arista": "E69",
+          "origen": "P13",
+          "destino": "D1",
+          "carga": "lecturas_base_p13_s",
+          "factor": 1,
+          "tasa_normal_s": 0.001389,
+          "tasa_evento_s": 0.02361
         }
       ],
       "limites": [
@@ -528,6 +621,8 @@
           "pedidos_abiertos": 3750,
           "lecturas_catalogo_base_s": 500,
           "redis_s": 2000,
+          "redis_p13_vectores_s": 96.3,
+          "lecturas_base_p13_s": 1.389,
           "eventos_pedido_s": 11.11,
           "eventos_negocio_s": 48.15,
           "telegram_s": 8.333,
@@ -535,7 +630,7 @@
           "telegram_chat_top_s": 0.25,
           "turnos_agente_s": 33,
           "llamadas_modelo_s": 49.5,
-          "base_ops_s": 1276
+          "base_ops_s": 1278
         },
         "evento": {
           "concurrentes": 10000,
@@ -546,6 +641,8 @@
           "pedidos_abiertos": 3750,
           "lecturas_catalogo_base_s": 500,
           "redis_s": 2000,
+          "redis_p13_vectores_s": 96.3,
+          "lecturas_base_p13_s": 1.389,
           "eventos_pedido_s": 11.11,
           "eventos_negocio_s": 48.15,
           "telegram_s": 8.333,
@@ -553,7 +650,7 @@
           "telegram_chat_top_s": 0.25,
           "turnos_agente_s": 33,
           "llamadas_modelo_s": 49.5,
-          "base_ops_s": 1276
+          "base_ops_s": 1278
         }
       },
       "mes": null,
@@ -640,6 +737,24 @@
           "estado": "ok"
         },
         {
+          "nodo": "P13",
+          "tipo": "infraestructura",
+          "carga": "eventos_negocio_s",
+          "mu_por_s": 200,
+          "nombre": "Motor de decisión",
+          "servicio": "worker",
+          "mu_por_replica": 100,
+          "replicas": 2,
+          "lambda_normal": 48.15,
+          "rho_normal": 0.2407,
+          "lambda_evento": 48.15,
+          "rho_evento": 0.2407,
+          "mu_requerida": 68.78,
+          "veces_a_escalar": 0.3439,
+          "replicas_necesarias": 1,
+          "estado": "ok"
+        },
+        {
           "nodo": "P6",
           "tipo": "infraestructura",
           "carga": "telegram_s",
@@ -710,12 +825,12 @@
           "carga": "base_ops_s",
           "mu_por_s": 1900,
           "nombre": "Base transaccional con aislamiento por marca",
-          "lambda_normal": 1276,
-          "rho_normal": 0.6718,
-          "lambda_evento": 1276,
-          "rho_evento": 0.6718,
-          "mu_requerida": 1823,
-          "veces_a_escalar": 0.9597,
+          "lambda_normal": 1278,
+          "rho_normal": 0.6725,
+          "lambda_evento": 1278,
+          "rho_evento": 0.6725,
+          "mu_requerida": 1825,
+          "veces_a_escalar": 0.9608,
           "estado": "ok"
         },
         {
@@ -760,6 +875,32 @@
           "replicas_provistas": 5,
           "replicas_necesarias": 5
         }
+      },
+      "conexiones": {
+        "por_servicio": {
+          "api": {
+            "replicas": 4,
+            "por_replica": 8,
+            "total": 32
+          },
+          "worker": {
+            "replicas": 2,
+            "por_replica": 5,
+            "total": 10
+          },
+          "agentes": {
+            "replicas": 5,
+            "por_replica": 5,
+            "total": 25
+          }
+        },
+        "clientes_pooler": 67,
+        "reservadas": 20,
+        "conexiones_directas_necesarias": 87,
+        "conexiones_directas_disponibles": null,
+        "cabe_en_clientes_pooler": true,
+        "cabe_en_conexiones_directas": null,
+        "estado": "cómputo por elegir"
       },
       "aristas": [
         {
@@ -986,6 +1127,51 @@
           "factor": 1,
           "tasa_normal_s": 2000,
           "tasa_evento_s": 2000
+        },
+        {
+          "arista": "E67",
+          "origen": "P5",
+          "destino": "P13",
+          "carga": "eventos_negocio_s",
+          "factor": 1,
+          "tasa_normal_s": 48.15,
+          "tasa_evento_s": 48.15
+        },
+        {
+          "arista": "E74",
+          "origen": "P5",
+          "destino": "P13",
+          "carga": "eventos_negocio_s",
+          "factor": 1,
+          "tasa_normal_s": 48.15,
+          "tasa_evento_s": 48.15
+        },
+        {
+          "arista": "E68",
+          "origen": "P13",
+          "destino": "D4",
+          "carga": "redis_p13_vectores_s",
+          "factor": 1,
+          "tasa_normal_s": 96.3,
+          "tasa_evento_s": 96.3
+        },
+        {
+          "arista": "E75",
+          "origen": "P13",
+          "destino": "D4",
+          "carga": "eventos_negocio_s",
+          "factor": 1,
+          "tasa_normal_s": 48.15,
+          "tasa_evento_s": 48.15
+        },
+        {
+          "arista": "E69",
+          "origen": "P13",
+          "destino": "D1",
+          "carga": "lecturas_base_p13_s",
+          "factor": 1,
+          "tasa_normal_s": 1.389,
+          "tasa_evento_s": 1.389
         }
       ],
       "limites": [
@@ -1026,6 +1212,8 @@
           "pedidos_abiertos": 250,
           "lecturas_catalogo_base_s": 4.5,
           "redis_s": 18,
+          "redis_p13_vectores_s": 2.148,
+          "lecturas_base_p13_s": 0.09259,
           "eventos_pedido_s": 0.7407,
           "eventos_negocio_s": 1.074,
           "telegram_s": 0.5556,
@@ -1033,7 +1221,7 @@
           "telegram_chat_top_s": 0.01667,
           "turnos_agente_s": 0.297,
           "llamadas_modelo_s": 0.4455,
-          "base_ops_s": 13.41
+          "base_ops_s": 13.5
         },
         "evento": {
           "concurrentes": 270,
@@ -1044,6 +1232,8 @@
           "pedidos_abiertos": 750,
           "lecturas_catalogo_base_s": 13.5,
           "redis_s": 54,
+          "redis_p13_vectores_s": 6.444,
+          "lecturas_base_p13_s": 0.2778,
           "eventos_pedido_s": 2.222,
           "eventos_negocio_s": 3.222,
           "telegram_s": 1.667,
@@ -1051,7 +1241,7 @@
           "telegram_chat_top_s": 0.05,
           "turnos_agente_s": 0.891,
           "llamadas_modelo_s": 1.337,
-          "base_ops_s": 40.23
+          "base_ops_s": 40.51
         }
       },
       "mes": {
@@ -1064,8 +1254,8 @@
         "meses_hasta_llenar_disco_incluido": 13.95,
         "turnos_agente_mes": 1000000,
         "solicitudes_api_mes": 12960000,
-        "comandos_redis_mes": 12960000,
-        "costo_upstash_usd_mes": 24.92,
+        "comandos_redis_mes": 14640000,
+        "costo_upstash_usd_mes": 28.28,
         "salida_cdn_gb_mes": 300,
         "lecturas_cdn_mes": 800000
       },
@@ -1152,6 +1342,24 @@
           "estado": "ok"
         },
         {
+          "nodo": "P13",
+          "tipo": "infraestructura",
+          "carga": "eventos_negocio_s",
+          "mu_por_s": 200,
+          "nombre": "Motor de decisión",
+          "servicio": "worker",
+          "mu_por_replica": 100,
+          "replicas": 2,
+          "lambda_normal": 1.074,
+          "rho_normal": 0.00537,
+          "lambda_evento": 3.222,
+          "rho_evento": 0.01611,
+          "mu_requerida": 4.603,
+          "veces_a_escalar": 0.02302,
+          "replicas_necesarias": 1,
+          "estado": "ok"
+        },
+        {
           "nodo": "P6",
           "tipo": "infraestructura",
           "carga": "telegram_s",
@@ -1222,12 +1430,12 @@
           "carga": "base_ops_s",
           "mu_por_s": 1900,
           "nombre": "Base transaccional con aislamiento por marca",
-          "lambda_normal": 13.41,
-          "rho_normal": 0.007058,
-          "lambda_evento": 40.23,
-          "rho_evento": 0.02117,
-          "mu_requerida": 57.47,
-          "veces_a_escalar": 0.03025,
+          "lambda_normal": 13.5,
+          "rho_normal": 0.007107,
+          "lambda_evento": 40.51,
+          "rho_evento": 0.02132,
+          "mu_requerida": 57.87,
+          "veces_a_escalar": 0.03046,
           "estado": "ok"
         },
         {
@@ -1272,6 +1480,32 @@
           "replicas_provistas": 5,
           "replicas_necesarias": 1
         }
+      },
+      "conexiones": {
+        "por_servicio": {
+          "api": {
+            "replicas": 1,
+            "por_replica": 8,
+            "total": 8
+          },
+          "worker": {
+            "replicas": 1,
+            "por_replica": 5,
+            "total": 5
+          },
+          "agentes": {
+            "replicas": 1,
+            "por_replica": 5,
+            "total": 5
+          }
+        },
+        "clientes_pooler": 18,
+        "reservadas": 20,
+        "conexiones_directas_necesarias": 38,
+        "conexiones_directas_disponibles": null,
+        "cabe_en_clientes_pooler": true,
+        "cabe_en_conexiones_directas": null,
+        "estado": "cómputo por elegir"
       },
       "aristas": [
         {
@@ -1498,6 +1732,51 @@
           "factor": 1,
           "tasa_normal_s": 18,
           "tasa_evento_s": 54
+        },
+        {
+          "arista": "E67",
+          "origen": "P5",
+          "destino": "P13",
+          "carga": "eventos_negocio_s",
+          "factor": 1,
+          "tasa_normal_s": 1.074,
+          "tasa_evento_s": 3.222
+        },
+        {
+          "arista": "E74",
+          "origen": "P5",
+          "destino": "P13",
+          "carga": "eventos_negocio_s",
+          "factor": 1,
+          "tasa_normal_s": 1.074,
+          "tasa_evento_s": 3.222
+        },
+        {
+          "arista": "E68",
+          "origen": "P13",
+          "destino": "D4",
+          "carga": "redis_p13_vectores_s",
+          "factor": 1,
+          "tasa_normal_s": 2.148,
+          "tasa_evento_s": 6.444
+        },
+        {
+          "arista": "E75",
+          "origen": "P13",
+          "destino": "D4",
+          "carga": "eventos_negocio_s",
+          "factor": 1,
+          "tasa_normal_s": 1.074,
+          "tasa_evento_s": 3.222
+        },
+        {
+          "arista": "E69",
+          "origen": "P13",
+          "destino": "D1",
+          "carga": "lecturas_base_p13_s",
+          "factor": 1,
+          "tasa_normal_s": 0.09259,
+          "tasa_evento_s": 0.2778
         }
       ],
       "limites": [

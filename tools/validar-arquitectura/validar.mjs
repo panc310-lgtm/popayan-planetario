@@ -5,7 +5,8 @@
 // Uso: node tools/validar-arquitectura/validar.mjs [--raiz CARPETA]   (termina con error si encuentra alguno)
 //   --raiz valida una copia del repositorio en otra carpeta; lo usan las pruebas (pruebas.mjs).
 
-import { existsSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import Ajv2020 from "ajv/dist/2020.js";
@@ -18,6 +19,7 @@ const ARCHIVOS = {
   modelo: { datos: "arquitectura/modelo-de-carga.json", esquema: "arquitectura/schemas/modelo-de-carga.schema.json" },
 };
 const INDICE_ADR = "docs/adr/README.md";
+const AGENTS = "AGENTS.md";
 
 const errores = [];
 const error = (codigo, mensaje) => errores.push(`${codigo}: ${mensaje}`);
@@ -150,6 +152,11 @@ for (const m of modelo.mapa_de_capacidad) {
 for (const id of repetidos(modelo.mapa_de_aristas.map((a) => a.arista))) error("M3", `arista repetida en mapa_de_aristas: ${id}`);
 for (const a of modelo.mapa_de_aristas) if (!aristas.has(a.arista)) error("M3", `mapa_de_aristas usa ${a.arista}, que no existe en el grafo`);
 
+// M4 Cada servicio de despliegue tiene su presupuesto de conexiones a la base (PEN-14 (4)), y solo esos servicios
+const serviciosConPresupuesto = Object.keys(modelo.parametros).map((n) => n.match(/^conexiones_(.+)_por_replica$/)?.[1]).filter(Boolean);
+for (const s of servicios) if (!serviciosConPresupuesto.includes(s)) error("M4", `el servicio ${s} no tiene el parámetro conexiones_${s}_por_replica`);
+for (const s of serviciosConPresupuesto) if (!servicios.includes(s)) error("M4", `conexiones_${s}_por_replica no corresponde a ningún servicio de servicios_de_despliegue`);
+
 // V1 Versiones alineadas entre los tres archivos
 const citaKernel = `arquitectura/kernel-durable.json (${kernel.schema_version})`;
 const citaGrafo = `arquitectura/grafo-operacional.json (${grafo.version})`;
@@ -194,6 +201,72 @@ for (const [seccion, s] of Object.entries(kernel)) {
     const lineaEstado = leer(s.adr).split(/\r?\n/).find((l) => l.startsWith("| Estado |")) ?? "";
     if (lineaEstado.includes("Aprobada") !== aprobadaEnKernel) error("A1", `${seccion} y ${s.adr} no coinciden en el estado`);
   }
+}
+
+// F2 AGENTS.md solo cita rutas y ADR que existen
+// V3 AGENTS.md cita las versiones vigentes del kernel, del grafo y del modelo de carga
+if (!existsSync(resolve(RAIZ, AGENTS))) {
+  error("F2", `falta ${AGENTS} en la raíz del repositorio`);
+} else {
+  const agents = leer(AGENTS);
+  const citadas = agents.match(/(?:\b(?:docs|arquitectura|tools)|\.claude)\/[A-Za-z0-9_./-]+\.(?:md|json|mjs)\b/g) ?? [];
+  for (const r of new Set(citadas)) if (!existsSync(resolve(RAIZ, r))) error("F2", `${AGENTS} cita ${r}, que no existe`);
+  for (const adr of new Set(agents.match(/\bADR-\d{4}\b/g) ?? [])) {
+    if (!indice.some((l) => l.includes(`[${adr}]`))) error("F2", `${AGENTS} cita ${adr}, que no está en ${INDICE_ADR}`);
+  }
+  if (!agents.includes(kernel.schema_version)) error("V3", `${AGENTS} no cita el kernel vigente ${kernel.schema_version}`);
+  if (!agents.includes(`grafo operacional \`v${grafo.version}\``)) error("V3", `${AGENTS} no cita el grafo operacional vigente v${grafo.version}`);
+  if (!agents.includes(`modelo de carga \`v${modelo.version}\``)) error("V3", `${AGENTS} no cita el modelo de carga vigente v${modelo.version}`);
+}
+
+// F3 Las huellas SHA-256 de los textos originales de las fuentes coinciden con el texto guardado.
+// Cada archivo docs/fuentes/*/*-texto-original.md tiene una tabla con una fila por bloque (| T1 | … | `huella` | … |)
+// antes del primer bloque, y una sección "## T1" con el texto entre una línea ~~~~markdown y una línea ~~~~. La huella se calcula sobre ese
+// texto sin el salto de línea que precede al cierre. Si la fila trae una segunda huella y dice CRLF, esa huella es la
+// del original recibido con finales de línea CRLF y se comprueba reconstruyéndolo. Si dice "salto de línea final", es la
+// del mismo texto con un salto de línea al final y se comprueba igual.
+const DIR_FUENTES = resolve(RAIZ, "docs/fuentes");
+const textosOriginales = existsSync(DIR_FUENTES)
+  ? readdirSync(DIR_FUENTES, { recursive: true }).filter((f) => /-texto-original\.md$/.test(f)).map((f) => `docs/fuentes/${f.replaceAll("\\", "/")}`)
+  : [];
+const sha256 = (s) => createHash("sha256").update(s, "utf8").digest("hex");
+for (const ruta of textosOriginales) {
+  const contenido = leer(ruta).replace(/\r\n/g, "\n");
+  const encabezado = contenido.slice(0, Math.max(0, contenido.search(/^## /m))); // la tabla va antes del primer bloque
+  const filas = [...encabezado.matchAll(/^\| ([A-Z]\d+) \|.*$/gm)];
+  if (!filas.length) error("F3", `${ruta} no tiene filas de huellas`);
+  for (const [fila, id] of filas) {
+    const huellas = [...fila.matchAll(/`([0-9a-f]{64})`/g)].map((m) => m[1]);
+    const bloque = contenido.match(new RegExp(`^## ${id}\\n[\\s\\S]*?^~~~~markdown\\n([\\s\\S]*?)\\n~~~~$`, "m"));
+    if (!huellas.length) error("F3", `${ruta}: la fila ${id} no tiene huella`);
+    else if (!bloque) error("F3", `${ruta}: no hay bloque de texto para ${id}`);
+    else {
+      if (sha256(bloque[1]) !== huellas[0]) error("F3", `${ruta}: la huella de ${id} no coincide con su texto`);
+      if (huellas[1] && /CRLF/.test(fila) && sha256(bloque[1].replace(/\n/g, "\r\n")) !== huellas[1]) error("F3", `${ruta}: la huella CRLF de ${id} no coincide con su texto`);
+      if (huellas[1] && /salto de línea final/.test(fila) && sha256(`${bloque[1]}\n`) !== huellas[1]) error("F3", `${ruta}: la huella con salto de línea final de ${id} no coincide con su texto`);
+    }
+  }
+}
+
+// PL1 El ejemplo de la plantilla de doble salida cumple el esquema de telemetría (AGENTS.md §6)
+const PLANTILLA = { texto: "docs/agentes/plantillas/doble-salida.md", esquema: "docs/agentes/plantillas/telemetria-entrega.schema.json" };
+if (existsSync(resolve(RAIZ, PLANTILLA.texto)) && existsSync(resolve(RAIZ, PLANTILLA.esquema))) {
+  const bloque = leer(PLANTILLA.texto).match(/```json\r?\n([\s\S]*?)\r?\n```/);
+  let ejemplo = null;
+  try {
+    ejemplo = bloque ? JSON.parse(bloque[1]) : null;
+  } catch (e) {
+    error("PL1", `el ejemplo de ${PLANTILLA.texto} no es JSON válido: ${e.message}`);
+  }
+  if (!bloque) error("PL1", `${PLANTILLA.texto} no tiene un ejemplo en un bloque json`);
+  if (ejemplo) {
+    const validarTelemetria = ajv.compile(JSON.parse(leer(PLANTILLA.esquema)));
+    if (!validarTelemetria(ejemplo)) {
+      for (const e of validarTelemetria.errors) error("PL1", `el ejemplo de ${PLANTILLA.texto} no cumple el esquema en ${e.instancePath || "/"}: ${e.message}`);
+    }
+  }
+} else {
+  error("PL1", `faltan ${PLANTILLA.texto} o ${PLANTILLA.esquema}`);
 }
 
 terminar();

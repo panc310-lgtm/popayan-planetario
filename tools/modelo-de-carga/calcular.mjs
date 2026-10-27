@@ -7,7 +7,8 @@
 // Uso:
 //   node tools/modelo-de-carga/calcular.mjs              escribe los dos archivos
 //   node tools/modelo-de-carga/calcular.mjs --check      no escribe; falla si los archivos no coinciden con el cálculo
-//   node tools/modelo-de-carga/calcular.mjs --estricto   además falla si un nodo de infraestructura queda en zona crítica
+//   node tools/modelo-de-carga/calcular.mjs --estricto   además falla si un nodo de infraestructura llega a ρ ≥ 0,7
+//                                                        o si las conexiones a la base no caben (PEN-14)
 
 import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
@@ -76,6 +77,8 @@ function tasasPico(p, m) {
     pedidos_abiertos: (pedidosHoraPico / 3600) * p.duracion_pedido_s, // ley de Little
     lecturas_catalogo_base_s: apiS * p.fraccion_api_catalogo * p.fraccion_api_a_base,
     redis_s: apiS * p.comandos_redis_por_solicitud_api,
+    redis_p13_vectores_s: eventosNegocioS * (p.comandos_redis_por_evento_p13 - 1), // P13 → D4 (E68): lectura MGET y vector Π; la escritura de la carga va por E75
+    lecturas_base_p13_s: (pedidosHoraPico / 3600) * p.lecturas_base_por_pedido_p13, // P13 lee en D1 el agregado de recompra de P10 (E69)
     eventos_pedido_s: eventosPedidoS,
     eventos_negocio_s: eventosNegocioS,
     telegram_s: (pedidosHoraPico * p.mensajes_telegram_por_pedido) / 3600,
@@ -86,7 +89,8 @@ function tasasPico(p, m) {
     base_ops_s:
       apiS * p.fraccion_api_a_base +
       eventosNegocioS * p.escrituras_base_por_evento +
-      turnosAgenteS * p.escrituras_estado_agente_por_turno, // puntos de control de los agentes (ADR-0002)
+      turnosAgenteS * p.escrituras_estado_agente_por_turno + // puntos de control de los agentes (ADR-0002)
+      (pedidosHoraPico / 3600) * p.lecturas_base_por_pedido_p13, // lecturas de P13 en D1 (E69)
   };
 }
 
@@ -99,7 +103,7 @@ function volumenesMes(p) {
   const eventosMes = pedidosMes * p.eventos_por_pedido + dau * p.otros_eventos_por_dau * 30;
   const crecimientoGb = (eventosMes * p.bytes_por_evento) / 1e9;
   const solicitudesApiMes = dau * p.sesiones_por_dau * p.duracion_sesion_s * p.solicitudes_api_por_usuario_activo_s * 30;
-  const comandosRedisMes = solicitudesApiMes * p.comandos_redis_por_solicitud_api;
+  const comandosRedisMes = solicitudesApiMes * p.comandos_redis_por_solicitud_api + eventosMes * p.comandos_redis_por_evento_p13;
   const excedenteRedis = Math.max(0, comandosRedisMes - limite("upstash_comandos_gratis_mes"));
   return {
     mau,
@@ -176,6 +180,35 @@ function capacidadNodo(id, p) {
   throw new Error(`El nodo ${id} no declara su capacidad con mu_por_s, mu_por_replica ni nivel_anthropic`);
 }
 
+// Conexiones a D1 por el pooler de Supabase en modo sesión (PEN-14 (4)). Cada servicio declara sus conexiones
+// por réplica en el parámetro conexiones_<servicio>_por_replica (suma de sus pools). En modo sesión cada cliente
+// retiene una conexión directa, así que se comparan los clientes con el límite del pooler y las conexiones
+// directas necesarias (clientes + reservadas) con las del cómputo previsto para el escenario.
+function presupuestoConexiones(p, servicios) {
+  const porServicio = Object.fromEntries(
+    Object.entries(servicios).map(([s, v]) => {
+      const porReplica = p[`conexiones_${s}_por_replica`];
+      if (typeof porReplica !== "number") throw new Error(`Falta el parámetro conexiones_${s}_por_replica para el servicio ${s}`);
+      return [s, { replicas: v.replicas_necesarias, por_replica: porReplica, total: v.replicas_necesarias * porReplica }];
+    }),
+  );
+  const clientes = Object.values(porServicio).reduce((a, s) => a + s.total, 0);
+  const directas = clientes + p.conexiones_reservadas_supabase;
+  const disponibles = p.conexiones_directas_disponibles;
+  const cabeClientes = clientes <= limite("supabase_clientes_pooler_micro");
+  const cabeDirectas = disponibles === null ? null : directas <= disponibles;
+  return {
+    por_servicio: porServicio,
+    clientes_pooler: clientes,
+    reservadas: p.conexiones_reservadas_supabase,
+    conexiones_directas_necesarias: directas,
+    conexiones_directas_disponibles: disponibles,
+    cabe_en_clientes_pooler: cabeClientes,
+    cabe_en_conexiones_directas: cabeDirectas,
+    estado: !cabeClientes || cabeDirectas === false ? "no cabe" : cabeDirectas === null ? "cómputo por elegir" : "ok",
+  };
+}
+
 function estadoRho(rho) {
   if (rho >= 1) return "saturado";
   if (rho >= limite("rho_critico")) return "crítico";
@@ -229,7 +262,8 @@ function calcular() {
       return fila;
     });
     const mes = volumenesMes(p);
-    escenarios[e] = { picos, mes, ia: apiIa(p, picos.evento, mes), utilizacion, servicios, aristas, limites };
+    const conexiones = presupuestoConexiones(p, servicios);
+    escenarios[e] = { picos, mes, ia: apiIa(p, picos.evento, mes), utilizacion, servicios, conexiones, aristas, limites };
   }
   return escenarios;
 }
@@ -269,21 +303,26 @@ function generarReporte(r) {
   const todas = ESCENARIOS.flatMap((e) => r[e].utilizacion.map((u) => ({ e, ...u })));
   const ref = modelo.referencias_previas.grafo_v0_3;
   const cap = r.capacidad.picos.normal;
-  const infraCriticos = r.capacidad.utilizacion.filter((u) => u.tipo === "infraestructura" && u.rho_evento >= limite("rho_critico"));
+  const infraCriticos = r.capacidad.utilizacion.filter((u) => u.tipo === "infraestructura" && u.rho_evento >= RHO_OBJETIVO);
 
   L.push("# Modelo de carga — resultados", "");
   L.push(`> Generado por \`tools/modelo-de-carga/calcular.mjs\` desde \`arquitectura/modelo-de-carga.json\` (v${modelo.version}) y \`arquitectura/grafo-operacional.json\` (v${grafo.version}). No se edita a mano: se cambian los parámetros y se vuelve a ejecutar.`, "");
   L.push(
-    `El requisito es sostener **${num(cap.concurrentes)} sesiones simultáneas**. Con las capacidades actuales del grafo v${grafo.version}, ` +
+    `El requisito es sostener **${num(cap.concurrentes)} sesiones simultáneas** con todos los nodos de infraestructura en ρ < ${num(RHO_OBJETIVO)}. Con las capacidades actuales del grafo v${grafo.version}, ` +
       (infraCriticos.length
-        ? `${infraCriticos.length} nodos de infraestructura quedan en zona crítica o saturados en ese pico (${infraCriticos.map((u) => u.nodo).join(", ")}); el plan de capacidad dice cuánto hay que escalar cada uno. `
-        : "ningún nodo de infraestructura queda en zona crítica en ese pico. ") +
+        ? `${infraCriticos.length} nodos de infraestructura quedan en ρ ≥ ${num(RHO_OBJETIVO)} en ese pico (${infraCriticos.map((u) => u.nodo).join(", ")}); el plan de capacidad dice cuánto hay que escalar cada uno. `
+        : `ningún nodo de infraestructura llega a ρ = ${num(RHO_OBJETIVO)} en ese pico. `) +
       `Como referencia, el uso esperado es de ${num(r.mvp.picos.normal.concurrentes)} sesiones simultáneas en una hora pico normal del MVP, ${num(r.mvp.picos.evento.concurrentes)} el día de lanzamiento y ${num(r.diseno.picos.normal.concurrentes)} en el escenario de diseño.`,
     "",
   );
 
   L.push("## Lectura", "");
   L.push(`- En el pico de capacidad la integral de eventos recibe ${num(cap.eventos_negocio_s)} eventos de negocio por segundo, el ${num((cap.eventos_negocio_s / limite("techo_eventos_s")) * 100)} % del techo de ~${num(limite("techo_eventos_s"))} por segundo de INV_01 (por medir en PEN-09). El registro de eventos no es el cuello de botella.`);
+  const conCap = r.capacidad.conexiones;
+  L.push(
+    `- En el pico de capacidad las ${num(Object.values(conCap.por_servicio).reduce((a, s) => a + s.replicas, 0))} réplicas abren ${num(conCap.clientes_pooler)} conexiones al pooler de Supabase en modo sesión, ` +
+      `${conCap.cabe_en_clientes_pooler ? "dentro" : "por encima"} de los ${num(limite("supabase_clientes_pooler_micro"))} clientes de Micro. Según la documentación de Supavisor, en modo sesión cada cliente retiene una conexión directa a Postgres; si es así, con las ${num(conCap.reservadas)} reservadas para Supabase el cómputo debe admitir al menos **${num(conCap.conexiones_directas_necesarias)} conexiones directas**, y Micro, el cómputo del MVP, admite ${num(r.mvp.conexiones.conexiones_directas_disponibles)}. Es un hallazgo en revisión, en tensión con ADR-0001 (PEN-17, por decidir); mientras tanto rige ADR-0001. El cómputo del pico se elige con prueba de carga (PEN-14).`,
+  );
   if (infraCriticos.length) {
     const mayor = [...infraCriticos].sort((a, b) => b.veces_a_escalar - a.veces_a_escalar)[0];
     L.push(`- Lo que más hay que escalar es ${mayor.nodo}, ${mayor.nombre}: ${num(mayor.veces_a_escalar)} veces su capacidad actual. ${modelo.mapa_de_capacidad.find((m) => m.nodo === mayor.nodo).palanca}`);
@@ -372,6 +411,28 @@ function generarReporte(r) {
       "",
     );
   }
+
+  L.push("## Conexiones a la base", "");
+  L.push(
+    `Conexiones que abre cada servicio hacia D1 por el pooler de Supabase en modo sesión (PEN-14 (4)): réplicas necesarias por conexiones por réplica, sumando sus pools (escritura y lectura de INV_07 y el guardado de los agentes). Según la documentación de Supavisor, en modo sesión cada cliente retiene una conexión directa a Postgres mientras está conectado; si es así, el límite son las conexiones directas del cómputo y no los clientes del pooler, como dice ADR-0001. Es un hallazgo en revisión (PEN-17, por decidir), y la comprobación de conexiones directas es propuesta (S16). A las de los servicios se suman las reservadas para los servicios propios de Supabase y la administración.`,
+    "",
+  );
+  const filasConexiones = [
+    ...Object.keys(r.capacidad.conexiones.por_servicio).map((s) => [
+      `\`${s}\`: réplicas × conexiones por réplica`,
+      ...ESCENARIOS.map((e) => {
+        const c = r[e].conexiones.por_servicio[s];
+        return `${num(c.replicas)} × ${num(c.por_replica)} = ${num(c.total)}`;
+      }),
+    ]),
+    ["Clientes del pooler", ...ESCENARIOS.map((e) => num(r[e].conexiones.clientes_pooler))],
+    [`Límite de clientes del pooler (Micro)`, ...ESCENARIOS.map(() => num(limite("supabase_clientes_pooler_micro")))],
+    ["Reservadas para Supabase", ...ESCENARIOS.map((e) => num(r[e].conexiones.reservadas))],
+    ["Conexiones directas necesarias", ...ESCENARIOS.map((e) => num(r[e].conexiones.conexiones_directas_necesarias))],
+    ["Conexiones directas del cómputo previsto", ...ESCENARIOS.map((e) => (r[e].conexiones.conexiones_directas_disponibles === null ? "por elegir (PEN-14)" : num(r[e].conexiones.conexiones_directas_disponibles)))],
+    ["Estado", ...ESCENARIOS.map((e) => r[e].conexiones.estado)],
+  ];
+  L.push(tabla(["Magnitud", ...ESCENARIOS.map(nombreEsc)], filasConexiones), "");
 
   L.push("## API de IA", "");
   L.push(`Agente del usuario con Claude Haiku 5.5. Demanda en el pico de evento, costos y nivel mínimo de cuenta de Anthropic que la cubre con utilización ${num(RHO_OBJETIVO)} en llamadas, tokens y tope de gasto mensual. Los tokens leídos de caché no cuentan para el límite de entrada.`, "");
@@ -474,8 +535,13 @@ const salidas = [
   [RUTA_RESULTADOS, generarResultados(resultados)],
   [RUTA_REPORTE, generarReporte(resultados)],
 ];
-const criticosInfra = ESCENARIOS.flatMap((e) =>
-  resultados[e].utilizacion.filter((u) => u.tipo === "infraestructura" && u.rho_evento >= limite("rho_critico")).map((u) => `${e}/${u.nodo} (ρ = ${num(u.rho_evento)})`),
+// Requisito del usuario (kernel, capacidad_requerida; decisión del 2026-10-26): ningún nodo de infraestructura
+// llega a la utilización objetivo (ρ ≥ 0,7) y las conexiones a la base caben en el pooler y en el cómputo previsto.
+const sobreObjetivo = ESCENARIOS.flatMap((e) =>
+  resultados[e].utilizacion.filter((u) => u.tipo === "infraestructura" && u.rho_evento >= RHO_OBJETIVO).map((u) => `${e}/${u.nodo} (ρ = ${num(u.rho_evento)})`),
+);
+const sinConexiones = ESCENARIOS.filter((e) => resultados[e].conexiones.estado === "no cabe").map(
+  (e) => `${e}: ${num(resultados[e].conexiones.clientes_pooler)} clientes del pooler y ${num(resultados[e].conexiones.conexiones_directas_necesarias)} conexiones directas necesarias`,
 );
 const estricto = process.argv.includes("--estricto");
 
@@ -485,11 +551,13 @@ if (process.argv.includes("--check") || estricto) {
     try { return normalizar(readFileSync(ruta, "utf8")) !== texto; } catch { return true; }
   });
   for (const [ruta] of distintos) console.error(`Desactualizado: ${ruta}. Ejecute node tools/modelo-de-carga/calcular.mjs`);
-  for (const c of criticosInfra) console[estricto ? "error" : "warn"](`Nodo de infraestructura en zona crítica: ${c}`);
-  process.exit(distintos.length || (estricto && criticosInfra.length) ? 1 : 0);
+  for (const c of sobreObjetivo) console[estricto ? "error" : "warn"](`Nodo de infraestructura en ρ ≥ ${num(RHO_OBJETIVO)}: ${c}`);
+  for (const c of sinConexiones) console[estricto ? "error" : "warn"](`Las conexiones a la base no caben: ${c}`);
+  process.exit(distintos.length || (estricto && (sobreObjetivo.length || sinConexiones.length)) ? 1 : 0);
 }
 
 for (const [ruta, texto] of salidas) writeFileSync(ruta, texto, "utf8");
 console.log(`Escrito: ${RUTA_RESULTADOS}`);
 console.log(`Escrito: ${RUTA_REPORTE}`);
-if (criticosInfra.length) console.warn(`Nodos de infraestructura en zona crítica (ver el plan de capacidad): ${criticosInfra.join(", ")}`);
+if (sobreObjetivo.length) console.warn(`Nodos de infraestructura en ρ ≥ ${num(RHO_OBJETIVO)} (ver el plan de capacidad): ${sobreObjetivo.join(", ")}`);
+if (sinConexiones.length) console.warn(`Las conexiones a la base no caben: ${sinConexiones.join("; ")}`);

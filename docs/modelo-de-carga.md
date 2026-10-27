@@ -1,17 +1,18 @@
 # Modelo de carga — resultados
 
-> Generado por `tools/modelo-de-carga/calcular.mjs` desde `arquitectura/modelo-de-carga.json` (v0.5) y `arquitectura/grafo-operacional.json` (v0.8). No se edita a mano: se cambian los parámetros y se vuelve a ejecutar.
+> Generado por `tools/modelo-de-carga/calcular.mjs` desde `arquitectura/modelo-de-carga.json` (v0.6) y `arquitectura/grafo-operacional.json` (v0.9). No se edita a mano: se cambian los parámetros y se vuelve a ejecutar.
 
-El requisito es sostener **10.000 sesiones simultáneas**. Con las capacidades actuales del grafo v0.8, ningún nodo de infraestructura queda en zona crítica en ese pico. Como referencia, el uso esperado es de 2,7 sesiones simultáneas en una hora pico normal del MVP, 45,9 el día de lanzamiento y 90 en el escenario de diseño.
+El requisito es sostener **10.000 sesiones simultáneas** con todos los nodos de infraestructura en ρ < 0,7. Con las capacidades actuales del grafo v0.9, ningún nodo de infraestructura llega a ρ = 0,7 en ese pico. Como referencia, el uso esperado es de 2,7 sesiones simultáneas en una hora pico normal del MVP, 45,9 el día de lanzamiento y 90 en el escenario de diseño.
 
 ## Lectura
 
 - En el pico de capacidad la integral de eventos recibe 48,1 eventos de negocio por segundo, el 6,02 % del techo de ~800 por segundo de INV_01 (por medir en PEN-09). El registro de eventos no es el cuello de botella.
+- En el pico de capacidad las 11 réplicas abren 67 conexiones al pooler de Supabase en modo sesión, dentro de los 200 clientes de Micro. Según la documentación de Supavisor, en modo sesión cada cliente retiene una conexión directa a Postgres; si es así, con las 20 reservadas para Supabase el cómputo debe admitir al menos **87 conexiones directas**, y Micro, el cómputo del MVP, admite 60. Es un hallazgo en revisión, en tensión con ADR-0001 (PEN-17, por decidir); mientras tanto rige ADR-0001. El cómputo del pico se elige con prueba de carga (PEN-14).
 - El límite humano aparece antes que el técnico: la marca más activa acepta pedidos a mano en Telegram (1 por minuto) y en el escenario Capacidad objetivo recibiría 2,5 veces los pedidos que puede atender. La protección es la pausa automática al superar 15 pedidos pendientes (R06, T10).
 - En el pico de capacidad hay 3.750 pedidos abiertos a la vez, cada uno con una conexión de aviso en vivo al comprador (E63).
 - El pico de capacidad hace 2.970 llamadas por minuto a la API de IA y exige como mínimo el nivel **Scale** de la cuenta de Anthropic; una hora así cuesta unos US$65. Una cuenta nueva empieza en un nivel menor: el aumento se solicita antes del lanzamiento oficial.
 - En el escenario Diseño, los eventos llenan los 8 GB incluidos en Supabase Pro en 14 meses; desde ahí, US$0,125 por GB al mes.
-- En el escenario Diseño, Upstash por uso costaría US$24,9 al mes; por encima de US$10 conviene evaluar su plan fijo.
+- En el escenario Diseño, Upstash por uso costaría US$28,3 al mes; por encima de US$10 conviene evaluar su plan fijo.
 - Réplicas necesarias en el pico de capacidad: 4 de `api`, 2 de `worker`, 5 de `agentes`. En el MVP alcanzan 1 de `api`, 1 de `worker`, 1 de `agentes`.
 
 ## Escenarios
@@ -36,11 +37,11 @@ Pico normal y, entre paréntesis, pico de evento. En el escenario de capacidad l
 | Mensajes de Telegram por segundo | 0,00833 (0,142) | 8,33 (8,33) | 0,556 (1,67) |
 | Turnos del agente por segundo | 0,00891 (0,151) | 33 (33) | 0,297 (0,891) |
 | Llamadas a la API de IA por segundo | 0,0134 (0,227) | 49,5 (49,5) | 0,446 (1,34) |
-| Operaciones en la base por segundo | 0,369 (6,27) | 1.280 (1.280) | 13,4 (40,2) |
+| Operaciones en la base por segundo | 0,37 (6,3) | 1.280 (1.280) | 13,5 (40,5) |
 
 ## Plan de capacidad
 
-Capacidad μ que necesita cada nodo para que el pico de evento más alto de los tres escenarios quede en ρ = 0,7, frente a la μ actual del grafo v0.8. Solo se listan los nodos que hay que escalar.
+Capacidad μ que necesita cada nodo para que el pico de evento más alto de los tres escenarios quede en ρ = 0,7, frente a la μ actual del grafo v0.9. Solo se listan los nodos que hay que escalar.
 
 | Nodo | Tipo | Escenario | Carga en el pico por segundo | μ actual | μ requerida | Veces | Cómo se escala |
 |---|---|---|---|---|---|---|---|
@@ -48,13 +49,29 @@ Capacidad μ que necesita cada nodo para que el pico de evento más alto de los 
 
 ## Réplicas por servicio
 
-Réplicas que necesita cada servicio para que todos sus nodos queden en ρ ≤ 0,7 en el pico de evento, frente a las provistas en `servicios_de_despliegue` del grafo v0.8. La capacidad de cada nodo es su capacidad por réplica por las réplicas provistas.
+Réplicas que necesita cada servicio para que todos sus nodos queden en ρ ≤ 0,7 en el pico de evento, frente a las provistas en `servicios_de_despliegue` del grafo v0.9. La capacidad de cada nodo es su capacidad por réplica por las réplicas provistas.
 
 | Servicio | Réplicas provistas | Necesarias: MVP | Necesarias: Capacidad objetivo | Necesarias: Diseño |
 |---|---|---|---|---|
 | `api` | 4 | 1 | 4 | 1 |
 | `worker` | 2 | 1 | 2 | 1 |
 | `agentes` | 5 | 1 | 5 | 1 |
+
+## Conexiones a la base
+
+Conexiones que abre cada servicio hacia D1 por el pooler de Supabase en modo sesión (PEN-14 (4)): réplicas necesarias por conexiones por réplica, sumando sus pools (escritura y lectura de INV_07 y el guardado de los agentes). Según la documentación de Supavisor, en modo sesión cada cliente retiene una conexión directa a Postgres mientras está conectado; si es así, el límite son las conexiones directas del cómputo y no los clientes del pooler, como dice ADR-0001. Es un hallazgo en revisión (PEN-17, por decidir), y la comprobación de conexiones directas es propuesta (S16). A las de los servicios se suman las reservadas para los servicios propios de Supabase y la administración.
+
+| Magnitud | MVP | Capacidad objetivo | Diseño |
+|---|---|---|---|
+| `api`: réplicas × conexiones por réplica | 1 × 8 = 8 | 4 × 8 = 32 | 1 × 8 = 8 |
+| `worker`: réplicas × conexiones por réplica | 1 × 5 = 5 | 2 × 5 = 10 | 1 × 5 = 5 |
+| `agentes`: réplicas × conexiones por réplica | 1 × 5 = 5 | 5 × 5 = 25 | 1 × 5 = 5 |
+| Clientes del pooler | 18 | 67 | 18 |
+| Límite de clientes del pooler (Micro) | 200 | 200 | 200 |
+| Reservadas para Supabase | 20 | 20 | 20 |
+| Conexiones directas necesarias | 38 | 87 | 38 |
+| Conexiones directas del cómputo previsto | 60 | por elegir (PEN-14) | por elegir (PEN-14) |
+| Estado | ok | cómputo por elegir | cómputo por elegir |
 
 ## API de IA
 
@@ -72,7 +89,7 @@ Agente del usuario con Claude Haiku 5.5. Demanda en el pico de evento, costos y 
 
 ## Utilización de los nodos del grafo
 
-Utilización ρ = carga / capacidad actual del nodo (μ en el grafo v0.8). Alerta desde 0,7, crítico desde 0,9 (T01). Pico normal y, entre paréntesis, pico de evento; el estado corresponde al pico de evento.
+Utilización ρ = carga / capacidad actual del nodo (μ en el grafo v0.9). Alerta desde 0,7, crítico desde 0,9 (T01). Pico normal y, entre paréntesis, pico de evento; el estado corresponde al pico de evento.
 
 | Nodo | Tipo | μ por segundo | MVP | Capacidad objetivo | Diseño | Estado más alto |
 |---|---|---|---|---|---|---|
@@ -80,11 +97,12 @@ Utilización ρ = carga / capacidad actual del nodo (μ en el grafo v0.8). Alert
 | P3 Catálogo y búsqueda | infraestructura | 1.600 | 0,000169 (0,00287) | 0,625 (0,625) | 0,00563 (0,0169) | ok |
 | P4 Servicio de pedidos | infraestructura | 200 | 0,0000556 (0,000944) | 0,0556 (0,0556) | 0,0037 (0,0111) | ok |
 | P5 Bus de eventos | infraestructura | 100 | 0,000211 (0,00359) | 0,481 (0,481) | 0,0107 (0,0322) | ok |
+| P13 Motor de decisión | infraestructura | 200 | 0,000106 (0,00179) | 0,241 (0,241) | 0,00537 (0,0161) | ok |
 | P6 Notificador de Telegram | infraestructura | 40 | 0,000208 (0,00354) | 0,208 (0,208) | 0,0139 (0,0417) | ok |
 | X1 Bot API de Telegram | externo | 30 | 0,000278 (0,00472) | 0,278 (0,278) | 0,0185 (0,0556) | ok |
 | P7 Agentes de IA del usuario y soporte | infraestructura | 50 | 0,000178 (0,00303) | 0,66 (0,66) | 0,00594 (0,0178) | ok |
 | X3 API de IA (Anthropic Claude) | externo | 83,3 | 0,00016 (0,00273) | 0,594 (0,594) | 0,00535 (0,016) | ok |
-| D1 Base transaccional con aislamiento por marca | infraestructura | 1.900 | 0,000194 (0,0033) | 0,672 (0,672) | 0,00706 (0,0212) | ok |
+| D1 Base transaccional con aislamiento por marca | infraestructura | 1.900 | 0,000195 (0,00331) | 0,673 (0,673) | 0,00711 (0,0213) | ok |
 | D3 Registro de eventos | infraestructura | 300 | 0,0000704 (0,0012) | 0,16 (0,16) | 0,00358 (0,0107) | ok |
 | A2 Marca (tenant) | humano | 0,0167 | 0,0166 (0,283) | 2,5 (2,5) | 0,166 (0,499) | saturado |
 
@@ -101,8 +119,8 @@ El escenario de capacidad describe un pico, no un mes, y no tiene volúmenes men
 | Crecimiento de planetario_events (GB al mes) | 0,0123 | 0,573 |
 | Meses hasta llenar los 8 GB incluidos en Supabase Pro (solo eventos) | 651 | 14 |
 | Turnos del agente al mes | 30.000 | 1.000.000 |
-| Comandos de Redis al mes | 389.000 | 13.000.000 |
-| Costo de Upstash por encima del nivel gratuito (US$ al mes) | 0 | 24,9 |
+| Comandos de Redis al mes | 425.000 | 14.600.000 |
+| Costo de Upstash por encima del nivel gratuito (US$ al mes) | 0 | 28,3 |
 | Salida del CDN (GB al mes) | 9 | 300 |
 | Lecturas al CDN al mes | 24.000 | 800.000 |
 
@@ -118,7 +136,7 @@ Fracción del límite usada en el pico normal y, entre paréntesis, en el pico d
 
 ## Tasas por arista
 
-Tasa en la hora pico de cada arista del grafo v0.8 que lleva carga en tiempo de ejecución, por segundo: pico normal y, entre paréntesis, pico de evento. El factor es estructural (por ejemplo, tres botones por pedido).
+Tasa en la hora pico de cada arista del grafo v0.9 que lleva carga en tiempo de ejecución, por segundo: pico normal y, entre paréntesis, pico de evento. El factor es estructural (por ejemplo, tres botones por pedido).
 
 | Arista | Origen → destino | Magnitud | Factor | MVP | Capacidad objetivo | Diseño |
 |---|---|---|---|---|---|---|
@@ -147,8 +165,13 @@ Tasa en la hora pico de cada arista del grafo v0.8 que lleva carga en tiempo de 
 | E49 | P5 → P12 | eventos_negocio_s | 1 | 0,0211 (0,359) | 48,1 (48,1) | 1,07 (3,22) |
 | E63 | P5 → P1 | telegram_s | 1 | 0,00833 (0,142) | 8,33 (8,33) | 0,556 (1,67) |
 | E65 | P3 → D4 | redis_s | 1 | 0,54 (9,18) | 2.000 (2.000) | 18 (54) |
+| E67 | P5 → P13 | eventos_negocio_s | 1 | 0,0211 (0,359) | 48,1 (48,1) | 1,07 (3,22) |
+| E74 | P5 → P13 | eventos_negocio_s | 1 | 0,0211 (0,359) | 48,1 (48,1) | 1,07 (3,22) |
+| E68 | P13 → D4 | redis_p13_vectores_s | 1 | 0,0422 (0,718) | 96,3 (96,3) | 2,15 (6,44) |
+| E75 | P13 → D4 | eventos_negocio_s | 1 | 0,0211 (0,359) | 48,1 (48,1) | 1,07 (3,22) |
+| E69 | P13 → D1 | lecturas_base_p13_s | 1 | 0,00139 (0,0236) | 1,39 (1,39) | 0,0926 (0,278) |
 
-Sin tasa modelada (36): E01, E02, E03, E04, E05, E06, E07, E08, E09, E10, E11, E12, E13, E14, E20, E22, E23, E24, E27, E28, E31, E32, E50, E51, E52, E53, E54, E55, E56, E57, E58, E59, E60, E61, E64, E66. Son aristas de control y gobierno, de construcción, del cliente, de Noticias, de telemetría o de fase 2; su tasa se agrega al modelo cuando haga falta dimensionarlas.
+Sin tasa modelada (41): E01, E02, E03, E04, E05, E06, E07, E08, E09, E10, E11, E12, E13, E14, E20, E22, E23, E24, E27, E28, E31, E32, E50, E51, E52, E53, E54, E55, E56, E57, E58, E59, E60, E61, E64, E66, E70, E71, E72, E73, E76. Son aristas de control y gobierno, de construcción, del cliente, de Noticias, de telemetría o de fase 2; su tasa se agrega al modelo cuando haga falta dimensionarlas.
 
 ## Comparación con los supuestos anteriores
 
@@ -182,6 +205,12 @@ Los supuestos_pico del grafo v0.3 ponían 100 pedidos en la hora pico y 1.000 pe
 - **otros_eventos_por_dau** (eventos por usuario por día): Eventos que no son de pedido / DAU.
 - **escrituras_base_por_evento** (escrituras en D1 por evento): Escrituras en D1 / eventos (estadísticas de PostgreSQL).
 - **escrituras_estado_agente_por_turno** (escrituras en D1 por turno del agente): Filas escritas en el esquema de puntos de control de los agentes / turnos.
+- **comandos_redis_por_evento_p13** (comandos en D4 por evento de negocio): Comandos de Upstash emitidos por P13 / eventos que procesa (T25).
+- **lecturas_base_por_pedido_p13** (consultas a D1 por pedido): Consultas a D1 del rol de base de datos de P13 / pedidos completados.
+- **conexiones_api_por_replica** (conexiones al pooler por réplica): Máximo de conexiones abiertas por réplica de api (pg_stat_activity por application_name).
+- **conexiones_worker_por_replica** (conexiones al pooler por réplica): Máximo de conexiones abiertas por réplica de worker (pg_stat_activity por application_name).
+- **conexiones_agentes_por_replica** (conexiones al pooler por réplica): Máximo de conexiones abiertas por réplica de agentes (pg_stat_activity por application_name).
+- **conexiones_reservadas_supabase** (conexiones directas): Conexiones en pg_stat_activity que no son de los tres servicios, en el pico.
 - **bytes_por_evento** (bytes): Tamaño de planetario_events con índices / filas.
 - **tokens_entrada_por_llamada** (tokens): Promedio de input_tokens + cache_read_input_tokens + cache_creation_input_tokens por llamada (T17).
 - **fraccion_entrada_cacheada** (tokens leídos de caché / tokens de entrada): cache_read_input_tokens / tokens de entrada totales (T17).

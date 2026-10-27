@@ -10,7 +10,7 @@ export const posiciones = {
   N0: [1120, 350],
   G5: [80, 550], G4: [620, 550], G1: [1120, 550], G2: [1620, 550], G3: [2120, 550],
   P11: [1120, 860], D2: [1370, 860], P9: [1870, 860],
-  P3: [1120, 1050], D4: [1370, 1050], P10: [1870, 1050],
+  P3: [1120, 1050], D4: [1370, 1050], P13: [1620, 1050], P10: [1870, 1050],
   A1: [80, 1240], P1: [350, 1240], P2: [620, 1240], D1: [1370, 1240], P12: [1870, 1240],
   P4: [1120, 1430], D3: [1370, 1430], P5: [1620, 1430], P6: [1870, 1430], X1: [2120, 1430], A2: [2370, 1430],
   X4: [480, 1460],
@@ -28,6 +28,13 @@ export const carriles = {
   E43: { carril: 1572, salida: 24, entrada: 24, etiqueta: 0.25 }, E44: { carril: 1584, salida: 32, entrada: 32, etiqueta: 0.5 },
   E45: { carril: 1596, salida: 40, entrada: 40, etiqueta: 0.75 },
   E54: { carril: 2010, salida: 56, entrada: 24 }, E41: { carril: 2034, salida: 24, entrada: 24 },
+  // P13 está a la izquierda del bus y a la derecha de los datos. Sus dos entradas y sus dos escrituras en Redis
+  // cruzan bajo las etiquetas de la fila de D4; la lectura de D1 baja por debajo de la fila de D1.
+  E67: { carril: 1210, salida: 24, entrada: 24 }, E74: { carril: 1218, salida: 32, entrada: 32 },
+  E68: { carril: 1226, salida: 40, entrada: 24 }, E75: { carril: 1234, salida: 48, entrada: 32 },
+  E69: { carril: 1390, salida: 56, entrada: 40 },
+  // Lazo de la telemetría al gobierno: sube por fuera de la nota Asíncrono y corre bajo la nota de gobierno, sin cruzar sus etiquetas.
+  E70: { carril: 690, salida: 60, entrada: 24 }, E71: { carril: 698, salida: 72, entrada: 24 }, E73: { carril: 706, salida: 84, entrada: 24 },
 };
 
 // Las aristas de gobierno salen por debajo del nodo y entran por arriba, como las de un subnodo.
@@ -45,7 +52,7 @@ export const notas = [
   { nodos: ["P2", "P11", "P3", "P4"], color: "blue", titulo: "Servicio api", texto: "Fastify: entrada única, catálogo, pedidos y Noticias.", ancho_texto: 180 },
   { nodos: ["P7", "P8"], color: "purple", titulo: "Servicio agentes", texto: "Proponen; el dominio decide.", ancho_texto: 140 },
   { nodos: ["D2", "D4", "D1", "D3"], color: "gray", titulo: "Datos", texto: "Supabase, Upstash y R2.", ancho_texto: 140 },
-  { nodos: ["P5", "P6", "P9", "P10", "P12"], color: "green", titulo: "Asíncrono", texto: "Eventos, avisos y proyecciones.", ancho_texto: 116 },
+  { nodos: ["P5", "P6", "P9", "P10", "P12", "P13"], color: "green", titulo: "Asíncrono", texto: "Eventos, avisos, proyecciones y vectores Π.", ancho_texto: 116 },
   { nodos: ["X1", "A2", "A3"], color: "orange", titulo: "Marcas", texto: "Operan sus pedidos por Telegram.", ancho_texto: 116 },
   { nodos: ["X2", "X7"], color: "amber", titulo: "Pago Bre-B", texto: "El dinero va directo a la marca.", ancho_texto: 200 },
 ];
@@ -74,6 +81,7 @@ export const iconos = {
   P10: '<path d="M12 19.5s-7-4.3-7-9.6A3.9 3.9 0 0 1 12 7.6a3.9 3.9 0 0 1 7 2.3c0 5.3-7 9.6-7 9.6z"/>',
   P11: '<rect x="4" y="4.5" width="16" height="15" rx="2"/><path d="M8 9h8M8 12.5h8M8 16h5"/>',
   P12: '<path d="M3 12h4l2.5-6.5 5 13L17 12h4"/>',
+  P13: '<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M4 10h16M4 15h16M10 4v16M15 4v16"/>',
   D1: '<ellipse cx="12" cy="6" rx="7" ry="2.8"/><path d="M5 6v12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8V6"/><path d="M5 12c0 1.5 3.1 2.8 7 2.8s7-1.3 7-2.8"/>',
   D2: '<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/>',
   D3: '<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h2M4 12h2M4 18h2"/>',
@@ -98,8 +106,10 @@ export const vistas = [
     desc: "Cómo se mueve el dinero y quién lo confirma (ADR-0003). El dinero va del banco del comprador a la llave Bre-B de la marca; Bold solo detecta y confirma el pago. Si Bold no lo aprueba por escrito antes del 31-oct-2026, la marca confirma con un botón en Telegram." },
   { id: "agentes", nombre: "Agentes de IA", aristas: ["E29", "E30", "E31", "E32", "E54", "E55", "E56", "E14"],
     desc: "Los agentes de IA (ADR-0002). El del usuario busca, organiza Mi universo y arma borradores de pedido; el de marca propone landings en la fase 2. Ninguno paga ni confirma pedidos; proponen comandos y el dominio decide." },
-  { id: "eventos", nombre: "Eventos", aristas: ["E35", "E36", "E37", "E47", "E48", "E49", "E63", "E51", "E52", "E53"],
-    desc: "Del registro planetario_events al bus y a sus consumidores. Cada hecho confirmado se escribe una vez, en la misma transacción que el estado, y desde ahí se reparte a Telegram, reputación, fidelidad, telemetría y al comprador." },
+  { id: "eventos", nombre: "Eventos", aristas: ["E35", "E36", "E37", "E47", "E48", "E49", "E67", "E74", "E63", "E51", "E52", "E53"],
+    desc: "Del registro planetario_events al bus y a sus consumidores. Cada hecho confirmado se escribe una vez, en la misma transacción que el estado, y desde ahí se reparte a Telegram, reputación, fidelidad, telemetría, al motor de decisión y al comprador." },
+  { id: "decision", nombre: "Decisión y retroalimentación", aristas: ["E67", "E74", "E69", "E75", "E68", "E65", "E31", "E49", "E70", "E71", "E72", "E73", "E06", "E76"],
+    desc: "P13 convierte los eventos confirmados y el índice publicado en la carga de cada marca y en vectores de decisión, que publica en Redis; la búsqueda los lee en menos de 10 ms y el agente del usuario recibe los resultados ya ordenados, sin llamar a un modelo. La telemetría cierra el lazo: cada área de gobierno recibe las métricas con las que ajusta lo que gobierna. G1 fija los parámetros del índice y del cupo de exploración para marcas nuevas (ADR-0004), que aplican P9, P13 y P3." },
   { id: "gobierno", nombre: "Gobierno", criterio: "vertical",
     desc: "El núcleo N0 delega en cinco áreas, que gobiernan servicios, marcas y proveedores. Estas líneas salen por debajo de cada nodo, como las conexiones de un subnodo. Incluye los insumos de construcción del mapa y las imágenes." },
 ];
@@ -126,6 +136,6 @@ export const pasos = [
 
 // Nodos y aristas a los que se aplica cada restricción de aislamiento, según el texto de la regla.
 export const restricciones = {
-  R01: ["D1"], R02: ["A2", "A3", "E57"], R03: ["A2"], R04: ["P3", "P9"], R05: ["P8"], R06: ["A2", "P4"],
+  R01: ["D1"], R02: ["A2", "A3", "E57"], R03: ["A2"], R04: ["P3", "P9", "P13", "E69"], R05: ["P8"], R06: ["A2", "P4", "P13"],
   R07: ["X1", "P2", "E46"], R08: ["D2", "E60"], R09: ["A2"], R10: ["P4", "X7", "E42"],
 };
