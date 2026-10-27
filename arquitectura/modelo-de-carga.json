@@ -330,7 +330,7 @@
     "techo_eventos_s": {"valor": 800, "origen": "INV_01, por medir (PEN-09)"},
     "supabase_disco_incluido_gb": {"valor": 8, "origen": "Supabase Pro, consultado 2026-10-20 (ADR-0001)"},
     "supabase_usd_por_gb_extra": {"valor": 0.125, "origen": "Supabase Pro, disco adicional, consultado 2026-10-20 (ADR-0001)"},
-    "supabase_clientes_pooler_micro": {"valor": 200, "origen": "ADR-0001: Supabase Pro con cómputo Micro tiene 200 clientes del pooler y 60 conexiones directas (https://supabase.com/docs/guides/platform/compute-and-disk, consultado 2026-10-27). En modo sesión cada cliente retiene una conexión directa mientras está conectado (Supavisor FAQ, https://github.com/orgs/supabase/discussions/21566, consultado 2026-10-27); la consecuencia para ADR-0001 está en PEN-17."},
+    "supabase_clientes_pooler_micro": {"valor": 200, "origen": "ADR-0001: Supabase Pro con cómputo Micro tiene 200 clientes del pooler y 60 conexiones directas (https://supabase.com/docs/guides/platform/compute-and-disk, consultado 2026-10-27). Según la FAQ de Supavisor (https://github.com/orgs/supabase/discussions/21566, consultado 2026-10-27), en modo sesión cada cliente retiene una conexión directa mientras está conectado; es un hallazgo en revisión, y su consecuencia para ADR-0001 está en PEN-17, por decidir."},
     "upstash_comandos_gratis_mes": {"valor": 500000, "origen": "Upstash, nivel gratuito, consultado 2026-10-20 (ADR-0001)"},
     "upstash_usd_por_100k_comandos": {"valor": 0.2, "origen": "Upstash, pago por uso, consultado 2026-10-20 (ADR-0001)"},
     "upstash_plan_fijo_usd_mes": {"valor": 10, "origen": "Upstash, plan fijo más barato (250 MB), consultado 2026-10-20 (ADR-0001)"},

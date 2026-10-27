@@ -20,7 +20,7 @@ Termina con error y lista cada problema con su código. Para correr también la 
 npm run verificar
 ```
 
-Las pruebas del validador introducen un error a la vez en una copia temporal del repositorio y exigen que se detecte. También prueban la compuerta de capacidad: en la copia regeneran el modelo de carga y exigen que `calcular.mjs --estricto` falle con un nodo de infraestructura entre ρ 0,7 y 0,9 con conexiones por encima de los 200 clientes del pooler y, en el MVP, por encima de las 60 conexiones directas de Micro. Nunca modifican los archivos del repositorio:
+Las pruebas del validador introducen un error a la vez en una copia temporal del repositorio y exigen que se detecte. También prueban la compuerta de capacidad: en la copia regeneran el modelo de carga y exigen que `calcular.mjs --estricto` falle con un nodo de infraestructura entre ρ 0,7 y 0,9, con conexiones por encima de los 200 clientes del pooler y, en el MVP, con más de las 60 conexiones directas de Micro. Nunca modifican los archivos del repositorio:
 
 ```bash
 npm run probar
