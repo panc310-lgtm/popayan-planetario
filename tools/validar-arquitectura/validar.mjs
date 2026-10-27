@@ -152,10 +152,15 @@ for (const m of modelo.mapa_de_capacidad) {
 for (const id of repetidos(modelo.mapa_de_aristas.map((a) => a.arista))) error("M3", `arista repetida en mapa_de_aristas: ${id}`);
 for (const a of modelo.mapa_de_aristas) if (!aristas.has(a.arista)) error("M3", `mapa_de_aristas usa ${a.arista}, que no existe en el grafo`);
 
-// M4 Cada servicio de despliegue tiene su presupuesto de conexiones a la base (PEN-14 (4)), y solo esos servicios
-const serviciosConPresupuesto = Object.keys(modelo.parametros).map((n) => n.match(/^conexiones_(.+)_por_replica$/)?.[1]).filter(Boolean);
-for (const s of servicios) if (!serviciosConPresupuesto.includes(s)) error("M4", `el servicio ${s} no tiene el parámetro conexiones_${s}_por_replica`);
-for (const s of serviciosConPresupuesto) if (!servicios.includes(s)) error("M4", `conexiones_${s}_por_replica no corresponde a ningún servicio de servicios_de_despliegue`);
+// M4 Cada servicio de despliegue tiene su presupuesto de conexiones a la base en los dos modos del pooler (PEN-14 (4),
+// PEN-17): conexiones_sesion_<servicio>_por_replica y conexiones_transaccion_<servicio>_por_replica, y solo esos servicios.
+for (const modo of ["sesion", "transaccion"]) {
+  const conPresupuesto = Object.keys(modelo.parametros).map((n) => n.match(new RegExp(`^conexiones_${modo}_(.+)_por_replica$`))?.[1]).filter(Boolean);
+  for (const s of servicios) if (!conPresupuesto.includes(s)) error("M4", `el servicio ${s} no tiene el parámetro conexiones_${modo}_${s}_por_replica`);
+  for (const s of conPresupuesto) if (!servicios.includes(s)) error("M4", `conexiones_${modo}_${s}_por_replica no corresponde a ningún servicio de servicios_de_despliegue`);
+}
+const sinModo = Object.keys(modelo.parametros).filter((n) => /^conexiones_(?!sesion_|transaccion_).+_por_replica$/.test(n));
+for (const n of sinModo) error("M4", `${n} no dice su modo del pooler: usa conexiones_sesion_<servicio>_por_replica o conexiones_transaccion_<servicio>_por_replica`);
 
 // V1 Versiones alineadas entre los tres archivos
 const citaKernel = `arquitectura/kernel-durable.json (${kernel.schema_version})`;
@@ -209,7 +214,7 @@ if (!existsSync(resolve(RAIZ, AGENTS))) {
   error("F2", `falta ${AGENTS} en la raíz del repositorio`);
 } else {
   const agents = leer(AGENTS);
-  const citadas = agents.match(/(?:\b(?:docs|arquitectura|tools)|\.claude)\/[A-Za-z0-9_./-]+\.(?:md|json|mjs)\b/g) ?? [];
+  const citadas = agents.match(/(?:\b(?:docs|arquitectura|tools|packages|test)|\.claude)\/[A-Za-z0-9_./-]+\.(?:md|json|mjs|ts)\b/g) ?? [];
   for (const r of new Set(citadas)) if (!existsSync(resolve(RAIZ, r))) error("F2", `${AGENTS} cita ${r}, que no existe`);
   for (const adr of new Set(agents.match(/\bADR-\d{4}\b/g) ?? [])) {
     if (!indice.some((l) => l.includes(`[${adr}]`))) error("F2", `${AGENTS} cita ${adr}, que no está en ${INDICE_ADR}`);
@@ -267,6 +272,25 @@ if (existsSync(resolve(RAIZ, PLANTILLA.texto)) && existsSync(resolve(RAIZ, PLANT
   }
 } else {
   error("PL1", `faltan ${PLANTILLA.texto} o ${PLANTILLA.esquema}`);
+}
+
+// DT1 Fase de código: con packages/ en el repositorio, package.json declara las cuatro verificaciones de AGENTS.md §5,
+// verificar:todo las corre y la integración continua también. Sin packages/, no se exige nada (fase documental).
+const VERIFICACIONES_DE_CODIGO = ["verify:hexagon", "verify:contracts", "verify:3d-budgets", "test:integral"];
+const WORKFLOW = ".github/workflows/verificaciones.yml";
+if (existsSync(resolve(RAIZ, "packages"))) {
+  let scripts = {};
+  try {
+    scripts = JSON.parse(leer("package.json")).scripts ?? {};
+  } catch (e) {
+    error("DT1", `package.json no se puede leer: ${e.message}`);
+  }
+  const workflow = existsSync(resolve(RAIZ, WORKFLOW)) ? leer(WORKFLOW) : "";
+  for (const v of VERIFICACIONES_DE_CODIGO) {
+    if (typeof scripts[v] !== "string" || !scripts[v].trim()) error("DT1", `package.json no declara el script ${v} (AGENTS.md §5, fase de código)`);
+    if (!(scripts["verificar:todo"] ?? "").includes(`npm run ${v}`)) error("DT1", `verificar:todo no corre npm run ${v}`);
+    if (!workflow.includes(`run: npm run ${v}`)) error("DT1", `${WORKFLOW} no corre npm run ${v}`);
+  }
 }
 
 terminar();

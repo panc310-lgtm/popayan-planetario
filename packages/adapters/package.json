@@ -1,0 +1,14 @@
+{
+  "name": "@planetario/adapters",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Adaptadores secundarios. Por ahora, el simulador determinista de VerificadorDePagos (ADR-0003).",
+  "exports": {
+    "./pagos/verificador-simulado": "./src/pagos/verificador-simulado.ts"
+  },
+  "dependencies": {
+    "@planetario/contracts": "0.1.0",
+    "@planetario/ports": "0.1.0"
+  }
+}

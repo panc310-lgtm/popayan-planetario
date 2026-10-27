@@ -1,0 +1,34 @@
+{
+  "canonical-event.schema.json": [
+    {
+      "version_contrato": "1.0.0",
+      "sha256": "25f91edd8798da2a855490b8bcdcfd888a673e486ce5d4dd4350f92cd7c89be7",
+      "fecha": "2026-10-27",
+      "cambio": "Primera versión (PLANETARIO-CORE-01)."
+    }
+  ],
+  "decision-vector-pi.schema.json": [
+    {
+      "version_contrato": "1.0.0",
+      "sha256": "5409876d93ba5b37abb107ded25f73a869b12f41e7365945b661b2f616247307",
+      "fecha": "2026-10-27",
+      "cambio": "Primera versión (PLANETARIO-CORE-01)."
+    }
+  ],
+  "galaxies-and-catalog.schema.json": [
+    {
+      "version_contrato": "1.0.0",
+      "sha256": "8e5b9a606e5f3ce02683dd8010ba6bd2640f4082d17b03070fb6139d3e4de90c",
+      "fecha": "2026-10-27",
+      "cambio": "Primera versión (PLANETARIO-CORE-01)."
+    }
+  ],
+  "order-state-machine.schema.json": [
+    {
+      "version_contrato": "1.0.0",
+      "sha256": "e405f54841bc41e238c91cbace7b9b6d5d39d578f8757eca8fe6b5c8cf9c2674",
+      "fecha": "2026-10-27",
+      "cambio": "Primera versión (PLANETARIO-CORE-01)."
+    }
+  ]
+}

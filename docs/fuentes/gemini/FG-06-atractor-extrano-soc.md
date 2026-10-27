@@ -35,14 +35,14 @@ Etiquetas de estado: las mismas de [FG-01](FG-01-arquitectura-grafos-operacional
 | Fórmula de Π con pesos w₁ a w₄ | `[ABIERTO]`: los pesos no están definidos; el orden lo aplica P3 |
 | Compra en cinco fases con `interrupt()`, compuerta Ω y `emitirCobro` fuera de transacción | `[VIGENTE]` (ADR-0002, ADR-0003, plano-b-runtime.md) |
 | Dos velocidades: ambiental en el 3D sin modelo (P1 y P3 leyendo D4) y conversacional con P7 | `[CORREGIDO]`: las dos velocidades están vigentes, pero P1 no lee D4: pide a P3 a través de P2 (E21, E25), y P3 lee Π en D4 (E65) |
-| Pregunta final: confirmar "los 4 parámetros de ejecución del grafo SoC v0.9": P13 en el worker, inteligencia en dos velocidades vía D4, cierre de PEN-08 por exploración y amortiguación Θ_s(L_m), y sincronización de los 5 artefactos | `[VIGENTE]`: es una de las dos listas de "4 parámetros" que puede ratificar D1 (ver D1) |
+| Pregunta final: confirmar "los 4 parámetros de ejecución del grafo SoC v0.9": P13 en el worker, inteligencia en dos velocidades vía D4, cierre de PEN-08 por exploración y amortiguación Θ_s(L_m), y sincronización de los 5 artefactos | `[VIGENTE]`: es una de las dos listas de "4 parámetros"; el usuario aprobó las dos el 2026-10-27 (ver D1) |
 
 ## T3 · p. 6–8 · Patrón maestro y réplica
 
 | Afirmación | Estado |
 |---|---|
 | "PostgreSQL 16 Primario" y réplica de lectura física | `[CORREGIDO]`: el usuario decidió el 2026-10-26 dos puertos sobre la misma base D1 (INV_07); la réplica es una palanca |
-| Lecturas de consistencia fuerte en el primario (máquina de estados, pagos y puntos de control) | `[ABIERTO]` (S2 de AGENTS.md) |
+| Lecturas de consistencia fuerte en el primario (máquina de estados, pagos y puntos de control) | `[VIGENTE]`: S2 de AGENTS.md, ratificado por el usuario el 2026-10-27 ([FG-08](FG-08-planetario-core-01.md)) |
 | Caché D4 antes de la lectura | `[VIGENTE]` (INV_07) |
 | Interfaces `MasterWriteDatabasePort` y `SlaveReadDatabasePort` en `packages/ports` | `[VIGENTE]` como nombres de puerto (INV_07); el código aún no existe |
 
@@ -74,16 +74,16 @@ Etiquetas de estado: las mismas de [FG-01](FG-01-arquitectura-grafos-operacional
 | Afirmación | Estado |
 |---|---|
 | Endurecer `--estricto` a ρ ≥ 0,70 | `[VIGENTE]`: decidido en D1 |
-| Aprobar la regla de precedencia (S9) | `[ABIERTO]`: D1 no la incluye; sigue en PEN-16 |
+| Aprobar la regla de precedencia (S9) | `[VIGENTE]`: D1 no la incluía; el usuario la ratificó el 2026-10-27 ([FG-08](FG-08-planetario-core-01.md)) |
 | Aprobar ADR-0004 y cerrar PEN-08 | `[VIGENTE]`: decidido en D1 |
-| Enmendar ADR-0002 para que la calificación pública llegue al agente (S10) | `[ABIERTO]`: D1 no la incluye; sigue en PEN-16 |
+| Enmendar ADR-0002 para que la calificación pública llegue al agente (S10) | `[VIGENTE]` como interpretación de ADR-0002, sin enmendarlo: el usuario ratificó S10 el 2026-10-27 ([FG-08](FG-08-planetario-core-01.md)) |
 | Prompt de continuación (cortado en la página 18) | `[SUPERADO]` por D1 |
 
 ## D1 · Mensaje de decisiones del usuario (2026-10-26)
 
 | Afirmación | Estado |
 |---|---|
-| "Ratifico los 4 parámetros de la arquitectura SoC v0.9" | `[ABIERTO]` en cuál lista: Gemini dio dos listas de cuatro puntos que coinciden en tres (P13 en el worker, PEN-08 por exploración y amortiguación, y los 5 artefactos) y difieren en el segundo: "inteligencia en dos velocidades vía D4" (T2) o "mantener las réplicas y la ponderación de P7 en el modelo de carga" ([FG-07](FG-07-verificacion-acceso-repositorio.md) T8). D1 no dice cuál. Las dos variantes se cumplen en la rama, así que la diferencia no cambia ningún archivo; se anota para no leer en D1 más de lo que dice |
+| "Ratifico los 4 parámetros de la arquitectura SoC v0.9" | `[VIGENTE]`: el 2026-10-27 el usuario aprobó las dos listas ([FG-08](FG-08-planetario-core-01.md)). Antes estaba `[ABIERTO]` en cuál lista: Gemini dio dos listas de cuatro puntos que coinciden en tres (P13 en el worker, PEN-08 por exploración y amortiguación, y los 5 artefactos) y difieren en el segundo: "inteligencia en dos velocidades vía D4" (T2) o "mantener las réplicas y la ponderación de P7 en el modelo de carga" ([FG-07](FG-07-verificacion-acceso-repositorio.md) T8). D1 no dice cuál. Las dos variantes se cumplen en la rama, así que la diferencia no cambia ningún archivo; se anota para no leer en D1 más de lo que dice |
 | A.1 P13 lee de D1 el agregado de recompra que P10 mantiene por marca (`pedidos_recompra_90d`, `compradores_unicos_90d`), sin identificadores de compradores | `[VIGENTE]`: kernel `decision_vectors_p13`, P10, E69 y `lecturas_base_por_pedido_p13`. "Por E74" es numeración de Gemini (P10 → P13); en el repositorio es la lectura E69 |
 | A.2 Π se publica solo en D4, no en D1 | `[VIGENTE]`: S13 sale de PEN-16. "Por la arista E75" es numeración de Gemini; en el repositorio Π va por E68 y E75 lleva la carga por marca |
 | A.3 ADR-0004 aprobado y PEN-08 resuelto, con "desvío por saturación Θ_s(L_m) gobernado por G1 → P13" | `[VIGENTE]`: kernel `L1_new_brand_incentive`; G1 → P13 es la arista nueva E76 |
@@ -98,4 +98,4 @@ Etiquetas de estado: las mismas de [FG-01](FG-01-arquitectura-grafos-operacional
 
 ## Qué se conserva de FG-06
 
-Las decisiones de D1, aplicadas en esta rama. De la conversación quedan abiertas la regla de precedencia (S9), la calificación pública para el agente (S10), las secciones propias de guardrails, error handling y evals en AGENTS.md, y los pesos de Π.
+Las decisiones de D1, aplicadas en la rama que se fusionó como PR #13. La regla de precedencia (S9) y la calificación pública para el agente (S10) quedaron ratificadas el 2026-10-27 (FG-08). Siguen abiertas las secciones propias de guardrails, error handling y evals en AGENTS.md, y los pesos de Π.

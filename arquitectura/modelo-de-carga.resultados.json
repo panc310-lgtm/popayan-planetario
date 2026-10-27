@@ -1,8 +1,8 @@
 {
   "documento": "Resultados del modelo de carga",
   "generado_por": "tools/modelo-de-carga/calcular.mjs — no editar a mano",
-  "modelo": "Modelo de carga único v0.6 (2026-10-27)",
-  "grafo": "grafo-operacional v0.9",
+  "modelo": "Modelo de carga único v0.7 (2026-10-27)",
+  "grafo": "grafo-operacional v0.10",
   "rho_objetivo": 0.7,
   "escenarios": {
     "mvp": {
@@ -289,25 +289,37 @@
         "por_servicio": {
           "api": {
             "replicas": 1,
-            "por_replica": 8,
-            "total": 8
+            "sesion_por_replica": 1,
+            "transaccion_por_replica": 4,
+            "sesion": 1,
+            "transaccion": 4
           },
           "worker": {
             "replicas": 1,
-            "por_replica": 5,
-            "total": 5
+            "sesion_por_replica": 2,
+            "transaccion_por_replica": 1,
+            "sesion": 2,
+            "transaccion": 1
           },
           "agentes": {
             "replicas": 1,
-            "por_replica": 5,
-            "total": 5
+            "sesion_por_replica": 2,
+            "transaccion_por_replica": 2,
+            "sesion": 2,
+            "transaccion": 2
           }
         },
-        "clientes_pooler": 18,
+        "clientes_sesion": 5,
+        "clientes_transaccion": 7,
+        "clientes_pooler": 12,
+        "supavisor_pool_size": 19,
+        "directas_sesion": 5,
+        "directas_transaccion": 7,
         "reservadas": 20,
-        "conexiones_directas_necesarias": 38,
+        "conexiones_directas_necesarias": 32,
         "conexiones_directas_disponibles": 60,
         "cabe_en_clientes_pooler": true,
+        "cabe_sesion_en_pool_size": true,
         "cabe_en_conexiones_directas": true,
         "estado": "ok"
       },
@@ -880,27 +892,39 @@
         "por_servicio": {
           "api": {
             "replicas": 4,
-            "por_replica": 8,
-            "total": 32
+            "sesion_por_replica": 1,
+            "transaccion_por_replica": 4,
+            "sesion": 4,
+            "transaccion": 16
           },
           "worker": {
             "replicas": 2,
-            "por_replica": 5,
-            "total": 10
+            "sesion_por_replica": 2,
+            "transaccion_por_replica": 1,
+            "sesion": 4,
+            "transaccion": 2
           },
           "agentes": {
             "replicas": 5,
-            "por_replica": 5,
-            "total": 25
+            "sesion_por_replica": 2,
+            "transaccion_por_replica": 2,
+            "sesion": 10,
+            "transaccion": 10
           }
         },
-        "clientes_pooler": 67,
+        "clientes_sesion": 18,
+        "clientes_transaccion": 28,
+        "clientes_pooler": 46,
+        "supavisor_pool_size": 19,
+        "directas_sesion": 18,
+        "directas_transaccion": 19,
         "reservadas": 20,
-        "conexiones_directas_necesarias": 87,
-        "conexiones_directas_disponibles": null,
+        "conexiones_directas_necesarias": 57,
+        "conexiones_directas_disponibles": 60,
         "cabe_en_clientes_pooler": true,
-        "cabe_en_conexiones_directas": null,
-        "estado": "cómputo por elegir"
+        "cabe_sesion_en_pool_size": true,
+        "cabe_en_conexiones_directas": true,
+        "estado": "ok"
       },
       "aristas": [
         {
@@ -1485,27 +1509,39 @@
         "por_servicio": {
           "api": {
             "replicas": 1,
-            "por_replica": 8,
-            "total": 8
+            "sesion_por_replica": 1,
+            "transaccion_por_replica": 4,
+            "sesion": 1,
+            "transaccion": 4
           },
           "worker": {
             "replicas": 1,
-            "por_replica": 5,
-            "total": 5
+            "sesion_por_replica": 2,
+            "transaccion_por_replica": 1,
+            "sesion": 2,
+            "transaccion": 1
           },
           "agentes": {
             "replicas": 1,
-            "por_replica": 5,
-            "total": 5
+            "sesion_por_replica": 2,
+            "transaccion_por_replica": 2,
+            "sesion": 2,
+            "transaccion": 2
           }
         },
-        "clientes_pooler": 18,
+        "clientes_sesion": 5,
+        "clientes_transaccion": 7,
+        "clientes_pooler": 12,
+        "supavisor_pool_size": 19,
+        "directas_sesion": 5,
+        "directas_transaccion": 7,
         "reservadas": 20,
-        "conexiones_directas_necesarias": 38,
-        "conexiones_directas_disponibles": null,
+        "conexiones_directas_necesarias": 32,
+        "conexiones_directas_disponibles": 60,
         "cabe_en_clientes_pooler": true,
-        "cabe_en_conexiones_directas": null,
-        "estado": "cómputo por elegir"
+        "cabe_sesion_en_pool_size": true,
+        "cabe_en_conexiones_directas": true,
+        "estado": "ok"
       },
       "aristas": [
         {

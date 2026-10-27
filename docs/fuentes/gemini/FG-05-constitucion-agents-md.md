@@ -32,7 +32,7 @@ Etiquetas de estado: las mismas de [FG-01](FG-01-arquitectura-grafos-operacional
 
 | Afirmación | Estado |
 |---|---|
-| `INV_06` prohíbe a `contracts`, `ports` y `domain` importar `pg`, `fastify`, `grammy`, `ioredis`, `three`, relojes no inyectados o `apps/*` | `[ABIERTO]`: el kernel cubre `domain` y `ports` frente a Fastify, `pg`, grammY y SDK externos; la extensión queda como S1 (PEN-16) |
+| `INV_06` prohíbe a `contracts`, `ports` y `domain` importar `pg`, `fastify`, `grammy`, `ioredis`, `three`, relojes no inyectados o `apps/*` | `[VIGENTE]`: el kernel cubría `domain` y `ports` frente a Fastify, `pg`, grammY y SDK externos; la extensión (S1) la ratificó el usuario el 2026-10-27 y la comprueba `npm run verify:hexagon` |
 | Segregación física: `Master DB` (Pool B) para escribir y `Slave DB` (Pool A) para leer | `[CORREGIDO]`: ADR-0001 aprobó una sola base. El usuario decidió el 2026-10-26 los dos puertos sobre la misma `D1` (`INV_07`); la réplica sigue como palanca |
 | `INV_05` nombra "la API de Telegram (`X4`)" | `[INCORRECTO]`: Telegram es `X1`; `X4` es identidad (Facebook y Google) |
 | `PostgreSQL 16` en el registro de eventos | `[SUPERADO]`: PostgreSQL 17 desde el kernel 1.2.0 (ADR-0001) |
@@ -84,10 +84,10 @@ Se comprueba contra el texto literal de T1 en [FG-05-texto-original.md](FG-05-te
 |---|---|
 | Encabezado, §1 doble plano, §6 doble salida, §7.1 niveles de modelos, §7.2 agentes | Borrador del usuario (T1), corregido según las tablas de arriba |
 | §3 leyes `rule_01` a `rule_03` | Borrador del usuario (T1), corregido contra el kernel; las alternas del desvío de `rule_02` siguen las decisiones del usuario del 2026-10-26 (FG-06 D1, A.3 y B.2), y "mismo nicho" va marcado (S11) |
-| §4.1 a §4.4 invariantes, §7.3 principios de producción | Kernel y ADR-0001 a ADR-0004; las extensiones van marcadas (S1, S2, S10) |
+| §4.1 a §4.4 invariantes, §7.3 principios de producción | Kernel y ADR-0001 a ADR-0004; las extensiones van marcadas (S1, S2 y S10, que el usuario ratificó el 2026-10-27) |
 | §4.2 `INV_07` | Decisión del usuario del 2026-10-26 (puertos sobre la misma base) y tope de 200 clientes del pooler (FG-06 D1, A.4); la diferencia con ADR-0001 en modo sesión queda en PEN-17, por decidir |
 | §2 enrutamiento de contexto, §8 bucles | Borrador del usuario (T1); la sección 8.1 completa el paso que el borrador dejó cortado |
-| §0 precedencia | Redactada por Claude sobre `docs/fuentes/README.md` (S9) |
+| §0 precedencia | Redactada por Claude sobre `docs/fuentes/README.md` (S9, ratificado por el usuario el 2026-10-27) |
 | §5, corte de `--estricto` | Decisión del usuario del 2026-10-26: ρ ≥ 0,70 y 200 clientes del pooler (FG-06 D1, A.4); la comprobación de las 60 conexiones directas de Micro es propuesta (S16) |
 | §4.5 contratos, §4.6 traza y puerta de atrás, §5 Definición de terminado por fase, §9 escalamiento, §10 glosario, §11 supuestos | Redactadas por Claude; las ratifica el usuario al aprobar el pull request, salvo los valores marcados como propuestos, que siguen en PEN-16 |
 

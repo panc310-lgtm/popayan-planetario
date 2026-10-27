@@ -46,3 +46,16 @@ jobs:
 
       - name: Vista interactiva del grafo al día
         run: node tools/vista-del-grafo/generar.mjs --check
+
+      # Fase de código (AGENTS.md §5): las cuatro verificaciones de packages/.
+      - name: Hexágono puro (INV_06, S1)
+        run: npm run verify:hexagon
+
+      - name: Contratos con Ajv estricto y version_contrato al día
+        run: npm run verify:contracts
+
+      - name: Presupuestos 3D del kernel
+        run: npm run verify:3d-budgets
+
+      - name: Tipos del núcleo y pruebas integrales
+        run: npm run test:integral

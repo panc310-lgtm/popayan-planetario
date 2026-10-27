@@ -2,19 +2,27 @@
   "name": "popayan-planetario",
   "private": true,
   "type": "module",
-  "description": "Base de ingeniería de Popayán Planetario: arquitectura, modelos de cálculo y, más adelante, el código.",
+  "description": "Base de ingeniería de Popayán Planetario: arquitectura, modelos de cálculo y el código del hexágono (packages/).",
   "engines": {
     "node": ">=24"
   },
+  "workspaces": [
+    "packages/*"
+  ],
   "scripts": {
     "validar": "node tools/validar-arquitectura/validar.mjs",
     "probar": "node tools/validar-arquitectura/pruebas.mjs",
     "modelo": "node tools/modelo-de-carga/calcular.mjs",
     "grafo": "node tools/vista-del-grafo/generar.mjs",
     "verificar": "node tools/validar-arquitectura/validar.mjs && node tools/modelo-de-carga/calcular.mjs --estricto",
-    "verificar:todo": "node tools/validar-arquitectura/validar.mjs && node tools/validar-arquitectura/pruebas.mjs && node tools/modelo-de-carga/calcular.mjs --check && node tools/modelo-de-carga/calcular.mjs --estricto && node tools/vista-del-grafo/generar.mjs --check"
+    "verificar:todo": "node tools/validar-arquitectura/validar.mjs && node tools/validar-arquitectura/pruebas.mjs && node tools/modelo-de-carga/calcular.mjs --check && node tools/modelo-de-carga/calcular.mjs --estricto && node tools/vista-del-grafo/generar.mjs --check && npm run verify:hexagon && npm run verify:contracts && npm run verify:3d-budgets && npm run test:integral",
+    "verify:hexagon": "node tools/verificar-hexagono/verificar.mjs && node tools/verificar-hexagono/pruebas.mjs",
+    "verify:contracts": "node tools/verificar-contratos/verificar.mjs && node tools/verificar-contratos/pruebas.mjs && node --test \"packages/contracts/test/**/*.test.ts\"",
+    "verify:3d-budgets": "node tools/verificar-presupuestos-3d/verificar.mjs && node tools/verificar-presupuestos-3d/pruebas.mjs",
+    "test:integral": "tsc -p tsconfig.json && node --test \"packages/domain/test/**/*.test.ts\" \"packages/adapters/test/**/*.test.ts\" \"test/integral/**/*.test.ts\""
   },
   "devDependencies": {
-    "ajv": "8.20.0"
+    "ajv": "8.20.0",
+    "typescript": "6.0.3"
   }
 }

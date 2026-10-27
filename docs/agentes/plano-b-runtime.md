@@ -19,15 +19,15 @@ pedido ─► espera_aprobacion ── interrupt() ── la persona confirma en
 
 ### 2.1 Entrada: un turno a la vez
 - Candado por conversación en Upstash (`D4`) con vencimiento (ADR-0002). **El segundo mensaje espera su turno**; no se rechaza.
-- ⟨propuesto S4⟩ Vencimiento de 15 s y liberación por comparación de token (`SET … NX PX 15000`; se borra solo si el valor sigue siendo el token propio), para no soltar el candado de otro turno si el propio venció.
+- (S4, ratificado) Vencimiento de 15 s y liberación por comparación de token (`SET … NX PX 15000`; se borra solo si el valor sigue siendo el token propio), para no soltar el candado de otro turno si el propio venció.
 - El candado ahorra trabajo, no garantiza corrección: la corrección la dan la versión del punto de control y las claves de idempotencia.
 - Control de flujo (ADR-0002): semáforo de llamadas al modelo por instancia, límite de turnos por usuario y por minuto, y un guardián global que lee los encabezados de límite de la API de IA y, cerca del tope, degrada a búsqueda clásica.
 
 ### 2.2 Hidratación: lectura corta
-- Punto de control de la conversación desde `PostgresSaver` (`@langchain/langgraph-checkpoint-postgres`) en el esquema `agentes`, por el pooler de Supabase en modo sesión.
+- Punto de control de la conversación desde `PostgresSaver` (`@langchain/langgraph-checkpoint-postgres`) en el esquema `agentes`, por el pooler de Supabase en modo sesión, con 1 conexión por réplica (PEN-17).
 - Perfil reducido de menos de 800 tokens: intereses, comuna, favoritos recientes y pedidos abiertos, más los últimos turnos. Todo lo demás se pide con herramientas.
-- Las lecturas del dominio pasan por `SlaveReadDatabasePort` precedido por la caché de `D4` (`INV_07`).
-- **`PostgresSaver` se construye sobre un pool, nunca sobre un cliente dedicado**, para que cada operación tome y devuelva su conexión. Escribe entre pasos del grafo, nunca durante una llamada al modelo (`INV_05`). Es un tercer pool por réplica, fuera de los dos puertos de `INV_07`, porque guarda estado de la conversación y no muta el dominio. Su tamaño cuenta contra los 200 clientes del pooler en cómputo Micro (PEN-14 (4)) y, en modo sesión, también contra las conexiones directas de la base (⟨propuesto S16⟩, PEN-17).
+- Las lecturas del dominio pasan por `SlaveReadDatabasePort` precedido por la caché de `D4` (`INV_07`). Ese puerto va por el pooler en modo transacción (puerto 6543, `prepare: false`; PEN-17), así que cada lectura es una consulta sin estado de sesión: nada de sentencias preparadas, `SET` fuera de la transacción, `LISTEN`/`NOTIFY` ni tablas temporales.
+- **`PostgresSaver` se construye sobre un pool, nunca sobre un cliente dedicado**, para que cada operación tome y devuelva su conexión. Escribe entre pasos del grafo, nunca durante una llamada al modelo (`INV_05`). Es un tercer pool por réplica, fuera de los dos puertos de `INV_07`, porque guarda estado de la conversación y no muta el dominio. Va en modo sesión, con 1 conexión por réplica (decisión del usuario del 2026-10-27, PEN-17): cuenta contra los 200 clientes del pooler y retiene una de las conexiones directas de la base mientras está abierta.
 - Prueba de integración esperada: durante la llamada a `@anthropic-ai/sdk`, ninguna conexión del pool está prestada.
 
 ### 2.3 Enrutador
@@ -38,7 +38,7 @@ pedido ─► espera_aprobacion ── interrupt() ── la persona confirma en
 - Cada herramienta corresponde uno a uno con una consulta o un comando de `packages/domain`, a través de `packages/ports`, y tiene esquema con `strict: true`.
 - La compuerta de política evalúa Ω antes de cada comando; si falla, el comando no se ejecuta, se registra en `T12` y el agente recibe un error explicable.
 - El contexto de autorización (actor, usuario, marca, sesión) lo pone el servidor; nunca es un argumento del modelo.
-- ⟨propuesto S6⟩ Máximo 3 llamadas a herramientas por turno.
+- (S6, ratificado) Máximo 3 llamadas a herramientas por turno.
 
 ### 2.5 Pausa con aprobación humana
 - El agente `pedido` crea o actualiza el **borrador en el carril efímero `D4`** (`E64`). Un borrador no es un hecho de negocio y no entra a `D3` (`INV_01`).
@@ -72,7 +72,7 @@ Interfaz (sesión de la persona) ─► P2 API ─► P4 Pedidos
 | :--- | :--- | :--- | :--- | :--- |
 | **1. Operativa** | `PostgresSaver` en el esquema `agentes` de `D1`; candados y borradores en `D4` | Puntos de control, historial solo de agregar, borradores de pedido | Conversaciones: 24 h sin actividad. Landings: al publicarse o a los 30 días | Solo de la conversación |
 | **2. Canónica** | `D3` `planetario_events`, en la misma base que `D1` | Hechos de negocio confirmados, con posición al `COMMIT` | Permanente | Todo lo comercial |
-| **3. Derivada** | Tablas públicas de `P9` en `D1` (`R04`) y tablas internas de `P10` en `D1` (contadores por usuario y marca, y el agregado por marca, que no se muestra: ⟨propuesto S12⟩); vectores Π de `P13` en `D4` | Índice, recompra, carga por marca, vectores de decisión | Ventanas de 90 y 15 días; Π se reemplaza | Nada: se reconstruye desde `D3` |
+| **3. Derivada** | Tablas públicas de `P9` en `D1` (`R04`) y tablas internas de `P10` en `D1` (contadores por usuario y marca, y el agregado por marca, que no se muestra: (S12, ratificado)); vectores Π de `P13` en `D4` | Índice, recompra, carga por marca, vectores de decisión | Ventanas de 90 y 15 días; Π se reemplaza | Nada: se reconstruye desde `D3` |
 
 - Ningún flujo comercial decide leyendo un punto de control: el punto de control dice *qué se conversó*; `D3` dice *qué pasó*.
 - `D4` nunca guarda hechos confirmados.
@@ -80,7 +80,7 @@ Interfaz (sesión de la persona) ─► P2 API ─► P4 Pedidos
 
 ### 4.1 Vencimiento de los puntos de control
 - La librería `PostgresSaver` no trae vencimiento propio; ADR-0002 lo resuelve con un trabajo programado del `worker` que borra las conversaciones vencidas (`deleteThread`).
-- ⟨propuesto S5⟩ El trabajo corre cada 15 minutos.
+- (S5, ratificado) El trabajo corre cada 15 minutos.
 - Una conversación vencida con una pausa pendiente pierde su borrador, que vivía en `D4`; no se pierde ningún hecho, porque el pedido solo existe en `D3` cuando la persona lo confirma.
 
 ### 4.2 Espacios de claves en `D4` ⟨propuesto⟩

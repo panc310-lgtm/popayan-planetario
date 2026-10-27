@@ -35,30 +35,28 @@ Orden fijo de `AGENTS.md` §2: kernel → grafo → modelo de carga → ADR vige
 
 ### Paso 4 — Verificar
 
-**Fase documental (vigente: todavía no existe `packages/`).** Las cinco verificaciones de la integración continua, en este orden:
+Desde PLANETARIO-CORE-01 (2026-10-27) rige la fase de código: corren las nueve verificaciones. Primero las cinco de la arquitectura, en este orden:
 
 | # | Comando | Qué detecta |
 | :-- | :--- | :--- |
 | 1 | `node tools/validar-arquitectura/validar.mjs` | Esquemas, estructura del grafo, referencias, versiones y rutas citadas (incluido AGENTS.md) |
 | 2 | `node tools/validar-arquitectura/pruebas.mjs` | Que el validador siga detectando cada tipo de error y que `--estricto` falle cuando debe |
 | 3 | `node tools/modelo-de-carga/calcular.mjs --check` | Resultados del modelo de carga desactualizados |
-| 4 | `node tools/modelo-de-carga/calcular.mjs --estricto` | Algún nodo de infraestructura con ρ ≥ 0,70, o conexiones a la base que no caben (PEN-14) |
+| 4 | `node tools/modelo-de-carga/calcular.mjs --estricto` | Algún nodo de infraestructura con ρ ≥ 0,70, o conexiones a la base que no caben: más de 200 clientes del pooler, clientes de sesión por encima del pool size o 60 conexiones directas o más (PEN-14, PEN-17) |
 | 5 | `node tools/vista-del-grafo/generar.mjs --check` | Vista del grafo desactualizada o sin cubrir todos los nodos |
-
-Las cinco juntas: `npm run verificar:todo`.
 
 La compuerta vigila el requisito del usuario: ρ < 0,70 en el pico de 10.000 sesiones (corte en 0,70 desde la decisión del 2026-10-26). Si el cambio toca el grafo o el modelo de carga, el Actor reporta el máximo en `metricas.rho_max` y el margen que queda en `D1`, el nodo más cargado.
 
-**Fase de código (se activa con el primer paquete en `packages/`).** Se suman, declaradas en `package.json` y en la integración continua junto con ese paquete:
+Después, las cuatro del código, declaradas en `package.json` y en la integración continua:
 
-| Script | Qué detectará |
-| :--- | :--- |
-| `npm run verify:hexagon` | Importaciones prohibidas entre capas (`INV_06`, S1) |
-| `npm run verify:contracts` | Esquemas inválidos o `version_contrato` sin incrementar |
-| `npm run verify:3d-budgets` | Activos 3D sobre los presupuestos del kernel |
-| `npm run test:integral` | Regresión funcional de punta a punta |
+| # | Script | Qué detecta |
+| :-- | :--- | :--- |
+| 6 | `npm run verify:hexagon` | En `packages/contracts`, `ports` y `domain`: importaciones fuera de la dirección permitida y fuentes de no determinismo sin inyectar (`INV_06`, S1), leídas del AST de TypeScript |
+| 7 | `npm run verify:contracts` | Esquemas que no compilan con Ajv estricto, ejemplos que ya no validan o un esquema que cambió sin una `version_contrato` nueva en `schemas/versiones.json` |
+| 8 | `npm run verify:3d-budgets` | Un GLB del repositorio por encima de los presupuestos 3D del kernel |
+| 9 | `npm run test:integral` | Tipos del núcleo con `tsc` y pruebas del dominio, del simulador de pagos y del flujo de pedido de punta a punta |
 
-Mientras esos paquetes no existan, esos scripts **no se crean vacíos**: un script que siempre pasa falsearía la Definición de terminado. `verify:kernel` no hace falta como script aparte: lo cubre `validar.mjs`.
+Cada una trae sus propias pruebas, que siembran el error y exigen que se detecte: un script que siempre pasa falsearía la Definición de terminado. `verify:kernel` no hace falta como script aparte: lo cubre `validar.mjs`. Las nueve juntas: `npm run verificar:todo`.
 
 Un rojo en cualquiera vuelve al Paso 3. Nunca se ajusta un verificador, un umbral o una prueba para que pase.
 
@@ -67,7 +65,7 @@ Se invoca `critico-adversario` con tres insumos: la traza y lo que pide (texto, 
 
 - `APROBADO` → Paso 6.
 - `RECHAZADO` → se corrigen los hallazgos `BLOQUEANTE` y `ALTA` y se repiten los Pasos 4 y 5.
-- ⟨propuesto S3⟩ Tercer `RECHAZADO` seguido → se escala con los hallazgos abiertos.
+- (S3, ratificado) Tercer `RECHAZADO` seguido → se escala con los hallazgos abiertos.
 
 ### Paso 6 — Entregar
 Doble salida (`plantillas/doble-salida.md`). Los cambios entran a `main` por pull request, con la integración continua en verde; publicar una rama o abrir un pull request requiere permiso explícito del usuario.
@@ -100,6 +98,6 @@ Doble salida (`plantillas/doble-salida.md`). Los cambios entran a `main` por pul
 
 ## 4. Convenciones de entrega
 
-- Rama por tarea con el prefijo que ya usa el repositorio: `docs/…`, `arquitectura/…` o `chore/…`; ⟨propuesto⟩ `codigo/…` para la fase de código.
+- Rama por tarea con el prefijo que ya usa el repositorio: `docs/…`, `arquitectura/…` o `chore/…`, y `feat/…` en la fase de código (PLANETARIO-CORE-01 usó `feat/planetario-core-01-hexagono` por instrucción del usuario).
 - Asunto del commit en español, en forma de resultado ("Plan de capacidad aplicado: …"), con la traza en el cuerpo.
 - Un commit por paso lógico; nunca mezclar un cambio de comportamiento con un refactor.

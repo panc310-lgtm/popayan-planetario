@@ -1,0 +1,97 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:popayan-planetario:contracts:canonical-event",
+  "title": "Evento canónico de planetario_events (D3)",
+  "description": "Sobre que recibe appendCanonicalEvent, el puerto único de escritura del registro (INV_02). Solo hechos confirmados (INV_01); la posición canónica la asigna D3 al COMMIT y no viaja en el evento. event_id es UUIDv7 generado en la aplicación e idempotency_key sale de la fuente (INV_02). Los eventos que origina un agente llevan agente, versión del contrato, modelo y turno (rule_03).",
+  "$ref": "#/$defs/evento",
+  "$defs": {
+    "id": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,64}$"
+    },
+    "fecha_hora": {
+      "type": "string",
+      "pattern": "^\\d{4}-(0[1-9]|1[0-2])-(0[1-9]|[12]\\d|3[01])T([01]\\d|2[0-3]):[0-5]\\d:[0-5]\\d(\\.\\d{1,3})?(Z|[+-]([01]\\d|2[0-3]):[0-5]\\d)$"
+    },
+    "actor": {
+      "description": "Quién originó el hecho. El servidor lo fija desde la sesión autenticada; nunca es un argumento del modelo (R05, ADR-0002).",
+      "oneOf": [
+        {
+          "type": "object",
+          "required": ["tipo", "comprador_id"],
+          "properties": { "tipo": { "const": "comprador" }, "comprador_id": { "$ref": "#/$defs/id" } },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["tipo", "marca_id", "responsable_id"],
+          "properties": { "tipo": { "const": "responsable_marca" }, "marca_id": { "$ref": "#/$defs/id" }, "responsable_id": { "$ref": "#/$defs/id" } },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["tipo", "operador_id"],
+          "properties": { "tipo": { "const": "operacion_comercial" }, "operador_id": { "$ref": "#/$defs/id" } },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["tipo", "proveedor"],
+          "properties": { "tipo": { "const": "proveedor_pagos" }, "proveedor": { "$ref": "#/$defs/id" } },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": ["tipo", "tarea"],
+          "properties": { "tipo": { "const": "sistema" }, "tarea": { "$ref": "#/$defs/id" } },
+          "additionalProperties": false
+        },
+        {
+          "description": "rule_03: agente, versión del contrato, modelo y turno son obligatorios.",
+          "type": "object",
+          "required": ["tipo", "agente", "version_contrato", "modelo", "turno", "en_nombre_de"],
+          "properties": {
+            "tipo": { "const": "agente" },
+            "agente": { "$ref": "#/$defs/id" },
+            "version_contrato": { "type": "string", "pattern": "^\\d+\\.\\d+\\.\\d+$" },
+            "modelo": { "type": "string", "pattern": "^[a-z0-9][a-z0-9.-]{1,63}$" },
+            "turno": {
+              "type": "object",
+              "required": ["conversacion_id", "turno_id"],
+              "properties": { "conversacion_id": { "$ref": "#/$defs/id" }, "turno_id": { "$ref": "#/$defs/id" } },
+              "additionalProperties": false
+            },
+            "en_nombre_de": {
+              "description": "Comprador o marca de la sesión autenticada (R05).",
+              "type": "object",
+              "required": ["tipo", "id"],
+              "properties": { "tipo": { "enum": ["comprador", "marca"] }, "id": { "$ref": "#/$defs/id" } },
+              "additionalProperties": false
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "evento": {
+      "type": "object",
+      "required": ["event_id", "idempotency_key", "tipo", "agregado", "actor", "ocurrido_en", "payload"],
+      "properties": {
+        "event_id": { "type": "string", "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$" },
+        "idempotency_key": { "description": "Determinista y de la fuente (INV_02); su formato por fuente es S19.", "type": "string", "pattern": "^[a-z][a-z0-9-]*:.{1,200}$" },
+        "tipo": { "type": "string", "pattern": "^[A-Z][A-Za-z]{2,63}$" },
+        "agregado": {
+          "type": "object",
+          "required": ["tipo", "id"],
+          "properties": { "tipo": { "enum": ["pedido", "solicitud_de_servicio", "marca", "comprador"] }, "id": { "$ref": "#/$defs/id" } },
+          "additionalProperties": false
+        },
+        "marca_id": { "description": "Marca dueña del agregado cuando la hay (R01).", "$ref": "#/$defs/id" },
+        "actor": { "$ref": "#/$defs/actor" },
+        "ocurrido_en": { "$ref": "#/$defs/fecha_hora" },
+        "payload": { "type": "object" }
+      },
+      "additionalProperties": false
+    }
+  }
+}

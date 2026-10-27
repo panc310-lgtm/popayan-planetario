@@ -2,7 +2,9 @@
 
 Cada insumo que alimenta la arquitectura o el producto queda registrado aquí con un identificador estable, su origen, su fidelidad y un resumen por turno. Las conversaciones con IA son **insumos**: nunca prevalecen sobre las decisiones confirmadas por el usuario ni sobre los archivos canónicos de `arquitectura/`.
 
-## Regla de precedencia (propuesta, por aprobar)
+## Regla de precedencia
+
+El usuario la ratificó el 2026-10-27 como parte del orden de `AGENTS.md` §0, que la extiende (S9, [FG-08](gemini/FG-08-planetario-core-01.md)).
 
 1. Decisiones confirmadas por el usuario y registradas en el kernel o en un ADR.
 2. Archivos canónicos del repo: `arquitectura/kernel-durable.json` y `arquitectura/grafo-operacional.json`.
@@ -20,6 +22,7 @@ Cada insumo que alimenta la arquitectura o el producto queda registrado aquí co
 | FG-05 | Criterios trabajados con Gemini | Constitución AGENTS.md y sincronización del grafo SoC v0.9 | Pegado en una conversación con Claude | 2026-10-26 | Texto completo; T1 cortado en su sección 6 | [FG-05](gemini/FG-05-constitucion-agents-md.md) · [texto literal](gemini/FG-05-texto-original.md) |
 | FG-06 | Conversación Gemini y mensaje de decisiones | Atractor extraño en el grafo SoC; decisiones del 2026-10-26 sobre P13, ADR-0004 y la capacidad | `gemini.google.com/app/3d8b8a948021d279` | Impreso 2026-10-26; decisiones del 2026-10-26 | PDF sin texto; código cortado | [FG-06](gemini/FG-06-atractor-extrano-soc.md) · [texto de las decisiones](gemini/FG-06-texto-original.md) |
 | FG-07 | Conversación Gemini | Verificación de acceso al repositorio y diseño del SoC v0.9 de Gemini | `gemini.google.com/app/d4b46981c081f0b1` | Impreso 2026-10-26 | PDF sin texto; errores de PowerShell | [FG-07](gemini/FG-07-verificacion-acceso-repositorio.md) |
+| FG-08 | Mensaje de decisiones redactado con Gemini | Decisiones del 2026-10-27 (PR #13, PEN-16, PEN-17) y tarea PLANETARIO-CORE-01 | Adjunto en una conversación con Claude | 2026-10-27 | Texto completo; marcas `[cite: n]` sin sus fuentes | [FG-08](gemini/FG-08-planetario-core-01.md) · [texto literal](gemini/FG-08-texto-original.md) |
 | FC-01 | Conversación ChatGPT | Diseño de producto inicial | `chatgpt.com/share/6ad23b39-6550-83e9-bf42-c9e45cbac7c5` | Leída 2026-10-16 | Enlace compartido | Pendiente de resumir |
 | FD-01 | Documento Claude Docs | Documento maestro de estructura — Popayán Planetario v0.1 | `claude.ai/code/artifact/01fc69b7-adf1-4d0e-853f-3f80bb4b872f` (enlace compartido: `claude.ai/artifact/1FDyw1neXhzV7oyJ7uW73U`) | Desde 2026-10-16 | Documento vivo | Fuente de las reglas de producto; pestaña "Presupuesto de producción" del 2026-10-17 |
 | FD-02 | Documento Claude Docs | Universo visual de Popayán Planetario | `claude.ai/code/artifact/34bf8d5e-ca7f-4008-a417-c3e04e5ff3f1` | 2026-10-17 | Documento vivo; estado propuesta | Guía visual |
