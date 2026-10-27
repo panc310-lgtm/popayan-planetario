@@ -16,6 +16,7 @@
           "pedidos_abiertos": 3.75,
           "lecturas_catalogo_base_s": 0.135,
           "redis_s": 0.54,
+          "redis_p13_vectores_s": 0.04222,
           "lecturas_base_p13_s": 0.001389,
           "eventos_pedido_s": 0.01111,
           "eventos_negocio_s": 0.02111,
@@ -35,6 +36,7 @@
           "pedidos_abiertos": 63.75,
           "lecturas_catalogo_base_s": 2.295,
           "redis_s": 9.18,
+          "redis_p13_vectores_s": 0.7178,
           "lecturas_base_p13_s": 0.02361,
           "eventos_pedido_s": 0.1889,
           "eventos_negocio_s": 0.3589,
@@ -307,7 +309,6 @@
         "conexiones_directas_disponibles": 60,
         "cabe_en_clientes_pooler": true,
         "cabe_en_conexiones_directas": true,
-        "computo_minimo_por_conexiones": "Micro",
         "estado": "ok"
       },
       "aristas": [
@@ -558,8 +559,8 @@
           "arista": "E68",
           "origen": "P13",
           "destino": "D4",
-          "carga": "eventos_negocio_s",
-          "factor": 2,
+          "carga": "redis_p13_vectores_s",
+          "factor": 1,
           "tasa_normal_s": 0.04222,
           "tasa_evento_s": 0.7178
         },
@@ -620,6 +621,7 @@
           "pedidos_abiertos": 3750,
           "lecturas_catalogo_base_s": 500,
           "redis_s": 2000,
+          "redis_p13_vectores_s": 96.3,
           "lecturas_base_p13_s": 1.389,
           "eventos_pedido_s": 11.11,
           "eventos_negocio_s": 48.15,
@@ -639,6 +641,7 @@
           "pedidos_abiertos": 3750,
           "lecturas_catalogo_base_s": 500,
           "redis_s": 2000,
+          "redis_p13_vectores_s": 96.3,
           "lecturas_base_p13_s": 1.389,
           "eventos_pedido_s": 11.11,
           "eventos_negocio_s": 48.15,
@@ -897,7 +900,6 @@
         "conexiones_directas_disponibles": null,
         "cabe_en_clientes_pooler": true,
         "cabe_en_conexiones_directas": null,
-        "computo_minimo_por_conexiones": "Small",
         "estado": "cómputo por elegir"
       },
       "aristas": [
@@ -1148,8 +1150,8 @@
           "arista": "E68",
           "origen": "P13",
           "destino": "D4",
-          "carga": "eventos_negocio_s",
-          "factor": 2,
+          "carga": "redis_p13_vectores_s",
+          "factor": 1,
           "tasa_normal_s": 96.3,
           "tasa_evento_s": 96.3
         },
@@ -1210,6 +1212,7 @@
           "pedidos_abiertos": 250,
           "lecturas_catalogo_base_s": 4.5,
           "redis_s": 18,
+          "redis_p13_vectores_s": 2.148,
           "lecturas_base_p13_s": 0.09259,
           "eventos_pedido_s": 0.7407,
           "eventos_negocio_s": 1.074,
@@ -1229,6 +1232,7 @@
           "pedidos_abiertos": 750,
           "lecturas_catalogo_base_s": 13.5,
           "redis_s": 54,
+          "redis_p13_vectores_s": 6.444,
           "lecturas_base_p13_s": 0.2778,
           "eventos_pedido_s": 2.222,
           "eventos_negocio_s": 3.222,
@@ -1501,7 +1505,6 @@
         "conexiones_directas_disponibles": null,
         "cabe_en_clientes_pooler": true,
         "cabe_en_conexiones_directas": null,
-        "computo_minimo_por_conexiones": "Micro",
         "estado": "cómputo por elegir"
       },
       "aristas": [
@@ -1752,8 +1755,8 @@
           "arista": "E68",
           "origen": "P13",
           "destino": "D4",
-          "carga": "eventos_negocio_s",
-          "factor": 2,
+          "carga": "redis_p13_vectores_s",
+          "factor": 1,
           "tasa_normal_s": 2.148,
           "tasa_evento_s": 6.444
         },

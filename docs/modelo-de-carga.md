@@ -7,7 +7,7 @@ El requisito es sostener **10.000 sesiones simultáneas** con todos los nodos de
 ## Lectura
 
 - En el pico de capacidad la integral de eventos recibe 48,1 eventos de negocio por segundo, el 6,02 % del techo de ~800 por segundo de INV_01 (por medir en PEN-09). El registro de eventos no es el cuello de botella.
-- En el pico de capacidad las 11 réplicas abren 67 conexiones al pooler de Supabase en modo sesión, dentro de los 200 clientes de Micro. En modo sesión cada cliente retiene una conexión directa a Postgres, así que con las 20 reservadas para Supabase el cómputo debe admitir al menos **87 conexiones directas**; Micro, el cómputo del MVP, admite 60. Por conexiones, el pico necesita como mínimo el cómputo **Small**; el tamaño definitivo se elige con prueba de carga (PEN-14).
+- En el pico de capacidad las 11 réplicas abren 67 conexiones al pooler de Supabase en modo sesión, dentro de los 200 clientes de Micro. En modo sesión cada cliente retiene una conexión directa a Postgres, así que con las 20 reservadas para Supabase el cómputo debe admitir al menos **87 conexiones directas**; Micro, el cómputo del MVP, admite 60. El cómputo del pico se elige con prueba de carga (PEN-14) y debe admitir al menos esas conexiones directas; la diferencia con ADR-0001 está en PEN-17.
 - El límite humano aparece antes que el técnico: la marca más activa acepta pedidos a mano en Telegram (1 por minuto) y en el escenario Capacidad objetivo recibiría 2,5 veces los pedidos que puede atender. La protección es la pausa automática al superar 15 pedidos pendientes (R06, T10).
 - En el pico de capacidad hay 3.750 pedidos abiertos a la vez, cada uno con una conexión de aviso en vivo al comprador (E63).
 - El pico de capacidad hace 2.970 llamadas por minuto a la API de IA y exige como mínimo el nivel **Scale** de la cuenta de Anthropic; una hora así cuesta unos US$65. Una cuenta nueva empieza en un nivel menor: el aumento se solicita antes del lanzamiento oficial.
@@ -71,7 +71,6 @@ Conexiones que abre cada servicio hacia D1 por el pooler de Supabase en modo ses
 | Reservadas para Supabase | 20 | 20 | 20 |
 | Conexiones directas necesarias | 38 | 87 | 38 |
 | Conexiones directas del cómputo previsto | 60 | por elegir (PEN-14) | por elegir (PEN-14) |
-| Cómputo mínimo de Supabase por conexiones | Micro | Small | Micro |
 | Estado | ok | cómputo por elegir | cómputo por elegir |
 
 ## API de IA
@@ -168,7 +167,7 @@ Tasa en la hora pico de cada arista del grafo v0.9 que lleva carga en tiempo de 
 | E65 | P3 → D4 | redis_s | 1 | 0,54 (9,18) | 2.000 (2.000) | 18 (54) |
 | E67 | P5 → P13 | eventos_negocio_s | 1 | 0,0211 (0,359) | 48,1 (48,1) | 1,07 (3,22) |
 | E74 | P5 → P13 | eventos_negocio_s | 1 | 0,0211 (0,359) | 48,1 (48,1) | 1,07 (3,22) |
-| E68 | P13 → D4 | eventos_negocio_s | 2 | 0,0422 (0,718) | 96,3 (96,3) | 2,15 (6,44) |
+| E68 | P13 → D4 | redis_p13_vectores_s | 1 | 0,0422 (0,718) | 96,3 (96,3) | 2,15 (6,44) |
 | E75 | P13 → D4 | eventos_negocio_s | 1 | 0,0211 (0,359) | 48,1 (48,1) | 1,07 (3,22) |
 | E69 | P13 → D1 | lecturas_base_p13_s | 1 | 0,00139 (0,0236) | 1,39 (1,39) | 0,0926 (0,278) |
 

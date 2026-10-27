@@ -65,6 +65,7 @@ const CASOS = [
   ["servicio sin presupuesto de conexiones", "M4", json("modelo", (d) => { delete d.parametros.conexiones_worker_por_replica; })],
   ["texto original alterado", "F3", texto("fg05", (t) => t.replace("Theta_s", "Theta_x"))],
   ["huella CRLF alterada", "F3", texto("fg05", (t) => t.replace(/(\| T2 \|.*`)([0-9a-f])([0-9a-f]{63}`[^|]*CRLF)/, (_, a, b, c) => `${a}${b === "0" ? "1" : "0"}${c}`))],
+  ["huella con salto de línea final alterada", "F3", texto("fg05", (t) => t.replace(/(\| T1 \|.*`)([0-9a-f])([0-9a-f]{63}`[^|]*salto de línea final)/, (_, a, b, c) => `${a}${b === "0" ? "1" : "0"}${c}`))],
 ];
 
 // Compuerta de capacidad: calcular.mjs --estricto (AGENTS.md §5). Cada caso exige que falle con el texto esperado.
@@ -72,6 +73,7 @@ const CASOS_CAPACIDAD = [
   ["copia sin cambios", null, () => {}],
   ["nodo de infraestructura entre ρ 0,7 y 0,9", "Nodo de infraestructura en ρ ≥ 0,7", json("grafo", (d) => { nodo(d, "D1").capacidad.mu_por_s = 1700; })],
   ["conexiones por encima de los 200 clientes del pooler", "Las conexiones a la base no caben", json("modelo", (d) => { d.parametros.conexiones_api_por_replica.valores.capacidad = 60; })],
+  ["MVP por encima de las 60 conexiones directas de Micro", "Las conexiones a la base no caben", json("modelo", (d) => { d.parametros.conexiones_api_por_replica.valores.mvp = 50; })],
 ];
 
 let fallas = 0;

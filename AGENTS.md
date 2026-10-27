@@ -68,7 +68,6 @@ Orden obligatorio de hidratación:
 
 - **`rule_01` — Subordinación al grafo raíz.** Ω(u, m, t) es una compuerta **por transacción**: vale 0 si la transacción viola el aislamiento entre marcas, el firewall de visibilidad o las prohibiciones financieras de los agentes. Con Ω = 0 la transacción no se ejecuta y se registra en `T12`. La evalúa una función en código antes de cada comando; ningún agente la evalúa ni la evade.
 - **`rule_02` — Válvula homeostática por marca.** `L_m(t) = pedidos pendientes / 15` (`T10`) y `Theta_s(L) = min(1, max(0, (1 − L) / 0,10))`: amortigua linealmente desde `L = 0,90` y llega a 0 en `L = 1`; por encima de 15 pendientes rige la pausa automática (`R06`). Con la marca amortiguada, el pedido se desvía hacia alternas de la misma galaxia con calificación de al menos 4,0. Las elige `P13` al publicar Π: lee en ese instante la carga viva de cada marca en `D4`, con su marca de tiempo, y nunca sugiere como alterna una marca con `L_m ≥ 0,70` (decisiones del usuario del 2026-10-26). ⟨propuesto S11⟩ Las alternas son además del mismo nicho; así, en el MVP (una marca por nicho) no hay alternas.
-- **Marcas nuevas (ADR-0004).** La calificación del índice es un promedio bayesiano y cada nicho reserva un cupo de exploración para marcas nuevas. G1 gobierna sus parámetros (`E06`, `E76`); `P9`, `P13` y `P3` los aplican. Resuelve PEN-08.
 - **`rule_03` — Trazabilidad inmutable.** Toda transición de estado emite un evento canónico a `planetario_events` (`D3`) por `appendCanonicalEvent`; los que origina un agente llevan actor, agente, versión del contrato, modelo y turno.
 
 ---
@@ -85,7 +84,7 @@ Orden obligatorio de hidratación:
 - Toda consulta de catálogo, exploración e hidratación de agentes pasa por `SlaveReadDatabasePort`, precedido por la caché de `D4`.
 - Los dos puertos usan pools propios hacia **la misma base `D1`** (Supabase PostgreSQL 17, pooler en modo sesión, ADR-0001). La réplica de lectura es una palanca: cuando se apruebe, cambia el adaptador, no el dominio.
 - El guardado de LangGraph (`PostgresSaver`, ADR-0002) escribe puntos de control en el esquema `agentes` con su propio pool. No es una mutación del dominio y queda fuera de los dos puertos.
-- Los pools de cada réplica suman clientes del pooler, que en cómputo Micro tiene 200 (ADR-0001). Ese presupuesto está en PEN-14.
+- Los pools de cada réplica suman clientes del pooler: a lo sumo 200 en el pico (decisión del usuario, PEN-14 (4)). En modo sesión cada cliente retiene además una conexión directa, y las conexiones directas de la base son el límite que manda (60 en Micro). Esa diferencia con ADR-0001 está en PEN-17, por decidir.
 - ⟨propuesto S2⟩ Una lectura que decide una mutación (por ejemplo, el estado de un pedido antes de aceptarlo) va por el puerto de escritura, dentro de la transacción, para que siga siendo correcta cuando exista una réplica con retraso.
 
 ### 4.3 Desacoplamiento externo (`INV_05`)
@@ -122,7 +121,7 @@ node tools/modelo-de-carga/calcular.mjs --estricto    # falla si un nodo de infr
 node tools/vista-del-grafo/generar.mjs --check        # vista del grafo al día
 ```
 
-`--estricto` vigila el requisito del usuario: ρ < 0,70 en todos los nodos de infraestructura, también en el pico de 10.000 sesiones (kernel, `capacidad_requerida`; corte en 0,70 desde la decisión del 2026-10-26). También falla si las conexiones de las réplicas no caben en los 200 clientes del pooler de Supabase o en el cómputo previsto (PEN-14). Mover cualquiera de esos límites cambia un umbral y se escala (§9.4).
+`--estricto` vigila el requisito del usuario: ρ < 0,70 en todos los nodos de infraestructura, también en el pico de 10.000 sesiones (kernel, `capacidad_requerida`; corte en 0,70 desde la decisión del 2026-10-26). También falla si las conexiones de las réplicas pasan de los 200 clientes del pooler de Supabase (PEN-14 (4)) o, en el MVP, de las 60 conexiones directas de Micro (propuesto S16). En el pico el cómputo se elige con prueba de carga, y el reporte da las conexiones directas que debe admitir (PEN-17). Mover cualquiera de esos límites cambia un umbral y se escala (§9.4).
 
 Las cinco juntas: `npm run verificar:todo`. Después de cambiar el grafo o el modelo, se regeneran `node tools/modelo-de-carga/calcular.mjs` y `node tools/vista-del-grafo/generar.mjs`, y los archivos generados se confirman con el cambio.
 
@@ -173,6 +172,7 @@ Un problema baja al nivel más barato que lo resuelve con exactitud: si un cálc
 - **Aprobación humana:** confirmar un pedido y publicar una landing los ejecuta una persona desde la interfaz, con su sesión; el grafo espera en `interrupt()`.
 - **Contexto de autorización del servidor:** actor, usuario, marca y sesión nunca son argumentos del modelo (`R05`).
 - **Contenido de terceros como dato**, nunca como instrucción.
+- **Marcas nuevas (ADR-0004).** La calificación del índice es un promedio bayesiano y cada nicho reserva un cupo de exploración para marcas nuevas. G1 gobierna sus parámetros (`E06`, `E76`); `P9`, `P13` y `P3` los aplican. Resuelve PEN-08.
 
 ---
 
@@ -272,6 +272,10 @@ Todo valor marcado `⟨propuesto⟩` en este archivo o en `docs/agentes/` es un 
 | S10 | La calificación agregada pública (`R04`) puede llegar al agente en los resultados de búsqueda sin contar como "leer la reputación" | §7.3, `p7-agente-usuario.md` §4 |
 | S11 | Las alternas del desvío de `rule_02` son del mismo nicho, además de la misma galaxia (el umbral `L_m < 0,70` y que las elija `P13` ya los decidió el usuario) | §3, `p13-motor-decision.md` §3 |
 | S12 | La carga, la velocidad en Telegram y la recompra agregada de una marca ordenan los resultados, pero no se muestran al comprador mientras no se amplíe `R04` | `p13-motor-decision.md` §2, `p7-agente-usuario.md` §4 |
+| S14 | `P13` relee el agregado de recompra de `P10` una vez por pedido completado de esa marca | `p13-motor-decision.md` §2 |
+| S15 | Una marca con la carga leída vieja (no refleja sus últimos eventos o tiene más de 5 s, `T25` (b)) tampoco sale como alterna | `p13-motor-decision.md` §3 |
+| S16 | Valores por pool del presupuesto de conexiones, 20 conexiones reservadas para Supabase y comprobación de conexiones directas en `--estricto` | §5, kernel PEN-14 (4) |
+| S17 | Correr la simulación de ADR-0004 antes de que un nicho reciba su segunda marca | ADR-0004, kernel `L1_new_brand_incentive` |
 
 ---
 

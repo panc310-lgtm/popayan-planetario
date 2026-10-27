@@ -34,8 +34,8 @@ Etiquetas de estado: las mismas de [FG-01](FG-01-arquitectura-grafos-operacional
 | "P9 vía E73", "P10 vía E74" y "D4 vía E76" | `[CORREGIDO]`: en el repositorio P13 lee P9 y P10 en D1 por E69 y publica en D4 por E68 y E75 |
 | Fórmula de Π con pesos w₁ a w₄ | `[ABIERTO]`: los pesos no están definidos; el orden lo aplica P3 |
 | Compra en cinco fases con `interrupt()`, compuerta Ω y `emitirCobro` fuera de transacción | `[VIGENTE]` (ADR-0002, ADR-0003, plano-b-runtime.md) |
-| Dos velocidades: ambiental en el 3D sin modelo (P1 y P3 leyendo D4) y conversacional con P7 | `[VIGENTE]` |
-| Pregunta final: confirmar "los 4 parámetros de ejecución del grafo SoC v0.9": P13 en el worker, inteligencia en dos velocidades vía D4, cierre de PEN-08 por exploración y amortiguación Θ_s(L_m), y sincronización de los 5 artefactos | `[VIGENTE]`: son los "4 parámetros" que el usuario ratifica en D1 |
+| Dos velocidades: ambiental en el 3D sin modelo (P1 y P3 leyendo D4) y conversacional con P7 | `[CORREGIDO]`: las dos velocidades están vigentes, pero P1 no lee D4: pide a P3 a través de P2 (E21, E25), y P3 lee Π en D4 (E65) |
+| Pregunta final: confirmar "los 4 parámetros de ejecución del grafo SoC v0.9": P13 en el worker, inteligencia en dos velocidades vía D4, cierre de PEN-08 por exploración y amortiguación Θ_s(L_m), y sincronización de los 5 artefactos | `[VIGENTE]`: es una de las dos listas de "4 parámetros" que puede ratificar D1 (ver D1) |
 
 ## T3 · p. 6–8 · Patrón maestro y réplica
 
@@ -83,14 +83,14 @@ Etiquetas de estado: las mismas de [FG-01](FG-01-arquitectura-grafos-operacional
 
 | Afirmación | Estado |
 |---|---|
-| "Ratifico los 4 parámetros de la arquitectura SoC v0.9" | `[VIGENTE]`: los cuatro de T2 (y de FG-07 T8): P13 en el worker, dos velocidades vía D4, PEN-08 por exploración y amortiguación, y los 5 artefactos |
+| "Ratifico los 4 parámetros de la arquitectura SoC v0.9" | `[ABIERTO]` en cuál lista: Gemini dio dos listas de cuatro puntos que coinciden en tres (P13 en el worker, PEN-08 por exploración y amortiguación, y los 5 artefactos) y difieren en el segundo: "inteligencia en dos velocidades vía D4" (T2) o "mantener las réplicas y la ponderación de P7 en el modelo de carga" ([FG-07](FG-07-verificacion-acceso-repositorio.md) T8). D1 no dice cuál. Las dos variantes se cumplen en la rama, así que la diferencia no cambia ningún archivo; se anota para no leer en D1 más de lo que dice |
 | A.1 P13 lee de D1 el agregado de recompra que P10 mantiene por marca (`pedidos_recompra_90d`, `compradores_unicos_90d`), sin identificadores de compradores | `[VIGENTE]`: kernel `decision_vectors_p13`, P10, E69 y `lecturas_base_por_pedido_p13`. "Por E74" es numeración de Gemini (P10 → P13); en el repositorio es la lectura E69 |
 | A.2 Π se publica solo en D4, no en D1 | `[VIGENTE]`: S13 sale de PEN-16. "Por la arista E75" es numeración de Gemini; en el repositorio Π va por E68 y E75 lleva la carga por marca |
 | A.3 ADR-0004 aprobado y PEN-08 resuelto, con "desvío por saturación Θ_s(L_m) gobernado por G1 → P13" | `[VIGENTE]`: kernel `L1_new_brand_incentive`; G1 → P13 es la arista nueva E76 |
 | A.4 `--estricto` falla con ρ ≥ 0,70 | `[VIGENTE]`: `calcular.mjs` |
-| A.4 Presupuesto de conexiones de los tres pools en las 11 réplicas, con un total de a lo sumo 200 clientes del pooler | `[VIGENTE]`: 67 clientes. El modelo encontró además que en modo sesión el pico necesita 87 conexiones directas, más que las 60 de Micro: el cómputo del pico debe ser al menos Small (PEN-14) |
+| A.4 Presupuesto de conexiones de los tres pools en las 11 réplicas, con un total de a lo sumo 200 clientes del pooler | `[VIGENTE]`: el tope de 200 es decisión del usuario (PEN-14 (4)); los valores por pool, que suman 67 clientes, y las 20 conexiones reservadas para Supabase los propuso Claude (S16). El modelo encontró además que en modo sesión el pico necesita 87 conexiones directas, más que las 60 de Micro; esa diferencia con ADR-0001 queda en PEN-17, por decidir |
 | B.1 Comandos de lectura de la carga viva en `comandos_redis_por_evento_p13` | `[VIGENTE]`: 3 por evento |
-| B.2 P13 lee la carga viva con su marca de tiempo al emitir Π y nunca sugiere como alterna una marca con L_m ≥ 0,70 | `[VIGENTE]`: T25 y p13-motor-decision.md §3. Reemplaza el umbral de 0,90 que Claude había propuesto en S11 |
+| B.2 P13 lee la carga viva con su marca de tiempo al emitir Π y nunca sugiere como alterna una marca con L_m ≥ 0,70 | `[VIGENTE]`: T25 y p13-motor-decision.md §3. Reemplaza el umbral de 0,90 que Claude había propuesto en S11. Excluir también una carga leída vieja (sin sus últimos eventos o con más de 5 s) es propuesta de Claude (S15) |
 | B.3 "P3 y P7 ordenan leyendo Π desde D4" | `[CORREGIDO]`: P3 lee Π desde D4; P7 recibe ese orden por E31, porque los agentes no leen D4 directamente (ADR-0002) |
 | B.4 Completar la fila de S11 en FG-05 y verificar las huellas SHA-256 | `[VIGENTE]`: la regla F3 del validador las comprueba en cada pull request |
 | B.4 "Ajusta la referencia (S8) en el caso T2 de `pruebas.mjs`" | `[CORREGIDO]`: `pruebas.mjs` no tiene un caso T2; la referencia "(S8)" vive en FG-05. Se probó con el anexo A1 de FG-05-texto-original.md, y `pruebas.mjs` suma un caso F3 que altera una huella |

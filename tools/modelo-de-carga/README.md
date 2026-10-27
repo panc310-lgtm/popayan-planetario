@@ -29,7 +29,7 @@ No escribe nada. Termina con error si los archivos generados no coinciden con el
 node tools/modelo-de-carga/calcular.mjs --estricto
 ```
 
-Como `--check`, y además falla en dos casos, en cualquier escenario. Uno: algún nodo de infraestructura llega a ρ ≥ 0,7, la utilización objetivo del requisito de 10.000 sesiones (decisión del usuario del 2026-10-26; hasta entonces cortaba en la zona crítica, ρ ≥ 0,9). Los nodos humanos (la marca) y externos no lo hacen fallar. Dos: las conexiones a la base no caben en el pooler de Supabase (200 clientes en Micro), en el cómputo previsto o en el mayor cómputo de la tabla (PEN-14 (4)). Pasa desde el grafo v0.5, que aplica el plan de capacidad (PEN-14). La integración continua (`.github/workflows/verificaciones.yml`) corre `--check` y `--estricto` en cada pull request y en cada cambio de `main`, así que ningún cambio del grafo o del modelo puede romper el requisito de 10.000 sesiones sin que se note.
+Como `--check`, y además falla en dos casos, en cualquier escenario. Uno: algún nodo de infraestructura llega a ρ ≥ 0,7, la utilización objetivo del requisito de 10.000 sesiones (decisión del usuario del 2026-10-26; hasta entonces cortaba en la zona crítica, ρ ≥ 0,9). Los nodos humanos (la marca) y externos no lo hacen fallar. Dos: las conexiones a la base no caben en los 200 clientes del pooler de Supabase, o en las conexiones directas del cómputo previsto cuando está fijado (Micro, en el MVP; PEN-14 (4)). En el pico el cómputo se elige con prueba de carga, y el reporte da las conexiones directas que debe admitir. Pasa desde el grafo v0.5, que aplica el plan de capacidad (PEN-14). La integración continua (`.github/workflows/verificaciones.yml`) corre `--check` y `--estricto` en cada pull request y en cada cambio de `main`, así que ningún cambio del grafo o del modelo puede romper el requisito de 10.000 sesiones sin que se note.
 
 ## Cómo se calcula
 
@@ -41,7 +41,7 @@ Como `--check`, y además falla en dos casos, en cualquier escenario. Uno: algú
     - `mu_por_replica` + `servicio`: capacidad por réplica × réplicas del servicio en `servicios_de_despliegue`;
     - `nivel_anthropic`: el menor de los tres límites del nivel de cuenta (llamadas, tokens de entrada sin caché y tokens de salida por minuto), con los tokens por llamada del modelo.
 - **Utilización ρ** de cada nodo: carga / μ, con los umbrales de T01 (alerta 0,7; crítico 0,9).
-- **Conexiones a la base** por servicio: réplicas por conexiones por réplica, frente a los clientes del pooler y las conexiones directas del cómputo de Supabase, con el cómputo mínimo que las admite.
+- **Conexiones a la base** por servicio: réplicas por conexiones por réplica, frente a los clientes del pooler y las conexiones directas del cómputo de Supabase.
 - **Plan de capacidad**: μ requerida = carga en el peor pico / 0,7, y cuántas veces hay que escalar la μ actual.
 - **Réplicas necesarias** de cada servicio por escenario: las de su nodo más exigido con ρ ≤ 0,7.
 - **Tasas por arista**: cada arista de `mapa_de_aristas` toma una magnitud de la hora pico por un factor estructural. Las aristas sin mapear se listan en el reporte como "sin tasa modelada".

@@ -38,7 +38,7 @@ Etiquetas de estado: las mismas de [FG-01](FG-01-arquitectura-grafos-operacional
 | `PostgreSQL 16` en el registro de eventos | `[SUPERADO]`: PostgreSQL 17 desde el kernel 1.2.0 (ADR-0001) |
 | Protocolo de doble salida | `[VIGENTE]` (AGENTS.md §6) |
 | Verificación con `npm run verify:kernel`, `verify:hexagon`, `verify:contracts`, `verify:3d-budgets`, `test:integral` y `node calcular.mjs --estricto` | `[CORREGIDO]`: la ruta real es `tools/modelo-de-carga/calcular.mjs`; los scripts `verify:*` no existen porque aún no hay paquetes. Definición de terminado por fase (AGENTS.md §5) |
-| Leer el kernel en `continuity/POPAYAN_PLANETARIO_KERNEL_V1.1.json` y los ADR-0001 a ADR-0004 | `[INCORRECTO]`: la única ruta es `arquitectura/kernel-durable.json`; ADR-0004 no existía (hoy existe en propuesta) |
+| Leer el kernel en `continuity/POPAYAN_PLANETARIO_KERNEL_V1.1.json` y los ADR-0001 a ADR-0004 | `[INCORRECTO]`: la única ruta es `arquitectura/kernel-durable.json`; ADR-0004 no existía (hoy existe: el usuario lo aprobó el 2026-10-26, FG-06 D1) |
 
 ### Agentes de producción
 
@@ -83,11 +83,12 @@ Se comprueba contra el texto literal de T1 en [FG-05-texto-original.md](FG-05-te
 | Sección | Origen |
 |---|---|
 | Encabezado, §1 doble plano, §6 doble salida, §7.1 niveles de modelos, §7.2 agentes | Borrador del usuario (T1), corregido según las tablas de arriba |
-| §3 leyes `rule_01` a `rule_03` | Borrador del usuario (T1), corregido contra el kernel |
-| §4.1 a §4.4 invariantes, §7.3 principios de producción | Kernel y ADR-0001 a ADR-0003; las extensiones van marcadas (S1, S2, S10) |
-| §4.2 `INV_07` | Decisión del usuario del 2026-10-26 (puertos sobre la misma base) |
+| §3 leyes `rule_01` a `rule_03` | Borrador del usuario (T1), corregido contra el kernel; las alternas del desvío de `rule_02` siguen las decisiones del usuario del 2026-10-26 (FG-06 D1, A.3 y B.2), y "mismo nicho" va marcado (S11) |
+| §4.1 a §4.4 invariantes, §7.3 principios de producción | Kernel y ADR-0001 a ADR-0004; las extensiones van marcadas (S1, S2, S10) |
+| §4.2 `INV_07` | Decisión del usuario del 2026-10-26 (puertos sobre la misma base) y tope de 200 clientes del pooler (FG-06 D1, A.4); la diferencia con ADR-0001 en modo sesión queda en PEN-17, por decidir |
 | §2 enrutamiento de contexto, §8 bucles | Borrador del usuario (T1); la sección 8.1 completa el paso que el borrador dejó cortado |
 | §0 precedencia | Redactada por Claude sobre `docs/fuentes/README.md` (S9) |
+| §5, corte de `--estricto` | Decisión del usuario del 2026-10-26: ρ ≥ 0,70 y 200 clientes del pooler (FG-06 D1, A.4); la comprobación de las 60 conexiones directas de Micro es propuesta (S16) |
 | §4.5 contratos, §4.6 traza y puerta de atrás, §5 Definición de terminado por fase, §9 escalamiento, §10 glosario, §11 supuestos | Redactadas por Claude; las ratifica el usuario al aprobar el pull request, salvo los valores marcados como propuestos, que siguen en PEN-16 |
 
 ## Qué se conserva de FG-05

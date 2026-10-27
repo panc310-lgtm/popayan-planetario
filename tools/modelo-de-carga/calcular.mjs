@@ -77,6 +77,7 @@ function tasasPico(p, m) {
     pedidos_abiertos: (pedidosHoraPico / 3600) * p.duracion_pedido_s, // ley de Little
     lecturas_catalogo_base_s: apiS * p.fraccion_api_catalogo * p.fraccion_api_a_base,
     redis_s: apiS * p.comandos_redis_por_solicitud_api,
+    redis_p13_vectores_s: eventosNegocioS * (p.comandos_redis_por_evento_p13 - 1), // P13 → D4 (E68): lectura MGET y vector Π; la escritura de la carga va por E75
     lecturas_base_p13_s: (pedidosHoraPico / 3600) * p.lecturas_base_por_pedido_p13, // P13 lee en D1 el agregado de recompra de P10 (E69)
     eventos_pedido_s: eventosPedidoS,
     eventos_negocio_s: eventosNegocioS,
@@ -196,9 +197,6 @@ function presupuestoConexiones(p, servicios) {
   const disponibles = p.conexiones_directas_disponibles;
   const cabeClientes = clientes <= limite("supabase_clientes_pooler_micro");
   const cabeDirectas = disponibles === null ? null : directas <= disponibles;
-  // Cota inferior del cómputo: el menor tamaño cuyas conexiones y clientes del pooler alcanzan. El tamaño
-  // definitivo para el pico lo fija la prueba de carga (PEN-14 (1)), que además mide las operaciones por segundo.
-  const minimo = limite("supabase_computos").find((c) => directas <= c.max_conexiones && clientes <= c.clientes_pooler);
   return {
     por_servicio: porServicio,
     clientes_pooler: clientes,
@@ -207,8 +205,7 @@ function presupuestoConexiones(p, servicios) {
     conexiones_directas_disponibles: disponibles,
     cabe_en_clientes_pooler: cabeClientes,
     cabe_en_conexiones_directas: cabeDirectas,
-    computo_minimo_por_conexiones: minimo?.computo ?? "mayor que Large",
-    estado: !cabeClientes || cabeDirectas === false || !minimo ? "no cabe" : cabeDirectas === null ? "cómputo por elegir" : "ok",
+    estado: !cabeClientes || cabeDirectas === false ? "no cabe" : cabeDirectas === null ? "cómputo por elegir" : "ok",
   };
 }
 
@@ -324,7 +321,7 @@ function generarReporte(r) {
   const conCap = r.capacidad.conexiones;
   L.push(
     `- En el pico de capacidad las ${num(Object.values(conCap.por_servicio).reduce((a, s) => a + s.replicas, 0))} réplicas abren ${num(conCap.clientes_pooler)} conexiones al pooler de Supabase en modo sesión, ` +
-      `${conCap.cabe_en_clientes_pooler ? "dentro" : "por encima"} de los ${num(limite("supabase_clientes_pooler_micro"))} clientes de Micro. En modo sesión cada cliente retiene una conexión directa a Postgres, así que con las ${num(conCap.reservadas)} reservadas para Supabase el cómputo debe admitir al menos **${num(conCap.conexiones_directas_necesarias)} conexiones directas**; Micro, el cómputo del MVP, admite ${num(r.mvp.conexiones.conexiones_directas_disponibles)}. Por conexiones, el pico necesita como mínimo el cómputo **${conCap.computo_minimo_por_conexiones}**; el tamaño definitivo se elige con prueba de carga (PEN-14).`,
+      `${conCap.cabe_en_clientes_pooler ? "dentro" : "por encima"} de los ${num(limite("supabase_clientes_pooler_micro"))} clientes de Micro. En modo sesión cada cliente retiene una conexión directa a Postgres, así que con las ${num(conCap.reservadas)} reservadas para Supabase el cómputo debe admitir al menos **${num(conCap.conexiones_directas_necesarias)} conexiones directas**; Micro, el cómputo del MVP, admite ${num(r.mvp.conexiones.conexiones_directas_disponibles)}. El cómputo del pico se elige con prueba de carga (PEN-14) y debe admitir al menos esas conexiones directas; la diferencia con ADR-0001 está en PEN-17.`,
   );
   if (infraCriticos.length) {
     const mayor = [...infraCriticos].sort((a, b) => b.veces_a_escalar - a.veces_a_escalar)[0];
@@ -433,7 +430,6 @@ function generarReporte(r) {
     ["Reservadas para Supabase", ...ESCENARIOS.map((e) => num(r[e].conexiones.reservadas))],
     ["Conexiones directas necesarias", ...ESCENARIOS.map((e) => num(r[e].conexiones.conexiones_directas_necesarias))],
     ["Conexiones directas del cómputo previsto", ...ESCENARIOS.map((e) => (r[e].conexiones.conexiones_directas_disponibles === null ? "por elegir (PEN-14)" : num(r[e].conexiones.conexiones_directas_disponibles)))],
-    ["Cómputo mínimo de Supabase por conexiones", ...ESCENARIOS.map((e) => r[e].conexiones.computo_minimo_por_conexiones)],
     ["Estado", ...ESCENARIOS.map((e) => r[e].conexiones.estado)],
   ];
   L.push(tabla(["Magnitud", ...ESCENARIOS.map(nombreEsc)], filasConexiones), "");

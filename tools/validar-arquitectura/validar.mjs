@@ -223,7 +223,8 @@ if (!existsSync(resolve(RAIZ, AGENTS))) {
 // Cada archivo docs/fuentes/*/*-texto-original.md tiene una tabla con una fila por bloque (| T1 | … | `huella` | … |)
 // antes del primer bloque, y una sección "## T1" con el texto entre una línea ~~~~markdown y una línea ~~~~. La huella se calcula sobre ese
 // texto sin el salto de línea que precede al cierre. Si la fila trae una segunda huella y dice CRLF, esa huella es la
-// del original recibido con finales de línea CRLF y se comprueba reconstruyéndolo.
+// del original recibido con finales de línea CRLF y se comprueba reconstruyéndolo. Si dice "salto de línea final", es la
+// del mismo texto con un salto de línea al final y se comprueba igual.
 const DIR_FUENTES = resolve(RAIZ, "docs/fuentes");
 const textosOriginales = existsSync(DIR_FUENTES)
   ? readdirSync(DIR_FUENTES, { recursive: true }).filter((f) => /-texto-original\.md$/.test(f)).map((f) => `docs/fuentes/${f.replaceAll("\\", "/")}`)
@@ -242,6 +243,7 @@ for (const ruta of textosOriginales) {
     else {
       if (sha256(bloque[1]) !== huellas[0]) error("F3", `${ruta}: la huella de ${id} no coincide con su texto`);
       if (huellas[1] && /CRLF/.test(fila) && sha256(bloque[1].replace(/\n/g, "\r\n")) !== huellas[1]) error("F3", `${ruta}: la huella CRLF de ${id} no coincide con su texto`);
+      if (huellas[1] && /salto de línea final/.test(fila) && sha256(`${bloque[1]}\n`) !== huellas[1]) error("F3", `${ruta}: la huella con salto de línea final de ${id} no coincide con su texto`);
     }
   }
 }

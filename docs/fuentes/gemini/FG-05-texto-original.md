@@ -6,9 +6,9 @@ Cada texto va entre una línea `~~~~markdown` y una línea `~~~~`. La huella se 
 
 | Bloque | Contenido | SHA-256 del texto guardado aquí | SHA-256 del original recibido |
 |---|---|---|---|
-| T1 | Borrador de AGENTS.md del usuario, pegado como texto en el chat | `dc899437e79324f5243ea20b1817d0f5eb2eef1f4a89cf799bdad435d31d773a` | El mismo: se pegó como texto |
+| T1 | Borrador de AGENTS.md del usuario, pegado como texto en el chat | `dc899437e79324f5243ea20b1817d0f5eb2eef1f4a89cf799bdad435d31d773a` | Se pegó como texto. `bba6c939e7fa517571abed521894321a23f115bafe910d83ba3b5208623e4251` es la huella del mismo texto con un salto de línea final, la convención de la primera versión de este archivo (commit `41d5525`); el texto no cambió, solo la forma de calcularla |
 | T2 | Instrucciones de sincronización, adjuntas como archivo de texto | `4de981a3a7141e7722d7137c99a21f0d1b88f4b52de2a274380a86788c0851a9` | `5a5ebedc6bb6e59d5f6482e372b373d825ddc30d86606df899c39bcf0a93c889` (con finales de línea CRLF) |
-| A1 | Anexo: fila S8 del primer borrador de AGENTS.md que Claude entregó en la misma conversación, antes de T2 | `549f009c96625f627cefea5ff1ce7b296cce64a42128711019d178bd5a5d4a61` | Archivo completo del borrador: `96e41e663ed52ae3ecbfdcae0647c56838a8bbb78612ae4d63fe1a100b79e2bf` |
+| A1 | Anexo: fila S8 del primer borrador de AGENTS.md que Claude entregó en la misma conversación, antes de T2 | `549f009c96625f627cefea5ff1ce7b296cce64a42128711019d178bd5a5d4a61` | Es la línea 258 del AGENTS.md de ese borrador, que no está en el repositorio; por eso no se registra una huella del archivo completo |
 
 ## T1
 

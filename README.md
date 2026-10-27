@@ -62,7 +62,7 @@ La integración continua corre en cada pull request y en cada cambio de `main`:
 - Que `AGENTS.md` solo cite rutas y ADR que existen, y las versiones vigentes del kernel, el grafo y el modelo de carga.
 - Que el validador detecte cada tipo de error (sus propias pruebas).
 - Que los archivos generados del modelo de carga estén al día con sus parámetros y con el grafo.
-- Que ningún nodo de infraestructura quede en zona crítica en ningún escenario, incluido el requisito de 10.000 sesiones simultáneas.
+- Que ningún nodo de infraestructura llegue a ρ ≥ 0,70 en ningún escenario, incluido el requisito de 10.000 sesiones simultáneas, y que las conexiones a la base quepan.
 - Que la vista interactiva del grafo esté al día y que su disposición cubra todos los nodos y la ruta del pedido.
 
 Para correrlas en local, una vez:

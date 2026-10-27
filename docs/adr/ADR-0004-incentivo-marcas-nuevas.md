@@ -6,7 +6,7 @@
 | Fecha | 2026-10-26 |
 | Decide | El usuario; aprobó la opción F el 2026-10-26 |
 | Resuelve | PEN-08 (bucle de retroalimentación del índice); también el hallazgo de AUD-2026-10-20 sobre la falta de una fórmula antimanipulación del índice |
-| Afecta | P9 (motor de reputación), P13 (motor de decisión), P3 (catálogo y búsqueda), G1 (ponderaciones, E06), regla `indice_y_calificacion` del kernel |
+| Afecta | P9 (motor de reputación), P13 (motor de decisión), P3 (catálogo y búsqueda), G1 (ponderaciones, E06, y parámetros del cupo y del desvío, E76), regla `indice_y_calificacion` del kernel |
 
 ## Contexto y problema
 
@@ -69,9 +69,9 @@ Una marca que entra a un nicho ocupado arranca con compras = flujo = 0 y sin cal
    - calificación ajustada de al menos 3,0.
    Si ninguna cumple, el cupo vuelve al orden normal. Las marcas en el cupo rotan cada quincena según un orden determinista (hash de `marca_id` y del número de quincena), reproducible y auditable. La interfaz las marca como "Nueva en el nicho".
 3. **P13 publica en Π** la bandera de elegibilidad y el orden de rotación; P3 aplica el cupo al ordenar. El agente del usuario solo recibe los resultados ya ordenados.
+4. **T26** (índice de Herfindahl-Hirschman de pedidos por nicho) llega a G1 por E70 cada mes.
 
 El usuario describió la decisión como "promedio bayesiano más cupo de exploración más desvío por saturación Θ_s(L_m) gobernado por G1 hacia P13". El desvío por saturación ya era `rule_02` y sigue igual; lo nuevo es que G1 gobierna sus condiciones junto con las del cupo (E76).
-4. **T26** (índice de Herfindahl-Hirschman de pedidos por nicho) llega a G1 por E70 cada mes.
 
 ### Consecuencias
 
@@ -87,13 +87,13 @@ El usuario describió la decisión como "promedio bayesiano más cupo de explora
 - Tres parámetros nuevos (C, N y los umbrales de elegibilidad) que G1 debe gobernar.
 - Compras y flujo siguen reforzando al líder fuera del cupo. Si T26 sigue alto, la opción C queda como siguiente paso.
 
-### Cambios aplicados en el kernel y el grafo (2026-10-26)
+### Cambios aplicados en el kernel y el grafo (2026-10-27)
 - Kernel 1.7.0: nueva sección `L1_new_brand_incentive`; la regla `indice_y_calificacion` cita la calificación bayesiana y el cupo; PEN-08 resuelto.
 - Grafo v0.9: P9 calcula la calificación bayesiana; P3 aplica el cupo; P13 publica la elegibilidad en Π; E06 lleva C a P9 y la arista nueva E76 lleva de G1 a P13 los parámetros del cupo y del desvío.
 
 ### Cómo se confirma
 
-1. **Simulación antes de que un nicho reciba su segunda marca** (el usuario aprobó sin esperarla): un nicho con 10 marcas durante 12 quincenas, con demanda y calificaciones sintéticas, comparando A y F. Se mide T26 y la participación de una marca nueva de calidad igual a la media a los 90 días.
+1. **Simulación.** El usuario aprobó la opción F sin esperarla. ⟨propuesto S17⟩ Correrla antes de que un nicho reciba su segunda marca: un nicho con 10 marcas durante 12 quincenas, con demanda y calificaciones sintéticas, comparando A y F. Se mide T26 y la participación de una marca nueva de calidad igual a la media a los 90 días.
 2. **Criterio de referencia:** en nichos con 5 o más marcas, que el HHI quede por debajo de 1.800 puntos, el umbral de alta concentración de las guías de fusiones de EE. UU. de 2023. Es una referencia, no una norma aplicable.
 3. **En producción:** G1 revisa T26 cada mes (E70) y ajusta C, N y los umbrales cada trimestre.
 
