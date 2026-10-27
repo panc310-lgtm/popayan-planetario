@@ -29,6 +29,12 @@
       "sha256": "e405f54841bc41e238c91cbace7b9b6d5d39d578f8757eca8fe6b5c8cf9c2674",
       "fecha": "2026-10-27",
       "cambio": "Primera versión (PLANETARIO-CORE-01)."
+    },
+    {
+      "version_contrato": "1.1.0",
+      "sha256": "3f4724de69effa321f8b65f29e39566c92423c9f89cd839402b00ca50222a892",
+      "fecha": "2026-10-27",
+      "cambio": "La tabla de transiciones entra al esquema ($defs.tabla_de_transiciones), con los enums de comandos y tipos de actor, para que se versione; cancelar ya no parte de cobro_emitido (S18). Antes de fusionarse: la 1.0.0 solo existió en la rama de PLANETARIO-CORE-01."
     }
   ]
 }

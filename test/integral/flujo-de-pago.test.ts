@@ -2,8 +2,8 @@
 // puertos. Cubre "Cómo se confirma" de ADR-0003, R10, INV_02, INV_05, rule_01, rule_03 y R03.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import type { Actor, Pedido } from "@planetario/contracts";
-import type { MasterWriteDatabasePort, TelegramBrandPort, VerificadorDePagos } from "@planetario/ports";
+import type { Actor, ModoDeConfirmacion, Pedido } from "@planetario/contracts";
+import type { ConfiguracionDePagosPort, MasterWriteDatabasePort, TelegramBrandPort, VerificadorDePagos } from "@planetario/ports";
 import {
   ConflictoDeVersion,
   aplicarComandoDePersona,
@@ -51,7 +51,15 @@ function espiaDeInv05(verificador: VerificadorDePagos, base: BaseEnMemoria, llam
   };
 }
 
-type Entorno = { reloj: RelojManual; base: BaseEnMemoria; simulado: VerificadorSimulado; deps: DependenciasDelPedido; llamadas: string[] };
+type Entorno = {
+  reloj: RelojManual;
+  base: BaseEnMemoria;
+  simulado: VerificadorSimulado;
+  deps: DependenciasDelPedido;
+  llamadas: string[];
+  /** Configuración del servidor: modo de confirmación de cada marca (R10); por defecto, automática. */
+  modos: Map<string, ModoDeConfirmacion>;
+};
 
 function preparar(): Entorno {
   const reloj = relojManual();
@@ -59,7 +67,9 @@ function preparar(): Entorno {
   const base = baseEnMemoria();
   const simulado = crearVerificadorSimulado({ reloj, ids, secretoDeMarca: (m) => SECRETOS[m] });
   const llamadas: string[] = [];
-  return { reloj, base, simulado, llamadas, deps: { escritura: base, reloj, ids, verificador: espiaDeInv05(simulado, base, llamadas) } };
+  const modos = new Map<string, ModoDeConfirmacion>();
+  const configuracionDePagos: ConfiguracionDePagosPort = { modoDeConfirmacion: async (marca) => modos.get(marca) ?? "automatica" };
+  return { reloj, base, simulado, llamadas, modos, deps: { escritura: base, reloj, ids, verificador: espiaDeInv05(simulado, base, llamadas), configuracionDePagos } };
 }
 
 function aplicada(r: ResultadoDelCasoDeUso): Pedido {
@@ -67,16 +77,21 @@ function aplicada(r: ResultadoDelCasoDeUso): Pedido {
   return r.tipo === "aplicada" ? r.pedido : (undefined as never);
 }
 
-async function pedidoConCobro(e: Entorno, modo: Pedido["modo_confirmacion"] = "automatica", marca = MARCA_A, clave = "k-1"): Promise<Pedido> {
-  const creado = aplicada(
+async function pedidoCreado(e: Entorno, modo: ModoDeConfirmacion = "automatica", marca = MARCA_A, clave = "k-1"): Promise<Pedido> {
+  e.modos.set(marca, modo);
+  return aplicada(
     await registrarPedido(
       e.deps,
-      { compradorId: COMPRADOR, marcaId: marca, galaxiaId: 4, items: itemsDe(marca), modoConfirmacion: modo, modalidad: "domicilio", direccion_entrega: { direccion: "Calle 5 # 10-20" } },
+      { compradorId: COMPRADOR, marcaId: marca, galaxiaId: 4, items: itemsDe(marca), modalidad: "domicilio", direccion_entrega: { direccion: "Calle 5 # 10-20" } },
       comprador,
-      { tipo: "cliente", idempotencyKey: clave },
+      { tipo: "cliente", compradorId: COMPRADOR, idempotencyKey: clave },
     ),
   );
-  return aplicada(await emitirCobroDelPedido(e.deps, creado.pedido_id, sistema, { tipo: "cliente", idempotencyKey: clave }));
+}
+
+async function pedidoConCobro(e: Entorno, modo: ModoDeConfirmacion = "automatica", marca = MARCA_A, clave = "k-1"): Promise<Pedido> {
+  const creado = await pedidoCreado(e, modo, marca, clave);
+  return aplicada(await emitirCobroDelPedido(e.deps, creado.pedido_id, sistema, { tipo: "cliente", compradorId: COMPRADOR, idempotencyKey: clave }));
 }
 
 describe("flujo con verificación automática (ADR-0003, R10)", () => {
@@ -91,7 +106,7 @@ describe("flujo con verificación automática (ADR-0003, R10)", () => {
       p = aplicada(await aplicarComandoDePersona(e.deps, p.pedido_id, { tipo }, responsableA, { tipo: "telegram_callback", callbackQueryId: `cb${i}` }));
     }
     p = aplicada(
-      await aplicarComandoDePersona(e.deps, p.pedido_id, { tipo: "evaluar", evaluacion: { atencion: 5, producto: 5, precio: 4, distribucion: 5 } }, comprador, { tipo: "cliente", idempotencyKey: "k-eval" }),
+      await aplicarComandoDePersona(e.deps, p.pedido_id, { tipo: "evaluar", evaluacion: { atencion: 5, producto: 5, precio: 4, distribucion: 5 } }, comprador, { tipo: "cliente", compradorId: COMPRADOR, idempotencyKey: "k-eval" }),
     );
     assert.equal(p.estado, "evaluado");
     assert.deepEqual(
@@ -171,7 +186,7 @@ describe("flujo con verificación automática (ADR-0003, R10)", () => {
     const p = await pedidoConCobro(e);
     e.reloj.avanzar(10 * 60 * 1000);
     assert.equal(aplicada(await consultarCobroDelPedido(e.deps, p.pedido_id)).estado, "cobro_vencido");
-    const nuevo = aplicada(await emitirCobroDelPedido(e.deps, p.pedido_id, comprador, { tipo: "cliente", idempotencyKey: "k-2" }));
+    const nuevo = aplicada(await emitirCobroDelPedido(e.deps, p.pedido_id, comprador, { tipo: "cliente", compradorId: COMPRADOR, idempotencyKey: "k-2" }));
     assert.notEqual(nuevo.cobro!.referencia_cobro, p.cobro!.referencia_cobro);
     aplicada(await procesarNotificacionDePago(e.deps, { marcaId: MARCA_A, ...e.simulado.simularPago(nuevo.cobro!.referencia_cobro) }));
   });
@@ -179,11 +194,63 @@ describe("flujo con verificación automática (ADR-0003, R10)", () => {
   it("reintentar la creación con la misma Idempotency-Key no crea otro pedido (INV_02)", async () => {
     const e = preparar();
     await pedidoConCobro(e);
-    const datos = { compradorId: COMPRADOR, marcaId: MARCA_A, galaxiaId: 4 as const, items: itemsDe(MARCA_A), modoConfirmacion: "automatica" as const, modalidad: "domicilio" as const, direccion_entrega: { direccion: "Calle 5 # 10-20" } };
-    assert.deepEqual(await registrarPedido(e.deps, datos, comprador, { tipo: "cliente", idempotencyKey: "k-1" }), { tipo: "sin_efecto", motivo: "evento_repetido" });
+    const datos = { compradorId: COMPRADOR, marcaId: MARCA_A, galaxiaId: 4 as const, items: itemsDe(MARCA_A), modalidad: "domicilio" as const, direccion_entrega: { direccion: "Calle 5 # 10-20" } };
+    assert.deepEqual(await registrarPedido(e.deps, datos, comprador, { tipo: "cliente", compradorId: COMPRADOR, idempotencyKey: "k-1" }), { tipo: "sin_efecto", motivo: "evento_repetido" });
     assert.equal(e.base.pedidos.size, 1);
-    const otro = await registrarPedido(e.deps, { ...datos, items: itemsDe(MARCA_A).slice(0, 1) }, comprador, { tipo: "cliente", idempotencyKey: "k-1" });
+    const otro = await registrarPedido(e.deps, { ...datos, items: itemsDe(MARCA_A).slice(0, 1) }, comprador, { tipo: "cliente", compradorId: COMPRADOR, idempotencyKey: "k-1" });
     assert.equal(otro.tipo === "rechazada" && otro.motivo, "clave_reutilizada");
+  });
+});
+
+describe("reglas que protegen al comprador y a la marca", () => {
+  it("la misma Idempotency-Key de otro comprador no choca con la de este", async () => {
+    const e = preparar();
+    await pedidoCreado(e);
+    const otro: Actor = { tipo: "comprador", comprador_id: "comprador_2" };
+    const r = await registrarPedido(
+      e.deps,
+      { compradorId: "comprador_2", marcaId: MARCA_A, galaxiaId: 4, items: itemsDe(MARCA_A), modalidad: "domicilio", direccion_entrega: { direccion: "Calle 5 # 10-20" } },
+      otro,
+      { tipo: "cliente", compradorId: "comprador_2", idempotencyKey: "k-1" },
+    );
+    assert.equal(r.tipo, "aplicada");
+    assert.equal(e.base.pedidos.size, 2);
+  });
+
+  it("un reintento con otra dirección es un conflicto, no un duplicado (INV_02)", async () => {
+    const e = preparar();
+    await pedidoCreado(e);
+    const r = await registrarPedido(
+      e.deps,
+      { compradorId: COMPRADOR, marcaId: MARCA_A, galaxiaId: 4, items: itemsDe(MARCA_A), modalidad: "domicilio", direccion_entrega: { direccion: "Carrera 9 # 1-1" } },
+      comprador,
+      { tipo: "cliente", compradorId: COMPRADOR, idempotencyKey: "k-1" },
+    );
+    assert.equal(r.tipo === "rechazada" && r.motivo, "clave_reutilizada");
+  });
+
+  it("el modo de confirmación lo fija la configuración del servidor, no los datos del comprador (R10)", async () => {
+    const e = preparar();
+    assert.equal((await pedidoCreado(e, "contingencia_manual")).modo_confirmacion, "contingencia_manual");
+    assert.equal((await pedidoCreado(e, "automatica", MARCA_B, "k-b")).modo_confirmacion, "automatica");
+  });
+
+  it("un actor que no puede emitir el cobro no provoca una llamada al proveedor", async () => {
+    const e = preparar();
+    const p = await pedidoCreado(e);
+    for (const actor of [{ tipo: "comprador", comprador_id: "comprador_2" }, responsableA] as Actor[]) {
+      const r = await emitirCobroDelPedido(e.deps, p.pedido_id, actor, { tipo: "cliente", compradorId: COMPRADOR, idempotencyKey: "k-x" });
+      assert.equal(r.tipo === "rechazada" && r.motivo, "actor_no_autorizado");
+    }
+    assert.deepEqual(e.llamadas, []);
+  });
+
+  it("con el cobro vigente el comprador no puede cancelar: un pago tardío nunca cae sobre un pedido cancelado", async () => {
+    const e = preparar();
+    const p = await pedidoConCobro(e);
+    const r = await aplicarComandoDePersona(e.deps, p.pedido_id, { tipo: "cancelar" }, comprador, { tipo: "cliente", compradorId: COMPRADOR, idempotencyKey: "k-c" });
+    assert.equal(r.tipo === "rechazada" && r.motivo, "transicion_invalida");
+    assert.equal(aplicada(await procesarNotificacionDePago(e.deps, { marcaId: MARCA_A, ...e.simulado.simularPago(p.cobro!.referencia_cobro) })).estado, "pagado");
   });
 });
 
@@ -191,7 +258,7 @@ describe("contingencia manual (ADR-0003)", () => {
   it("pago informado por el comprador y confirmado solo por el responsable de la marca", async () => {
     const e = preparar();
     let p = await pedidoConCobro(e, "contingencia_manual");
-    p = aplicada(await aplicarComandoDePersona(e.deps, p.pedido_id, { tipo: "informarPago" }, comprador, { tipo: "cliente", idempotencyKey: "k-inf" }));
+    p = aplicada(await aplicarComandoDePersona(e.deps, p.pedido_id, { tipo: "informarPago" }, comprador, { tipo: "cliente", compradorId: COMPRADOR, idempotencyKey: "k-inf" }));
     assert.equal(p.estado, "pago_informado");
     const otraMarca = await aplicarComandoDePersona(e.deps, p.pedido_id, { tipo: "confirmarPago", evidencia: { via: "boton_marca" } }, responsableB, { tipo: "telegram_callback", callbackQueryId: "cb-b" });
     assert.equal(otraMarca.tipo === "bloqueada_por_omega" && otraMarca.motivo, "aislamiento_marca");
@@ -210,7 +277,7 @@ describe("compuerta Ω y agentes (rule_01, ADR-0002)", () => {
     const antes = e.base.eventos.length;
     const crear = await registrarPedido(
       e.deps,
-      { compradorId: COMPRADOR, marcaId: MARCA_A, galaxiaId: 4, items: itemsDe(MARCA_A), modoConfirmacion: "automatica", modalidad: "recogida_en_establecimiento" },
+      { compradorId: COMPRADOR, marcaId: MARCA_A, galaxiaId: 4, items: itemsDe(MARCA_A), modalidad: "recogida_en_establecimiento" },
       agente,
       { tipo: "agente", conversacionId: "conv_1", turnoId: "turno_1", llamadaId: "l1" },
     );
@@ -252,7 +319,7 @@ describe("INV_05: nada externo con una transacción abierta", () => {
 describe("concurrencia optimista", () => {
   it("si otro proceso cambia el pedido entre la lectura y la escritura, la transacción se revierte entera", async () => {
     const e = preparar();
-    const p = await pedidoConCobro(e);
+    const p = await pedidoCreado(e);
     const antes = e.base.eventos.length;
     const carrera: MasterWriteDatabasePort = {
       enTransaccion: (trabajo) =>
@@ -270,7 +337,7 @@ describe("concurrencia optimista", () => {
         ),
     };
     await assert.rejects(
-      aplicarComandoDePersona({ ...e.deps, escritura: carrera }, p.pedido_id, { tipo: "cancelar" }, comprador, { tipo: "cliente", idempotencyKey: "k-c" }),
+      aplicarComandoDePersona({ ...e.deps, escritura: carrera }, p.pedido_id, { tipo: "cancelar" }, comprador, { tipo: "cliente", compradorId: COMPRADOR, idempotencyKey: "k-c" }),
       ConflictoDeVersion,
     );
     assert.equal(e.base.eventos.length, antes);

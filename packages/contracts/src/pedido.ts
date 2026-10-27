@@ -121,8 +121,10 @@ export type Transicion = {
 };
 
 /**
- * Máquina de estados de P4. Los estados y la confirmación del pago son de ADR-0003 y R10; los pasos de la marca
- * siguen las aristas E43 a E45. Cancelar y registrar el reembolso son propuesta (S18, PEN-19).
+ * Máquina de estados de P4: la misma tabla que $defs.tabla_de_transiciones del esquema, que la versiona; las pruebas
+ * exigen que coincidan. Los estados y la confirmación del pago son de ADR-0003 y R10; los pasos de la marca siguen
+ * las aristas E43 a E45. Cancelar y registrar el reembolso son propuesta (S18, PEN-19): no se cancela con un cobro
+ * vigente, que el comprador todavía puede pagar, para que un pago confirmado nunca caiga sobre un pedido cancelado.
  */
 export const TRANSICIONES: readonly Transicion[] = [
   { comando: "emitirCobro", desde: ["creado", "cobro_vencido"], hacia: "cobro_emitido", actores: ["comprador", "sistema"] },
@@ -134,7 +136,7 @@ export const TRANSICIONES: readonly Transicion[] = [
   { comando: "despachar", desde: ["aceptado"], hacia: "en_camino", actores: ["responsable_marca"] },
   { comando: "entregar", desde: ["en_camino"], hacia: "entregado", actores: ["responsable_marca"] },
   { comando: "evaluar", desde: ["entregado"], hacia: "evaluado", actores: ["comprador"] },
-  { comando: "cancelar", desde: ["creado", "cobro_emitido", "cobro_vencido"], hacia: "cancelado", actores: ["comprador", "responsable_marca"] },
+  { comando: "cancelar", desde: ["creado", "cobro_vencido"], hacia: "cancelado", actores: ["comprador", "responsable_marca"] },
   { comando: "cancelar", desde: ["pago_informado"], hacia: "cancelado", actores: ["responsable_marca"], modo: "contingencia_manual" },
   { comando: "registrarReembolso", desde: ["pagado", "aceptado", "en_camino"], hacia: "reembolsado", actores: ["responsable_marca"] },
 ];

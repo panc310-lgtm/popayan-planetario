@@ -7,7 +7,7 @@
 | `C1` | Un esquema que no declara JSON Schema 2020-12 o el `$id` `urn:popayan-planetario:contracts:<nombre>`, o que no compila con Ajv 8 en modo estricto, en su raíz o en cualquiera de sus `$defs` |
 | `C2` | Un esquema que cambió sin una `version_contrato` nueva en `schemas/versiones.json`, versiones que no suben, huellas repetidas, o historiales sin esquema o esquemas sin historial |
 
-Después corre `node --test packages/contracts/test`. Esas pruebas validan ejemplos válidos e inválidos de cada contrato. Comprueban también que las constantes de `src/` (estados, modalidades, campos que puede ver la marca) coinciden con los esquemas. Los ejemplos de `test/dobles/ejemplos.ts` usan `satisfies` con los tipos TypeScript, y `tsc` los revisa en `npm run test:integral`; así tipos y esquemas no se separan.
+Después corre `node --test packages/contracts/test`. Esas pruebas validan ejemplos válidos e inválidos de cada contrato. Comprueban también que las constantes de `src/` (estados, modalidades, comandos, tipos de actor, campos que puede ver la marca y la tabla de transiciones `TRANSICIONES`) coinciden con los esquemas. La tabla de transiciones vive en `order-state-machine.schema.json` (`$defs.tabla_de_transiciones`), así que cambiar quién confirma un pago o desde qué estado exige una `version_contrato` nueva. Los ejemplos de `test/dobles/ejemplos.ts` usan `satisfies` con los tipos TypeScript, y `tsc` los revisa en `npm run test:integral`; así tipos y esquemas no se separan.
 
 ## Cambiar un esquema
 

@@ -30,7 +30,7 @@ Etiquetas de estado: las mismas de [FG-01](FG-01-arquitectura-grafos-operacional
 | Las 9 galaxias, la jerarquía interés → subcategoría → tipo de oferta → producto → variantes y la separación entre Líder del nicho y Mejor evaluado | `[VIGENTE]` (kernel `N4_MATCHING_&_CATALOG_INDEX` y `spatial_and_visual_budgets`). El nivel del nicho no estaba definido; lo fijó el usuario en D2, pregunta 3 |
 | Modalidades `domicilio`, `recogida_en_establecimiento` y `pedido_anticipado`, "más solicitud de servicio" | `[CORREGIDO]`: son tres modalidades de pedido; la solicitud de servicio es un contrato aparte, porque los servicios siguen por WhatsApp directo con la marca "tras una solicitud identificada en la plataforma" (E61), sin estados de P4 ni pago en la plataforma |
 | Estados de P4 de ADR-0003, con `pago_informado` exclusivo de la contingencia | `[VIGENTE]` (ADR-0003, "Estados del pedido") |
-| "Las 3 operaciones exactas aprobadas en ADR-0003", con `llaveIdempotencia` en `emitirCobro` y el rechazo `formato_invalido` | `[VIGENTE]` con una precisión: ADR-0003 fija las entradas "pedido, marca, monto" y los rechazos por firma, monto y marca. La llave de idempotencia (INV_02) y el rechazo por formato amplían la firma sin contradecirla |
+| "Las 3 operaciones exactas aprobadas en ADR-0003", con `llaveIdempotencia` en `emitirCobro` y el rechazo `formato_invalido` | `[VIGENTE]` con una precisión: ADR-0003 fija las entradas "pedido, marca, monto" y los rechazos por firma, monto y marca. La llave de idempotencia (INV_02) y el rechazo por formato amplían la firma sin contradecirla. El puerto suma además un miembro de solo lectura, `proveedor`, con el nombre corto del proveedor: lo usan la clave de idempotencia del webhook y el actor del evento, y no es una cuarta operación |
 | `EventLedgerPort` exigiendo `actor`, `agente`, `version_contrato`, `modelo` y `turno` | `[CORREGIDO]`: rule_03 exige agente, versión del contrato, modelo y turno en los eventos que **origina un agente**; el actor va siempre |
 | `IdGeneratorPort` para UUIDv7 "e idempotencia" | `[CORREGIDO]`: según INV_02 la clave de idempotencia sale de la fuente y no se genera. El puerto genera el `event_id` (UUIDv7) y el dominio deriva la clave de la fuente |
 | Índice de Relevancia quincenal con ventana de 90 días: calificación 40 % + compras 30 % + flujo 20 % + sedes 10 % | `[VIGENTE]`; la normalización de los componentes no está definida y queda `[ABIERTO]` en PEN-18 (D2, pregunta 2) |
@@ -47,7 +47,7 @@ Etiquetas de estado: las mismas de [FG-01](FG-01-arquitectura-grafos-operacional
 |---|---|
 | PEN-17: pool size de Supavisor P = 19 y pools de 1 en modo sesión (1 de escritura por réplica, más 1 de PostgresSaver en worker y en agentes) | `[VIGENTE]`: kernel PEN-17 y modelo de carga 0.7. Pico: 18 en sesión, hasta 19 en transacción y 20 reservadas, 57 conexiones directas |
 | Índice: solo lo ya decidido | `[VIGENTE]`: `reputation-and-relevance.ts` pondera componentes ya normalizados; PEN-18 por decidir |
-| El nicho es la subcategoría | `[VIGENTE]`: kernel `N4_MATCHING_&_CATALOG_INDEX` y contrato `galaxies-and-catalog` |
+| El nicho es la subcategoría | `[VIGENTE]`: kernel `reglas_nucleo.nicho` y contrato `galaxies-and-catalog` |
 | `typescript` 6.0.3 como devDependency de la raíz | `[VIGENTE]`: `package.json`; los paquetes no tienen dependencias externas |
 
 ## Qué se conserva de FG-08

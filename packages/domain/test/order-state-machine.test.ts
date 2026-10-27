@@ -15,9 +15,9 @@ const COBRO = { referencia_cobro: "sim-1", qr_payload: "QR", vence_en: "2026-12-
 function nuevo(modo: Pedido["modo_confirmacion"] = "automatica", modalidad: "domicilio" | "recogida_en_establecimiento" = "domicilio"): Pedido {
   const datos =
     modalidad === "domicilio"
-      ? { compradorId: COMPRADOR, marcaId: MARCA_A, galaxiaId: 4 as const, items: itemsDe(MARCA_A), modoConfirmacion: modo, modalidad, direccion_entrega: { direccion: "Calle 5" } }
-      : { compradorId: COMPRADOR, marcaId: MARCA_A, galaxiaId: 4 as const, items: itemsDe(MARCA_A), modoConfirmacion: modo, modalidad };
-  const r = crearPedido("019a2b3c-4d5e-7000-8000-000000000001", datos, T);
+      ? { compradorId: COMPRADOR, marcaId: MARCA_A, galaxiaId: 4 as const, items: itemsDe(MARCA_A), modalidad, direccion_entrega: { direccion: "Calle 5" } }
+      : { compradorId: COMPRADOR, marcaId: MARCA_A, galaxiaId: 4 as const, items: itemsDe(MARCA_A), modalidad };
+  const r = crearPedido("019a2b3c-4d5e-7000-8000-000000000001", datos, modo, T);
   assert.equal(r.tipo, "creado");
   return r.tipo === "creado" ? r.pedido : (undefined as never);
 }
@@ -48,12 +48,12 @@ describe("crear pedido: una sola marca, sin carrito combinado", () => {
   });
 
   it("rechaza ítems de otra marca y datos que faltan por modalidad", () => {
-    const base = { compradorId: COMPRADOR, marcaId: MARCA_A, galaxiaId: 4 as const, modoConfirmacion: "automatica" as const };
-    const mezcla = crearPedido("019a2b3c-4d5e-7000-8000-000000000001", { ...base, items: [...itemsDe(MARCA_A), ...itemsDe(MARCA_B)], modalidad: "recogida_en_establecimiento" }, T);
+    const base = { compradorId: COMPRADOR, marcaId: MARCA_A, galaxiaId: 4 as const };
+    const mezcla = crearPedido("019a2b3c-4d5e-7000-8000-000000000001", { ...base, items: [...itemsDe(MARCA_A), ...itemsDe(MARCA_B)], modalidad: "recogida_en_establecimiento" }, "automatica", T);
     assert.equal(mezcla.tipo === "rechazado" && mezcla.motivo, "varias_marcas");
-    const sinDireccion = crearPedido("019a2b3c-4d5e-7000-8000-000000000001", { ...base, items: itemsDe(MARCA_A), modalidad: "domicilio", direccion_entrega: { direccion: "" } }, T);
+    const sinDireccion = crearPedido("019a2b3c-4d5e-7000-8000-000000000001", { ...base, items: itemsDe(MARCA_A), modalidad: "domicilio", direccion_entrega: { direccion: "" } }, "automatica", T);
     assert.equal(sinDireccion.tipo === "rechazado" && sinDireccion.motivo, "datos_de_modalidad");
-    const vacio = crearPedido("019a2b3c-4d5e-7000-8000-000000000001", { ...base, items: [], modalidad: "recogida_en_establecimiento" }, T);
+    const vacio = crearPedido("019a2b3c-4d5e-7000-8000-000000000001", { ...base, items: [], modalidad: "recogida_en_establecimiento" }, "automatica", T);
     assert.equal(vacio.tipo === "rechazado" && vacio.motivo, "sin_items");
   });
 });
@@ -124,9 +124,17 @@ describe("contingencia manual (ADR-0003)", () => {
 });
 
 describe("cancelar, reembolsar y evaluar (S18)", () => {
-  it("el comprador cancela antes del pago; un pedido pagado se reembolsa, no se cancela", () => {
+  it("el comprador cancela sin cobro vigente; con el QR todavía pagable no se cancela", () => {
+    assert.equal(avanzar(nuevo(), { tipo: "cancelar" }, comprador).estado, "cancelado");
     const emitido = avanzar(nuevo(), { tipo: "emitirCobro", cobro: COBRO }, sistema);
-    assert.equal(avanzar(emitido, { tipo: "cancelar" }, comprador).estado, "cancelado");
+    const vigente = aplicar(emitido, { tipo: "cancelar" }, comprador);
+    assert.equal(vigente.tipo === "rechazada" && vigente.motivo, "transicion_invalida");
+    const vencido = avanzar(emitido, { tipo: "vencerCobro" }, sistema);
+    assert.equal(avanzar(vencido, { tipo: "cancelar" }, comprador).estado, "cancelado");
+  });
+
+  it("un pedido pagado se reembolsa, no se cancela", () => {
+    const emitido = avanzar(nuevo(), { tipo: "emitirCobro", cobro: COBRO }, sistema);
     const pagado = avanzar(emitido, { tipo: "confirmarPago", evidencia: notificacion() }, proveedor);
     assert.equal(aplicar(pagado, { tipo: "cancelar" }, comprador).tipo, "rechazada");
     assert.equal(aplicar(pagado, { tipo: "registrarReembolso" }, comprador).tipo, "rechazada");

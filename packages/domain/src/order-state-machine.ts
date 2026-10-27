@@ -65,6 +65,18 @@ function buscarTransicion(pedido: Pedido, comando: ComandoDelPedido["tipo"], act
   return posibles.find((t) => t.actores.includes(actor.tipo)) ?? "actor_no_autorizado";
 }
 
+/**
+ * Guarda pura de un comando: existe la transición desde el estado actual en el modo del pedido, el actor está entre
+ * los que pueden ejecutarla y es dueño del pedido. Los casos de uso la corren antes de un efecto externo, como emitir
+ * un cobro, para no llamar al proveedor por un comando que después se rechazaría.
+ */
+export function autorizarComando(pedido: Pedido, comando: ComandoDelPedido["tipo"], actor: Actor): { motivo: MotivoDeRechazoDelPedido; detalle: string } | null {
+  const transicion = buscarTransicion(pedido, comando, actor);
+  if (typeof transicion === "string") return { motivo: transicion, detalle: `${comando} desde ${pedido.estado} (modo ${pedido.modo_confirmacion}) por ${actor.tipo}` };
+  if (!actorSobreSuPedido(actor, pedido)) return { motivo: "actor_no_autorizado", detalle: "el actor no es dueño de este pedido" };
+  return null;
+}
+
 /** R10: la evidencia corresponde al cobro de este pedido, de esta marca, por el monto exacto y en estado pagado. */
 function evidenciaValida(pedido: Pedido, evidencia: EvidenciaDePago, modo: ModoDeConfirmacion): string | null {
   if (modo === "contingencia_manual") {
@@ -163,7 +175,6 @@ export type DatosDelPedidoNuevo = {
   marcaId: Id;
   galaxiaId: GalaxiaId;
   items: Item[];
-  modoConfirmacion: ModoDeConfirmacion;
 } & CamposPorModalidad;
 
 export type MotivoDeRechazoAlCrear = "sin_items" | "varias_marcas" | "item_invalido" | "datos_de_modalidad";
@@ -172,8 +183,11 @@ export type ResultadoDeCreacion =
   | { tipo: "creado"; pedido: Pedido; evento: EventoDelPedido }
   | { tipo: "rechazado"; motivo: MotivoDeRechazoAlCrear; detalle: string };
 
-/** Crea un pedido de una sola marca (sin carrito combinado). El monto lo calcula el dominio, nunca lo trae el cliente. */
-export function crearPedido(pedidoId: UuidV7, datos: DatosDelPedidoNuevo, ocurridoEn: FechaHora): ResultadoDeCreacion {
+/**
+ * Crea un pedido de una sola marca (sin carrito combinado). El monto lo calcula el dominio, nunca lo trae el cliente,
+ * y el modo de confirmación (R10) llega de la configuración del servidor (ConfiguracionDePagosPort), nunca de sus datos.
+ */
+export function crearPedido(pedidoId: UuidV7, datos: DatosDelPedidoNuevo, modo: ModoDeConfirmacion, ocurridoEn: FechaHora): ResultadoDeCreacion {
   if (datos.items.length === 0) return { tipo: "rechazado", motivo: "sin_items", detalle: "un pedido necesita al menos un ítem" };
   const otras = datos.items.filter((i) => i.marca_id !== datos.marcaId);
   if (otras.length > 0) return { tipo: "rechazado", motivo: "varias_marcas", detalle: "todos los ítems deben ser de la marca del pedido" };
@@ -204,7 +218,7 @@ export function crearPedido(pedidoId: UuidV7, datos: DatosDelPedidoNuevo, ocurri
     monto_cop: monto,
     estado: "creado",
     version: 0,
-    modo_confirmacion: datos.modoConfirmacion,
+    modo_confirmacion: modo,
     cobro: null,
     creado_en: ocurridoEn,
     actualizado_en: ocurridoEn,
@@ -214,9 +228,20 @@ export function crearPedido(pedidoId: UuidV7, datos: DatosDelPedidoNuevo, ocurri
     pedido,
     evento: {
       tipo: TIPOS_DE_EVENTO_DEL_PEDIDO.crear,
-      // Sin pedido_id, que va en el agregado: un reintento con la misma clave genera otro identificador, y la
-      // comparación del contenido (INV_02) debe reconocerlo como el mismo pedido.
-      payload: { estado_nuevo: "creado", version: 0, marca_id: pedido.marca_id, modalidad: pedido.modalidad, monto_cop: monto, items: pedido.items.map((i) => ({ variante_id: i.variante_id, cantidad: i.cantidad })) },
+      // Todo lo que pidió el comprador, sin el pedido_id, que va en el agregado: un reintento con la misma clave
+      // genera otro identificador, y la comparación del contenido (INV_02) debe reconocerlo como el mismo pedido;
+      // cualquier otro cambio (marca, galaxia, ítems, modalidad o dirección) lo vuelve un conflicto.
+      payload: {
+        estado_nuevo: "creado",
+        version: 0,
+        comprador_id: pedido.comprador_id,
+        marca_id: pedido.marca_id,
+        galaxia_id: pedido.galaxia_id,
+        ...campos,
+        modo_confirmacion: modo,
+        monto_cop: monto,
+        items: pedido.items.map((i) => ({ producto_id: i.producto_id, variante_id: i.variante_id, cantidad: i.cantidad, precio_unitario_cop: i.precio_unitario_cop })),
+      },
     },
   };
 }

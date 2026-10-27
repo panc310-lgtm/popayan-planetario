@@ -5,7 +5,7 @@
 | Código | Qué detecta |
 |---|---|
 | `H1` | Una importación o reexportación fuera de la dirección permitida: `contracts` no importa nada, `ports` solo `@planetario/contracts` y `domain` solo `@planetario/ports` y `@planetario/contracts`. Cuenta `node:*`, Fastify, `pg`, grammY, `ioredis`, `three`, el SDK de IA, los adaptadores, las importaciones de tipos (`import type`, `import("x").T`) y las rutas relativas que salen del paquete |
-| `H2` | Una fuente de no determinismo que debía llegar por puerto (S1): `Date.now`, `Date()`, `new Date()` sin argumentos, `Math.random`, `crypto`, `performance`, `process` y esos mismos globales leídos por `globalThis` |
+| `H2` | Una fuente de no determinismo que debía llegar por puerto (S1): `Date.now`, `Date()`, `new Date()` sin argumentos, `Math.random`, `crypto`, `performance` y `process`. Cuenta también leerlos por `globalThis` (o `window` y `self`), en accesos encadenados como `globalThis.Math.random`, guardarlos en una variable o desestructurarlos (`const { random } = Math`) |
 | `H3` | Carga dinámica de módulos (`import()`, `require`, `import x = require`), que esquivaría la revisión |
 
 `new Date(ms)` sí está permitido: formatear un instante recibido es determinista.

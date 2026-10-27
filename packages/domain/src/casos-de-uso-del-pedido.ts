@@ -4,6 +4,7 @@
 import type { Actor, EventoCanonico, Id, Pedido, UuidV7, VistaDePedidoParaMarca } from "@planetario/contracts";
 import type {
   ClockPort,
+  ConfiguracionDePagosPort,
   IdGeneratorPort,
   MasterWriteDatabasePort,
   MotivoDeRechazo,
@@ -14,7 +15,7 @@ import { proyectarPedidoParaMarca } from "./brand-visibility-firewall.ts";
 import type { DatosDeContactoDelComprador } from "./brand-visibility-firewall.ts";
 import { claveDeIdempotencia } from "./idempotencia.ts";
 import type { FuenteDeIdempotencia } from "./idempotencia.ts";
-import { aplicarComando, crearPedido } from "./order-state-machine.ts";
+import { aplicarComando, autorizarComando, crearPedido } from "./order-state-machine.ts";
 import type { ComandoDelPedido, DatosDelPedidoNuevo, EventoDelPedido } from "./order-state-machine.ts";
 import { evaluarOmega } from "./policy-gate-omega.ts";
 import type { MotivoOmega } from "./policy-gate-omega.ts";
@@ -24,6 +25,7 @@ export type DependenciasDelPedido = {
   reloj: ClockPort;
   ids: IdGeneratorPort;
   verificador: VerificadorDePagos;
+  configuracionDePagos: ConfiguracionDePagosPort;
 };
 
 export type ResultadoDelCasoDeUso =
@@ -106,8 +108,9 @@ export async function registrarPedido(
   if (actor.tipo !== "comprador" || actor.comprador_id !== datos.compradorId) {
     return { tipo: "rechazada", motivo: "actor_no_autorizado", detalle: "solo el comprador crea su propio pedido" };
   }
+  const modo = await deps.configuracionDePagos.modoDeConfirmacion(datos.marcaId);
   const instante = deps.reloj.ahora();
-  const creacion = crearPedido(deps.ids.nuevoUuidV7(), datos, instante.iso);
+  const creacion = crearPedido(deps.ids.nuevoUuidV7(), datos, modo, instante.iso);
   if (creacion.tipo === "rechazado") return { tipo: "rechazada", motivo: creacion.motivo, detalle: creacion.detalle };
   const evento = eventoCanonico(deps.ids, creacion.evento, creacion.pedido, actor, fuente, instante.iso);
   return deps.escritura.enTransaccion(async (tx) => {
@@ -125,9 +128,9 @@ export async function emitirCobroDelPedido(deps: DependenciasDelPedido, pedidoId
   if (lectura === null) return { tipo: "rechazada", motivo: "pedido_inexistente", detalle: `no existe el pedido ${pedidoId}` };
   const omega = evaluarOmega({ actor, comando: "emitirCobro", marcaDelRecurso: lectura.marca_id });
   if (omega.omega === 0) return { tipo: "bloqueada_por_omega", motivo: omega.motivo, detalle: omega.detalle };
-  if (lectura.estado !== "creado" && lectura.estado !== "cobro_vencido") {
-    return { tipo: "rechazada", motivo: "transicion_invalida", detalle: `no se emite un cobro desde ${lectura.estado}` };
-  }
+  // Antes del efecto externo: no se llama al proveedor por un comando que la máquina de estados rechazaría.
+  const guarda = autorizarComando(lectura, "emitirCobro", actor);
+  if (guarda !== null) return { tipo: "rechazada", motivo: guarda.motivo, detalle: guarda.detalle };
   const cobro = await deps.verificador.emitirCobro({
     pedidoId,
     marcaId: lectura.marca_id,

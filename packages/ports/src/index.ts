@@ -5,3 +5,4 @@ export type * from "./registro-de-eventos.ts";
 export type * from "./base-de-datos.ts";
 export type * from "./verificador-de-pagos.ts";
 export type * from "./telegram-marca.ts";
+export type * from "./configuracion-de-pagos.ts";

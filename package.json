@@ -19,7 +19,7 @@
     "verify:hexagon": "node tools/verificar-hexagono/verificar.mjs && node tools/verificar-hexagono/pruebas.mjs",
     "verify:contracts": "node tools/verificar-contratos/verificar.mjs && node tools/verificar-contratos/pruebas.mjs && node --test \"packages/contracts/test/**/*.test.ts\"",
     "verify:3d-budgets": "node tools/verificar-presupuestos-3d/verificar.mjs && node tools/verificar-presupuestos-3d/pruebas.mjs",
-    "test:integral": "tsc -p tsconfig.json && node --test \"packages/domain/test/**/*.test.ts\" \"packages/adapters/test/**/*.test.ts\" \"test/integral/**/*.test.ts\""
+    "test:integral": "tsc -p tsconfig.json && tsc -p tsconfig.adaptadores.json && node --test \"packages/domain/test/**/*.test.ts\" \"packages/adapters/test/**/*.test.ts\" \"test/integral/**/*.test.ts\""
   },
   "devDependencies": {
     "ajv": "8.20.0",

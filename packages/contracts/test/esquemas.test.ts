@@ -2,7 +2,7 @@
 // coinciden con los esquemas.
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { CAMPOS_PERMITIDOS_HACIA_LA_MARCA, COMANDOS_DEL_PEDIDO, ESTADOS_DEL_PEDIDO, GALAXIAS, MODALIDADES, TRANSICIONES } from "@planetario/contracts";
+import { CAMPOS_PERMITIDOS_HACIA_LA_MARCA, COMANDOS_DEL_PEDIDO, ESTADOS_DEL_PEDIDO, GALAXIAS, MODALIDADES, TIPOS_DE_ACTOR, TRANSICIONES } from "@planetario/contracts";
 import * as ej from "../../../test/dobles/ejemplos.ts";
 import { leerEsquema, validar } from "../../../test/dobles/esquemas.ts";
 
@@ -67,6 +67,19 @@ describe("order-state-machine.schema.json", () => {
 
 describe("tabla de transiciones de P4 (ADR-0003)", () => {
   const estados: readonly string[] = ESTADOS_DEL_PEDIDO;
+
+  it("TRANSICIONES es exactamente la tabla versionada del esquema", () => {
+    valido(PEDIDO, TRANSICIONES, "tabla_de_transiciones");
+    const esquema = leerEsquema(PEDIDO);
+    assert.deepEqual([...COMANDOS_DEL_PEDIDO], esquema.$defs.comando!.enum);
+    assert.deepEqual([...TIPOS_DE_ACTOR], esquema.$defs.tipo_de_actor!.enum);
+    const sinCancelarConCobroVigente = TRANSICIONES.map((t) => (t.comando === "cancelar" ? { ...t, desde: [...t.desde, "cobro_emitido"] } : t));
+    invalido(PEDIDO, sinCancelarConCobroVigente, "tabla_de_transiciones");
+  });
+
+  it("nadie cancela con un cobro vigente: el comprador todavía puede pagarlo (S18)", () => {
+    for (const t of TRANSICIONES.filter((t) => t.comando === "cancelar")) assert.equal(t.desde.includes("cobro_emitido"), false);
+  });
 
   it("solo usa estados y comandos declarados", () => {
     for (const t of TRANSICIONES) {

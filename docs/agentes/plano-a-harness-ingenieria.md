@@ -54,7 +54,7 @@ Después, las cuatro del código, declaradas en `package.json` y en la integraci
 | 6 | `npm run verify:hexagon` | En `packages/contracts`, `ports` y `domain`: importaciones fuera de la dirección permitida y fuentes de no determinismo sin inyectar (`INV_06`, S1), leídas del AST de TypeScript |
 | 7 | `npm run verify:contracts` | Esquemas que no compilan con Ajv estricto, ejemplos que ya no validan o un esquema que cambió sin una `version_contrato` nueva en `schemas/versiones.json` |
 | 8 | `npm run verify:3d-budgets` | Un GLB del repositorio por encima de los presupuestos 3D del kernel |
-| 9 | `npm run test:integral` | Tipos del núcleo con `tsc` y pruebas del dominio, del simulador de pagos y del flujo de pedido de punta a punta |
+| 9 | `npm run test:integral` | Tipos del núcleo y del simulador de pagos con `tsc`, y pruebas del dominio, del simulador y del flujo de pedido de punta a punta |
 
 Cada una trae sus propias pruebas, que siembran el error y exigen que se detecte: un script que siempre pasa falsearía la Definición de terminado. `verify:kernel` no hace falta como script aparte: lo cubre `validar.mjs`. Las nueve juntas: `npm run verificar:todo`.
 
@@ -98,6 +98,6 @@ Doble salida (`plantillas/doble-salida.md`). Los cambios entran a `main` por pul
 
 ## 4. Convenciones de entrega
 
-- Rama por tarea con el prefijo que ya usa el repositorio: `docs/…`, `arquitectura/…` o `chore/…`, y `feat/…` en la fase de código (PLANETARIO-CORE-01 usó `feat/planetario-core-01-hexagono` por instrucción del usuario).
+- Rama por tarea con el prefijo que ya usa el repositorio: `docs/…`, `arquitectura/…` o `chore/…`; ⟨propuesto⟩ `codigo/…` para la fase de código. PLANETARIO-CORE-01 usó `feat/planetario-core-01-hexagono` porque así lo pidió el usuario en esa tarea.
 - Asunto del commit en español, en forma de resultado ("Plan de capacidad aplicado: …"), con la traza en el cuerpo.
 - Un commit por paso lógico; nunca mezclar un cambio de comportamiento con un refactor.

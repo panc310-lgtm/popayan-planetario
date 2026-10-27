@@ -6,8 +6,8 @@ export type FuenteDeIdempotencia =
   | { tipo: "proveedor_pago"; proveedor: string; eventoProveedorId: string }
   /** Vía de consulta del cobro: un solo PagoConfirmado por cobro, llegue o no también el webhook. */
   | { tipo: "consulta_cobro"; proveedor: string; referenciaCobro: string }
-  /** Encabezado Idempotency-Key que el cliente reutiliza en cada reintento. */
-  | { tipo: "cliente"; idempotencyKey: string }
+  /** Encabezado Idempotency-Key que el cliente reutiliza en cada reintento, separado por comprador. */
+  | { tipo: "cliente"; compradorId: string; idempotencyKey: string }
   | { tipo: "agente"; conversacionId: string; turnoId: string; llamadaId: string }
   /** Tareas programadas del worker: una por tarea y por recurso. */
   | { tipo: "sistema"; tarea: string; recursoId: string };
@@ -33,7 +33,7 @@ export function claveDeIdempotencia(fuente: FuenteDeIdempotencia): string {
     case "consulta_cobro":
       return `consulta:${parte(fuente.proveedor, "proveedor")}:${parte(fuente.referenciaCobro, "referencia del cobro")}:pagado`;
     case "cliente":
-      return `cliente:${parte(fuente.idempotencyKey, "Idempotency-Key")}`;
+      return `cliente:${parte(fuente.compradorId, "comprador")}:${parte(fuente.idempotencyKey, "Idempotency-Key")}`;
     case "agente":
       return `agente:${parte(fuente.conversacionId, "conversación")}:${parte(fuente.turnoId, "turno")}:${parte(fuente.llamadaId, "llamada")}`;
     case "sistema":

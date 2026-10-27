@@ -20,7 +20,8 @@ export type Actor =
   | { tipo: "sistema"; tarea: Id }
   | ActorAgente;
 
-export type TipoDeActor = Actor["tipo"];
+export const TIPOS_DE_ACTOR = ["comprador", "responsable_marca", "operacion_comercial", "proveedor_pagos", "sistema", "agente"] as const;
+export type TipoDeActor = (typeof TIPOS_DE_ACTOR)[number];
 
 export type TipoDeAgregado = "pedido" | "solicitud_de_servicio" | "marca" | "comprador";
 

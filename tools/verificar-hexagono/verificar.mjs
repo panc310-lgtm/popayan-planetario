@@ -74,6 +74,54 @@ function sinEnvoltorios(e) {
   return e;
 }
 
+const RAICES_GLOBALES = new Set(["globalThis", "window", "self"]);
+
+/**
+ * Ruta de un acceso encadenado desde un identificador: globalThis.Math.random → { partes: ["Math", "random"],
+ * desdeGlobal: true }. null si el acceso no parte de un identificador o usa una clave calculada.
+ */
+function ruta(expr) {
+  const partes = [];
+  let e = sinEnvoltorios(expr);
+  while (ts.isPropertyAccessExpression(e) || ts.isElementAccessExpression(e)) {
+    if (ts.isPropertyAccessExpression(e)) partes.unshift(e.name.text);
+    else if (ts.isStringLiteralLike(e.argumentExpression)) partes.unshift(e.argumentExpression.text);
+    else return null;
+    e = sinEnvoltorios(e.expression);
+  }
+  if (!ts.isIdentifier(e)) return null;
+  if (RAICES_GLOBALES.has(e.text)) return { partes, desdeGlobal: true };
+  return { partes: [e.text, ...partes], desdeGlobal: false };
+}
+
+/** El acceso es el objeto de otro acceso (globalThis.Math dentro de globalThis.Math.random): se revisa el mayor. */
+function esParteDeUnAccesoMayor(n) {
+  let hijo = n;
+  let p = n.parent;
+  while (p && (ts.isParenthesizedExpression(p) || ts.isAsExpression(p) || ts.isTypeAssertionExpression(p) || ts.isNonNullExpression(p) || ts.isSatisfiesExpression(p))) {
+    hijo = p;
+    p = p.parent;
+  }
+  return !!p && (ts.isPropertyAccessExpression(p) || ts.isElementAccessExpression(p)) && p.expression === hijo;
+}
+
+/** Date o globalThis.Date, para las llamadas Date() y new Date(). */
+function esDate(expr) {
+  const r = ruta(expr);
+  return !!r && r.partes.length === 1 && r.partes[0] === "Date";
+}
+
+/** Motivo de H2 para una ruta, o null si está permitida. */
+function prohibido(partes, desdeGlobal) {
+  const [raiz, propiedad] = partes;
+  if (raiz === "Date" && propiedad === "now") return "Date.now lee el reloj: usa ClockPort (S1)";
+  if (raiz === "Math" && propiedad === "random") return "Math.random no es determinista: el azar llega por puerto (S1)";
+  if (desdeGlobal && raiz !== undefined && (GLOBALES_NO_DETERMINISTAS.has(raiz) || (raiz === "Date" && partes.length === 1))) {
+    return `globalThis.${raiz}: el núcleo no lee globales del entorno (S1)`;
+  }
+  return null;
+}
+
 /** Un identificador global usado como valor, no como nombre de propiedad ni como declaración local. */
 function esReferenciaGlobal(id) {
   const p = id.parent;
@@ -99,19 +147,25 @@ function revisarArchivo(capa, archivo) {
         violaciones.push({ codigo: "H3", donde: posicion(sf, n), mensaje: "import() dinámico: el núcleo solo usa importaciones estáticas" });
       } else if (ts.isIdentifier(n.expression) && n.expression.text === "require") {
         violaciones.push({ codigo: "H3", donde: posicion(sf, n), mensaje: "require(): el núcleo solo usa importaciones estáticas" });
-      } else if (ts.isIdentifier(n.expression) && n.expression.text === "Date") {
+      } else if (esDate(n.expression)) {
         violaciones.push({ codigo: "H2", donde: posicion(sf, n), mensaje: "Date() lee el reloj: usa ClockPort (S1)" });
       }
-    } else if (ts.isNewExpression(n) && ts.isIdentifier(n.expression) && n.expression.text === "Date" && (n.arguments?.length ?? 0) === 0) {
+    } else if (ts.isNewExpression(n) && esDate(n.expression) && (n.arguments?.length ?? 0) === 0) {
       violaciones.push({ codigo: "H2", donde: posicion(sf, n), mensaje: "new Date() lee el reloj: usa ClockPort (S1)" });
-    } else if ((ts.isPropertyAccessExpression(n) || ts.isElementAccessExpression(n)) && ts.isIdentifier(sinEnvoltorios(n.expression))) {
-      const objeto = sinEnvoltorios(n.expression).text;
-      const clave = ts.isPropertyAccessExpression(n) ? n.name : n.argumentExpression;
-      const propiedad = ts.isIdentifier(clave) || ts.isPrivateIdentifier(clave) || ts.isStringLiteralLike(clave) ? clave.text : "";
-      if (objeto === "Date" && propiedad === "now") violaciones.push({ codigo: "H2", donde: posicion(sf, n), mensaje: "Date.now lee el reloj: usa ClockPort (S1)" });
-      if (objeto === "Math" && propiedad === "random") violaciones.push({ codigo: "H2", donde: posicion(sf, n), mensaje: "Math.random no es determinista: el azar llega por puerto (S1)" });
-      if (objeto === "globalThis" && (GLOBALES_NO_DETERMINISTAS.has(propiedad) || propiedad === "Date")) {
-        violaciones.push({ codigo: "H2", donde: posicion(sf, n), mensaje: `globalThis.${propiedad}: el núcleo no lee globales del entorno (S1)` });
+    } else if ((ts.isPropertyAccessExpression(n) || ts.isElementAccessExpression(n)) && !esParteDeUnAccesoMayor(n)) {
+      const r = ruta(n);
+      const motivo = r && prohibido(r.partes, r.desdeGlobal);
+      if (motivo) violaciones.push({ codigo: "H2", donde: posicion(sf, n), mensaje: motivo });
+    } else if (ts.isVariableDeclaration(n) && ts.isObjectBindingPattern(n.name) && n.initializer) {
+      // const { random } = Math, const { now } = Date, const { crypto } = globalThis
+      const r = ruta(n.initializer);
+      if (r) {
+        for (const el of n.name.elements) {
+          const clave = el.propertyName ?? el.name;
+          const nombre = ts.isIdentifier(clave) || ts.isStringLiteralLike(clave) ? clave.text : null;
+          const motivo = nombre && prohibido([...r.partes, nombre], r.desdeGlobal || r.partes.length === 0);
+          if (motivo) violaciones.push({ codigo: "H2", donde: posicion(sf, el), mensaje: `${motivo}; también al desestructurarlo` });
+        }
       }
     } else if (ts.isIdentifier(n) && GLOBALES_NO_DETERMINISTAS.has(n.text) && esReferenciaGlobal(n)) {
       violaciones.push({ codigo: "H2", donde: posicion(sf, n), mensaje: `${n.text} es del entorno: el reloj, el azar y los identificadores llegan por puerto (S1)` });

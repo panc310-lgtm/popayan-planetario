@@ -36,14 +36,21 @@ const CASOS = [
   ["versión nueva que no sube", "C2", (dir) => {
     editarTexto(PEDIDO, amplia)(dir);
     const texto = readFileSync(join(dir, PEDIDO), "utf8");
-    editarJson(VERSIONES, (d) => { d["order-state-machine.schema.json"].push({ version_contrato: "1.0.0", sha256: createHash("sha256").update(texto).digest("hex") }); })(dir);
+    editarJson(VERSIONES, (d) => {
+      const historial = d["order-state-machine.schema.json"];
+      historial.push({ version_contrato: historial.at(-1).version_contrato, sha256: createHash("sha256").update(texto).digest("hex") });
+    })(dir);
   }],
   ["esquema sin historial", "C2", editarJson(VERSIONES, (d) => { delete d["canonical-event.schema.json"]; })],
   ["historial de un esquema que no existe", "C2", editarJson(VERSIONES, (d) => { d["inexistente.schema.json"] = d["canonical-event.schema.json"]; })],
   ["versión nueva bien registrada: pasa", null, (dir) => {
     editarTexto(PEDIDO, amplia)(dir);
     const texto = readFileSync(join(dir, PEDIDO), "utf8");
-    editarJson(VERSIONES, (d) => { d["order-state-machine.schema.json"].push({ version_contrato: "1.1.0", sha256: createHash("sha256").update(texto).digest("hex") }); })(dir);
+    editarJson(VERSIONES, (d) => {
+      const historial = d["order-state-machine.schema.json"];
+      const [mayor, menor] = historial.at(-1).version_contrato.split(".").map(Number);
+      historial.push({ version_contrato: `${mayor}.${menor + 1}.0`, sha256: createHash("sha256").update(texto).digest("hex") });
+    })(dir);
   }],
 ];
 

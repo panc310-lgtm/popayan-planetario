@@ -6,7 +6,7 @@ Este repositorio es la base de ingeniería del proyecto: las decisiones aprobada
 
 ## Estado
 
-Arquitectura aprobada y primer nodo de código (PLANETARIO-CORE-01, 2026-10-27): el núcleo hexagonal con los contratos, los puertos, el dominio del pedido y el pago, y el simulador de verificación de pagos de ADR-0003. Todavía no hay servicios desplegables, base de datos ni interfaz.
+Las decisiones del kernel y de los ADR están aprobadas por el usuario; el grafo operacional y el modelo de carga siguen en estado de propuesta. El primer nodo de código es PLANETARIO-CORE-01 (2026-10-27): el núcleo hexagonal con los contratos, los puertos, el dominio del pedido y el pago, y el simulador de verificación de pagos de ADR-0003. Todavía no hay servicios desplegables, base de datos ni interfaz.
 
 | Fase | Fecha | Qué es |
 |---|---|---|
@@ -73,7 +73,7 @@ La integración continua corre en cada pull request y en cada cambio de `main`:
 - Que el núcleo siga siendo un hexágono puro: cada paquete importa solo en la dirección permitida y nada lee el reloj, el azar ni el entorno (`verify:hexagon`).
 - Que los contratos compilen con Ajv estricto, que sus ejemplos validen y que ningún esquema cambie sin una versión nueva (`verify:contracts`).
 - Que ningún activo 3D pase los presupuestos del kernel (`verify:3d-budgets`).
-- Que el núcleo compile con `tsc` y pasen las pruebas del dominio, del simulador de pagos y del flujo integral (`test:integral`).
+- Que el núcleo y el simulador de pagos compilen con `tsc` y pasen las pruebas del dominio, del simulador y del flujo integral (`test:integral`).
 
 Para correrlas en local, una vez:
 

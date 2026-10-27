@@ -93,7 +93,7 @@ El usuario describió la decisión como "promedio bayesiano más cupo de explora
 
 ### Cómo se confirma
 
-1. **Simulación.** El usuario aprobó la opción F sin esperarla. ⟨propuesto S17⟩ Correrla antes de que un nicho reciba su segunda marca: un nicho con 10 marcas durante 12 quincenas, con demanda y calificaciones sintéticas, comparando A y F. Se mide T26 y la participación de una marca nueva de calidad igual a la media a los 90 días.
+1. **Simulación.** El usuario aprobó la opción F sin esperarla. Se corre antes de que un nicho reciba su segunda marca (S17, ratificado el 2026-10-27): un nicho con 10 marcas durante 12 quincenas, con demanda y calificaciones sintéticas, comparando A y F. Se mide T26 y la participación de una marca nueva de calidad igual a la media a los 90 días.
 2. **Criterio de referencia:** en nichos con 5 o más marcas, que el HHI quede por debajo de 1.800 puntos, el umbral de alta concentración de las guías de fusiones de EE. UU. de 2023. Es una referencia, no una norma aplicable.
 3. **En producción:** G1 revisa T26 cada mes (E70) y ajusta C, N y los umbrales cada trimestre.
 
@@ -140,6 +140,7 @@ F lleva el mismo 4 de B en estabilidad, porque hereda su ajuste de la calificaci
 | Fecha | Origen | Cambio |
 |---|---|---|
 | 2026-10-27 | FG-06 D1, A.3 | Cambios posteriores a la aprobación, al registrarla en el repositorio. Estado Aprobada y "Decisión propuesta" pasa a "Decisión". El texto aprobado decía que G1 fija y versiona los valores por E06; como el usuario aprobó la opción F "gobernado por G1 hacia P13", C sigue yendo por E06 hacia P9, y N y los umbrales van por la arista nueva E76 hacia P13 (Decisión y Afecta). Se suman el párrafo con la descripción del usuario y la sección de cambios aplicados. La simulación, que el texto aprobado pedía antes de aprobar, pasa a propuesta (S17), porque el usuario aprobó sin ella. Las opciones, los valores y la evaluación no cambian. |
+| 2026-10-27 | FG-08, PEN-16 | El usuario ratificó S17: la simulación se corre antes de que un nicho reciba su segunda marca. "Cómo se confirma" deja de marcarla como propuesta. |
 
 ## Información adicional y fuentes
 

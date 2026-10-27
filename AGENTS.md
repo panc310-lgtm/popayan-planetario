@@ -133,7 +133,7 @@ Después de cambiar el grafo o el modelo, se regeneran `node tools/modelo-de-car
 npm run verify:hexagon      # INV_06 y S1: dirección de las importaciones y fuentes de no determinismo, sobre el AST
 npm run verify:contracts    # esquemas de packages/contracts con Ajv estricto y version_contrato al día
 npm run verify:3d-budgets   # activos GLB dentro de los presupuestos 3D del kernel
-npm run test:integral       # tipos del núcleo con tsc y pruebas del dominio, de los adaptadores y de integración
+npm run test:integral       # tipos del núcleo y del simulador con tsc, y pruebas del dominio, de los adaptadores y de integración
 ```
 
 Cada una trae sus propias pruebas, que demuestran que detecta lo que dice: una verificación que no puede fallar falsearía esta definición. `verify:kernel` no hace falta aparte; lo cubre `validar.mjs`. Las nueve juntas: `npm run verificar:todo`.
@@ -295,8 +295,8 @@ Todo valor marcado `⟨propuesto⟩` en este archivo o en `docs/agentes/` es un 
 
 | # | Supuesto | Dónde |
 | :--- | :--- | :--- |
-| S18 | El comprador cancela un pedido sin pagar (desde `creado`, `cobro_emitido` o `cobro_vencido`); el responsable de la marca también, y además desde `pago_informado` si el pago no le llegó. Un pedido pagado no se cancela: el responsable de la marca registra su reembolso (desde `pagado`, `aceptado` o `en_camino`), porque el dinero está en su cuenta. `en_camino` significa que el pedido sale de preparación en las tres modalidades (E44). Las políticas de devoluciones siguen pendientes en `gate_1_to_mvp` | `packages/domain/src/order-state-machine.ts` |
-| S19 | Formato de las claves de idempotencia por fuente, incluida la de la vía de consulta del cobro (`consulta:{proveedor}:{referencia}:pagado`), más el tipo de evento, porque una misma petición puede producir dos eventos (`cliente:{clave}/PedidoCreado` y `cliente:{clave}/CobroEmitido`) | `packages/domain/src/idempotencia.ts`, `packages/domain/src/casos-de-uso-del-pedido.ts` |
+| S18 | El comprador cancela un pedido sin cobro vigente (desde `creado` o `cobro_vencido`); el responsable de la marca también, y además desde `pago_informado` si el pago no le llegó. Con el cobro vigente (`cobro_emitido`) nadie cancela: el comprador todavía puede pagar el QR, y un pago confirmado caería sobre un pedido cancelado; se espera a que venza, a los 10 minutos. Un pedido pagado no se cancela: el responsable de la marca registra su reembolso (desde `pagado`, `aceptado` o `en_camino`), porque el dinero está en su cuenta. `en_camino` significa que el pedido sale de preparación en las tres modalidades (E44). Las políticas de devoluciones siguen pendientes en `gate_1_to_mvp` | `packages/contracts/schemas/order-state-machine.schema.json` (`$defs.tabla_de_transiciones`), `packages/contracts/src/pedido.ts` |
+| S19 | Formato de las claves de idempotencia por fuente: la del cliente separada por comprador (`cliente:{comprador}:{clave}`) y la de la vía de consulta del cobro (`consulta:{proveedor}:{referencia}:pagado`), más el tipo de evento, porque una misma petición puede producir dos eventos (`…/PedidoCreado` y `…/CobroEmitido`) | `packages/domain/src/idempotencia.ts`, `packages/domain/src/casos-de-uso-del-pedido.ts` |
 | S20 | El pedido anticipado exige la hora estimada de llegada del comprador | `packages/contracts/schemas/order-state-machine.schema.json`, `p7-agente-usuario.md` |
 | S21 | `verify:3d-budgets` reconoce el mapa por el nombre `mapa-popayan*.glb` y trata como planeta cualquier otro GLB; las imágenes externas que referencia un GLB, como sus KTX2, cuentan en su tamaño; 1 MB son 1.000.000 bytes | `tools/verificar-presupuestos-3d/verificar.mjs` |
 

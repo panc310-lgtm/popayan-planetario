@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:popayan-planetario:contracts:order-state-machine",
   "title": "Pedido y su máquina de estados (P4)",
-  "description": "Pedido de una sola marca, sin carrito combinado, en una de las tres modalidades de compra (kernel N5_FULFILLMENT_SERVICES), con los estados de ADR-0003. La tabla de transiciones vive en src/pedido.ts. La solicitud de servicio es un contrato aparte: los servicios siguen por WhatsApp directo con la marca (E61) y no pasan por los estados de P4. La vista para la marca expone solo lo que permite R03.",
+  "description": "Pedido de una sola marca, sin carrito combinado, en una de las tres modalidades de compra (kernel N5_FULFILLMENT_SERVICES), con los estados de ADR-0003 y su tabla de transiciones ($defs.tabla_de_transiciones). La solicitud de servicio es un contrato aparte: los servicios siguen por WhatsApp directo con la marca (E61) y no pasan por los estados de P4. La vista para la marca expone solo lo que permite R03.",
   "$ref": "#/$defs/pedido",
   "$defs": {
     "id": {
@@ -34,6 +34,43 @@
     },
     "modalidad": {
       "enum": ["domicilio", "recogida_en_establecimiento", "pedido_anticipado"]
+    },
+    "comando": {
+      "enum": ["emitirCobro", "vencerCobro", "informarPago", "confirmarPago", "aceptar", "despachar", "entregar", "evaluar", "cancelar", "registrarReembolso"]
+    },
+    "tipo_de_actor": {
+      "enum": ["comprador", "responsable_marca", "operacion_comercial", "proveedor_pagos", "sistema", "agente"]
+    },
+    "transicion": {
+      "type": "object",
+      "required": ["comando", "desde", "hacia", "actores"],
+      "properties": {
+        "comando": { "$ref": "#/$defs/comando" },
+        "desde": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/estado" } },
+        "hacia": { "$ref": "#/$defs/estado" },
+        "actores": { "type": "array", "minItems": 1, "uniqueItems": true, "items": { "$ref": "#/$defs/tipo_de_actor" } },
+        "modo": { "$ref": "#/$defs/modo_confirmacion" }
+      },
+      "additionalProperties": false
+    },
+    "tabla_de_transiciones": {
+      "description": "La máquina de estados de P4. Estados y confirmación del pago: ADR-0003 y R10; pasos de la marca: E43 a E45. Cancelar y registrar el reembolso son S18 (propuesto, PEN-19): no se cancela con un cobro vigente, que el comprador todavía puede pagar, para que un pago confirmado nunca caiga sobre un pedido cancelado. src/pedido.ts la reproduce como TRANSICIONES y las pruebas exigen que coincidan.",
+      "type": "array",
+      "items": { "$ref": "#/$defs/transicion" },
+      "const": [
+        {"comando": "emitirCobro", "desde": ["creado", "cobro_vencido"], "hacia": "cobro_emitido", "actores": ["comprador", "sistema"]},
+        {"comando": "vencerCobro", "desde": ["cobro_emitido"], "hacia": "cobro_vencido", "actores": ["sistema"]},
+        {"comando": "informarPago", "desde": ["cobro_emitido"], "hacia": "pago_informado", "actores": ["comprador"], "modo": "contingencia_manual"},
+        {"comando": "confirmarPago", "desde": ["cobro_emitido"], "hacia": "pagado", "actores": ["proveedor_pagos", "sistema"], "modo": "automatica"},
+        {"comando": "confirmarPago", "desde": ["pago_informado"], "hacia": "pagado", "actores": ["responsable_marca"], "modo": "contingencia_manual"},
+        {"comando": "aceptar", "desde": ["pagado"], "hacia": "aceptado", "actores": ["responsable_marca"]},
+        {"comando": "despachar", "desde": ["aceptado"], "hacia": "en_camino", "actores": ["responsable_marca"]},
+        {"comando": "entregar", "desde": ["en_camino"], "hacia": "entregado", "actores": ["responsable_marca"]},
+        {"comando": "evaluar", "desde": ["entregado"], "hacia": "evaluado", "actores": ["comprador"]},
+        {"comando": "cancelar", "desde": ["creado", "cobro_vencido"], "hacia": "cancelado", "actores": ["comprador", "responsable_marca"]},
+        {"comando": "cancelar", "desde": ["pago_informado"], "hacia": "cancelado", "actores": ["responsable_marca"], "modo": "contingencia_manual"},
+        {"comando": "registrarReembolso", "desde": ["pagado", "aceptado", "en_camino"], "hacia": "reembolsado", "actores": ["responsable_marca"]}
+      ]
     },
     "modo_confirmacion": {
       "description": "automatica: el proveedor confirma por webhook firmado o consulta autenticada (R10). contingencia_manual: solo el botón del responsable de la marca, desde pago_informado (ADR-0003).",

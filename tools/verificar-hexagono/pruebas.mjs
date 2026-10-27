@@ -39,6 +39,13 @@ const CASOS = [
   ["domain usa performance.now", "H2", "domain", "declare const performance: { now(): number };\nexport const t = () => performance.now();\n"],
   ["domain usa globalThis.crypto", "H2", "domain", "export const c = () => (globalThis as any).crypto;\n"],
   ["domain usa globalThis[\"Date\"]", "H2", "domain", 'export const d = () => globalThis["Date"];\n'],
+  ["domain usa globalThis.Math.random", "H2", "domain", "export const r = () => globalThis.Math.random();\n"],
+  ["domain usa globalThis.Date.now", "H2", "domain", "export const t = () => globalThis.Date.now();\n"],
+  ["domain crea new globalThis.Date()", "H2", "domain", "export const t = () => new globalThis.Date();\n"],
+  ["domain desestructura random de Math", "H2", "domain", "const { random } = Math;\nexport const r = () => random();\n"],
+  ["domain desestructura now de Date con otro nombre", "H2", "domain", "const { now: ahora } = Date;\nexport const t = () => ahora();\n"],
+  ["domain desestructura crypto de globalThis", "H2", "domain", "const { crypto: c } = globalThis as any;\nexport const id = () => c;\n"],
+  ["domain guarda Math.random en una variable", "H2", "domain", "const azar = Math.random;\nexport const r = () => azar();\n"],
   ["domain formatea una fecha recibida: permitido", null, "domain", "export const iso = (ms: number) => new Date(ms).toISOString();\n"],
   ["domain importa sus propios archivos y los permitidos: permitido", null, "domain", 'import { thetaS } from "./reputation-and-relevance.ts";\nimport type { Pedido } from "@planetario/contracts";\nimport type { ClockPort } from "@planetario/ports";\nexport type P = Pedido;\nexport type C = ClockPort;\nexport const t = thetaS;\n'],
 ];
