@@ -84,7 +84,7 @@ Orden obligatorio de hidratación:
 - Toda consulta de catálogo, exploración e hidratación de agentes pasa por `SlaveReadDatabasePort`, precedido por la caché de `D4`.
 - Los dos puertos usan pools propios hacia **la misma base `D1`** (Supabase PostgreSQL 17, pooler en modo sesión, ADR-0001). La réplica de lectura es una palanca: cuando se apruebe, cambia el adaptador, no el dominio.
 - El guardado de LangGraph (`PostgresSaver`, ADR-0002) escribe puntos de control en el esquema `agentes` con su propio pool. No es una mutación del dominio y queda fuera de los dos puertos.
-- Los pools de cada réplica suman clientes del pooler: a lo sumo 200 en el pico (decisión del usuario, PEN-14 (4)). En modo sesión cada cliente retiene además una conexión directa, y las conexiones directas de la base son el límite que manda (60 en Micro). Esa diferencia con ADR-0001 está en PEN-17, por decidir.
+- Los pools de cada réplica suman clientes del pooler: a lo sumo 200 en el pico (decisión del usuario, PEN-14 (4)). Hallazgo en revisión (PEN-17, por decidir): según la documentación de Supavisor, en modo sesión cada cliente retiene además una conexión directa, y entonces el límite serían las conexiones directas de la base (60 en Micro), no los 200 clientes que dice ADR-0001. Mientras se decide rige ADR-0001, y ⟨propuesto S16⟩ `--estricto` comprueba las dos cifras.
 - ⟨propuesto S2⟩ Una lectura que decide una mutación (por ejemplo, el estado de un pedido antes de aceptarlo) va por el puerto de escritura, dentro de la transacción, para que siga siendo correcta cuando exista una réplica con retraso.
 
 ### 4.3 Desacoplamiento externo (`INV_05`)

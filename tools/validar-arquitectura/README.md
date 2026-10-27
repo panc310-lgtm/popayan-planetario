@@ -20,7 +20,7 @@ Termina con error y lista cada problema con su código. Para correr también la 
 npm run verificar
 ```
 
-Las pruebas del validador introducen un error a la vez en una copia temporal del repositorio y exigen que se detecte. También prueban la compuerta de capacidad: en la copia regeneran el modelo de carga y exigen que `calcular.mjs --estricto` falle con un nodo de infraestructura entre ρ 0,7 y 0,9 y con conexiones por encima de los 200 clientes del pooler. Nunca modifican los archivos del repositorio:
+Las pruebas del validador introducen un error a la vez en una copia temporal del repositorio y exigen que se detecte. También prueban la compuerta de capacidad: en la copia regeneran el modelo de carga y exigen que `calcular.mjs --estricto` falle con un nodo de infraestructura entre ρ 0,7 y 0,9 con conexiones por encima de los 200 clientes del pooler y, en el MVP, por encima de las 60 conexiones directas de Micro. Nunca modifican los archivos del repositorio:
 
 ```bash
 npm run probar
@@ -60,7 +60,7 @@ npm run verificar:todo
 | `V3` | `AGENTS.md` cita las versiones vigentes del kernel, del grafo y del modelo de carga |
 | `F1` | Toda ruta de archivo citada (`docs/`, `arquitectura/`, `tools/`) existe |
 | `F2` | `AGENTS.md` existe en la raíz y solo cita rutas (`docs/`, `arquitectura/`, `tools/`, `.claude/`) y ADR que existen |
-| `F3` | Las huellas SHA-256 de los textos originales de las fuentes (`docs/fuentes/*/*-texto-original.md`) coinciden con el texto guardado, también la del original con finales de línea CRLF cuando se declara |
+| `F3` | Las huellas SHA-256 de los textos originales de las fuentes (`docs/fuentes/*/*-texto-original.md`) coinciden con el texto guardado, también la del original con finales de línea CRLF y la del texto con un salto de línea final cuando la fila las declara |
 | `A1` | El estado de cada ADR coincide en el kernel, en el índice de ADRs y en el propio ADR |
 | `PL1` | El ejemplo de `docs/agentes/plantillas/doble-salida.md` cumple `telemetria-entrega.schema.json` (Ajv 8, modo estricto) |
 

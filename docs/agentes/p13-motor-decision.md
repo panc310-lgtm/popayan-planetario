@@ -8,7 +8,7 @@
 
 | Campo | Valor |
 | :--- | :--- |
-| Nodo | `P13`, servicio `worker`, gobernado por `G4` **(decidido)** |
+| Nodo | `P13`, servicio `worker` **(decidido)**; lo gobierna `G4`, como a todo servicio del grafo |
 | Motor | `real_time_production` del kernel: *fold* incremental por evento confirmado. **Cero llamadas a modelos de IA** **(decidido)** |
 | Entradas | Eventos confirmados del bus (`E67` por marca, `E74` por nicho). El índice que publica `P9` y el agregado de recompra que `P10` mantiene por marca, leídos de `D1` por `SlaveReadDatabasePort` (`E69`); la fuente del agregado está **(decidida)**. Los parámetros que publica `G1` (`E76`) **(decidido)** |
 | Salidas | Carga por marca (`E75`) y vectores Π (`E68`), **solo en `D4`** **(decidido)** |

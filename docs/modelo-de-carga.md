@@ -7,7 +7,7 @@ El requisito es sostener **10.000 sesiones simultáneas** con todos los nodos de
 ## Lectura
 
 - En el pico de capacidad la integral de eventos recibe 48,1 eventos de negocio por segundo, el 6,02 % del techo de ~800 por segundo de INV_01 (por medir en PEN-09). El registro de eventos no es el cuello de botella.
-- En el pico de capacidad las 11 réplicas abren 67 conexiones al pooler de Supabase en modo sesión, dentro de los 200 clientes de Micro. En modo sesión cada cliente retiene una conexión directa a Postgres, así que con las 20 reservadas para Supabase el cómputo debe admitir al menos **87 conexiones directas**; Micro, el cómputo del MVP, admite 60. El cómputo del pico se elige con prueba de carga (PEN-14) y debe admitir al menos esas conexiones directas; la diferencia con ADR-0001 está en PEN-17.
+- En el pico de capacidad las 11 réplicas abren 67 conexiones al pooler de Supabase en modo sesión, dentro de los 200 clientes de Micro. Según la documentación de Supavisor, en modo sesión cada cliente retiene una conexión directa a Postgres; si es así, con las 20 reservadas para Supabase el cómputo debe admitir al menos **87 conexiones directas**, y Micro, el cómputo del MVP, admite 60. Es un hallazgo en revisión, en tensión con ADR-0001 (PEN-17, por decidir); mientras tanto rige ADR-0001. El cómputo del pico se elige con prueba de carga (PEN-14).
 - El límite humano aparece antes que el técnico: la marca más activa acepta pedidos a mano en Telegram (1 por minuto) y en el escenario Capacidad objetivo recibiría 2,5 veces los pedidos que puede atender. La protección es la pausa automática al superar 15 pedidos pendientes (R06, T10).
 - En el pico de capacidad hay 3.750 pedidos abiertos a la vez, cada uno con una conexión de aviso en vivo al comprador (E63).
 - El pico de capacidad hace 2.970 llamadas por minuto a la API de IA y exige como mínimo el nivel **Scale** de la cuenta de Anthropic; una hora así cuesta unos US$65. Una cuenta nueva empieza en un nivel menor: el aumento se solicita antes del lanzamiento oficial.
@@ -59,7 +59,7 @@ Réplicas que necesita cada servicio para que todos sus nodos queden en ρ ≤ 0
 
 ## Conexiones a la base
 
-Conexiones que abre cada servicio hacia D1 por el pooler de Supabase en modo sesión (PEN-14 (4)): réplicas necesarias por conexiones por réplica, sumando sus pools (escritura y lectura de INV_07 y el guardado de los agentes). En modo sesión cada cliente retiene una conexión directa a Postgres mientras está conectado, así que el límite que manda son las conexiones directas del cómputo, no los clientes del pooler. A las de los servicios se suman las reservadas para los servicios propios de Supabase y la administración.
+Conexiones que abre cada servicio hacia D1 por el pooler de Supabase en modo sesión (PEN-14 (4)): réplicas necesarias por conexiones por réplica, sumando sus pools (escritura y lectura de INV_07 y el guardado de los agentes). Según la documentación de Supavisor, en modo sesión cada cliente retiene una conexión directa a Postgres mientras está conectado; si es así, el límite son las conexiones directas del cómputo y no los clientes del pooler, como dice ADR-0001. Es un hallazgo en revisión (PEN-17, por decidir), y la comprobación de conexiones directas es propuesta (S16). A las de los servicios se suman las reservadas para los servicios propios de Supabase y la administración.
 
 | Magnitud | MVP | Capacidad objetivo | Diseño |
 |---|---|---|---|

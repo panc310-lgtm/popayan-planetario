@@ -321,7 +321,7 @@ function generarReporte(r) {
   const conCap = r.capacidad.conexiones;
   L.push(
     `- En el pico de capacidad las ${num(Object.values(conCap.por_servicio).reduce((a, s) => a + s.replicas, 0))} réplicas abren ${num(conCap.clientes_pooler)} conexiones al pooler de Supabase en modo sesión, ` +
-      `${conCap.cabe_en_clientes_pooler ? "dentro" : "por encima"} de los ${num(limite("supabase_clientes_pooler_micro"))} clientes de Micro. En modo sesión cada cliente retiene una conexión directa a Postgres, así que con las ${num(conCap.reservadas)} reservadas para Supabase el cómputo debe admitir al menos **${num(conCap.conexiones_directas_necesarias)} conexiones directas**; Micro, el cómputo del MVP, admite ${num(r.mvp.conexiones.conexiones_directas_disponibles)}. El cómputo del pico se elige con prueba de carga (PEN-14) y debe admitir al menos esas conexiones directas; la diferencia con ADR-0001 está en PEN-17.`,
+      `${conCap.cabe_en_clientes_pooler ? "dentro" : "por encima"} de los ${num(limite("supabase_clientes_pooler_micro"))} clientes de Micro. Según la documentación de Supavisor, en modo sesión cada cliente retiene una conexión directa a Postgres; si es así, con las ${num(conCap.reservadas)} reservadas para Supabase el cómputo debe admitir al menos **${num(conCap.conexiones_directas_necesarias)} conexiones directas**, y Micro, el cómputo del MVP, admite ${num(r.mvp.conexiones.conexiones_directas_disponibles)}. Es un hallazgo en revisión, en tensión con ADR-0001 (PEN-17, por decidir); mientras tanto rige ADR-0001. El cómputo del pico se elige con prueba de carga (PEN-14).`,
   );
   if (infraCriticos.length) {
     const mayor = [...infraCriticos].sort((a, b) => b.veces_a_escalar - a.veces_a_escalar)[0];
@@ -414,7 +414,7 @@ function generarReporte(r) {
 
   L.push("## Conexiones a la base", "");
   L.push(
-    `Conexiones que abre cada servicio hacia D1 por el pooler de Supabase en modo sesión (PEN-14 (4)): réplicas necesarias por conexiones por réplica, sumando sus pools (escritura y lectura de INV_07 y el guardado de los agentes). En modo sesión cada cliente retiene una conexión directa a Postgres mientras está conectado, así que el límite que manda son las conexiones directas del cómputo, no los clientes del pooler. A las de los servicios se suman las reservadas para los servicios propios de Supabase y la administración.`,
+    `Conexiones que abre cada servicio hacia D1 por el pooler de Supabase en modo sesión (PEN-14 (4)): réplicas necesarias por conexiones por réplica, sumando sus pools (escritura y lectura de INV_07 y el guardado de los agentes). Según la documentación de Supavisor, en modo sesión cada cliente retiene una conexión directa a Postgres mientras está conectado; si es así, el límite son las conexiones directas del cómputo y no los clientes del pooler, como dice ADR-0001. Es un hallazgo en revisión (PEN-17, por decidir), y la comprobación de conexiones directas es propuesta (S16). A las de los servicios se suman las reservadas para los servicios propios de Supabase y la administración.`,
     "",
   );
   const filasConexiones = [

@@ -135,6 +135,12 @@ Puntajes de 1 a 5 por juicio de ingeniería; el total es el promedio ponderado.
 
 F lleva el mismo 4 de B en estabilidad, porque hereda su ajuste de la calificación; el cupo no la mejora ni la empeora. F gana aun duplicando el peso de la simplicidad (F 4,27; B 4,14; A 3,73). A no queda último porque es simple y estable, pero falla en lo único que PEN-08 pide.
 
+## Enmiendas
+
+| Fecha | Origen | Cambio |
+|---|---|---|
+| 2026-10-27 | FG-06 D1, A.3 | Cambios posteriores a la aprobación, al registrarla en el repositorio. Estado Aprobada y "Decisión propuesta" pasa a "Decisión". El texto aprobado decía que G1 fija y versiona los valores por E06; como el usuario aprobó la opción F "gobernado por G1 hacia P13", C sigue yendo por E06 hacia P9, y N y los umbrales van por la arista nueva E76 hacia P13 (Decisión y Afecta). Se suman el párrafo con la descripción del usuario y la sección de cambios aplicados. La simulación, que el texto aprobado pedía antes de aprobar, pasa a propuesta (S17), porque el usuario aprobó sin ella. Las opciones, los valores y la evaluación no cambian. |
+
 ## Información adicional y fuentes
 
 Consultadas el 2026-10-26.
