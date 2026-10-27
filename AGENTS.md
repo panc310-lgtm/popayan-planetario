@@ -3,7 +3,7 @@
 > **Proyecto:** Popayán Planetario · baseline `v1.1` · kernel `1.7.0-DURABLE-KERNEL` · grafo operacional `v0.9` (SoC) · modelo de carga `v0.6`
 > **Raíz de gobernanza:** `N0_ORG_CORE`: ninguna decisión existe fuera del grafo con raíz en N0.
 > **Arquitectura:** hexagonal (`packages/*`, todavía sin crear) · CQRS por puertos sobre una sola base (`INV_07`) · orquestación con `StateGraph` de `@langchain/langgraph` 1.5
-> **Versión del documento:** `1.0.0` · 2026-10-26
+> **Versión del documento:** `1.0.0` · 2026-10-27
 
 Este archivo es la puerta de entrada para cualquier agente de ingeniería: Claude Code lo lee a través de `CLAUDE.md`, y Codex, Gemini CLI o Cursor lo leen directamente. Aplica sobre sí mismo la divulgación progresiva que exige a los agentes: aquí están las leyes y los mapas, y el detalle vive en `docs/agentes/`, que se carga solo cuando la tarea lo toca (§2).
 
@@ -50,7 +50,7 @@ Orden obligatorio de hidratación:
 1. `arquitectura/kernel-durable.json`: decisiones, invariantes y pendientes.
 2. `arquitectura/grafo-operacional.json`: nodos, aristas, restricciones `R01`–`R10` y telemetría `T01`–`T26`.
 3. `arquitectura/modelo-de-carga.json`: parámetros; los resultados se generan.
-4. ADR vigentes, según `docs/adr/README.md`: ADR-0001, ADR-0002 y ADR-0003 aprobados; ADR-0004 en propuesta.
+4. ADR vigentes, según `docs/adr/README.md`: ADR-0001 a ADR-0004, todos aprobados.
 5. Solo el documento de detalle que la tarea necesita:
 
 | Si la tarea toca… | Carga además… |
@@ -67,7 +67,8 @@ Orden obligatorio de hidratación:
 ## 3. Leyes universales del núcleo (`N0_ORG_CORE`)
 
 - **`rule_01` — Subordinación al grafo raíz.** Ω(u, m, t) es una compuerta **por transacción**: vale 0 si la transacción viola el aislamiento entre marcas, el firewall de visibilidad o las prohibiciones financieras de los agentes. Con Ω = 0 la transacción no se ejecuta y se registra en `T12`. La evalúa una función en código antes de cada comando; ningún agente la evalúa ni la evade.
-- **`rule_02` — Válvula homeostática por marca.** `L_m(t) = pedidos pendientes / 15` (`T10`) y `Theta_s(L) = min(1, max(0, (1 − L) / 0,10))`: amortigua linealmente desde `L = 0,90` y llega a 0 en `L = 1`; por encima de 15 pendientes rige la pausa automática (`R06`). Con la marca amortiguada, el pedido se desvía hacia alternas de la misma galaxia con calificación de al menos 4,0 (aprobado con `P13`). ⟨propuesto S11⟩ Las alternas son además del mismo nicho y no están amortiguadas ellas mismas (`L < 0,90`), y las elige `P13` al publicar Π. Con esa precisión, en el MVP (una marca por nicho) no hay alternas.
+- **`rule_02` — Válvula homeostática por marca.** `L_m(t) = pedidos pendientes / 15` (`T10`) y `Theta_s(L) = min(1, max(0, (1 − L) / 0,10))`: amortigua linealmente desde `L = 0,90` y llega a 0 en `L = 1`; por encima de 15 pendientes rige la pausa automática (`R06`). Con la marca amortiguada, el pedido se desvía hacia alternas de la misma galaxia con calificación de al menos 4,0. Las elige `P13` al publicar Π: lee en ese instante la carga viva de cada marca en `D4`, con su marca de tiempo, y nunca sugiere como alterna una marca con `L_m ≥ 0,70` (decisiones del usuario del 2026-10-26). ⟨propuesto S11⟩ Las alternas son además del mismo nicho; así, en el MVP (una marca por nicho) no hay alternas.
+- **Marcas nuevas (ADR-0004).** La calificación del índice es un promedio bayesiano y cada nicho reserva un cupo de exploración para marcas nuevas. G1 gobierna sus parámetros (`E06`, `E76`); `P9`, `P13` y `P3` los aplican. Resuelve PEN-08.
 - **`rule_03` — Trazabilidad inmutable.** Toda transición de estado emite un evento canónico a `planetario_events` (`D3`) por `appendCanonicalEvent`; los que origina un agente llevan actor, agente, versión del contrato, modelo y turno.
 
 ---
@@ -117,11 +118,11 @@ Orden obligatorio de hidratación:
 node tools/validar-arquitectura/validar.mjs           # esquemas, estructura, referencias, versiones y AGENTS.md
 node tools/validar-arquitectura/pruebas.mjs           # el validador detecta cada tipo de error
 node tools/modelo-de-carga/calcular.mjs --check       # resultados del modelo al día
-node tools/modelo-de-carga/calcular.mjs --estricto    # falla si un nodo de infraestructura llega a zona crítica (ρ ≥ 0,90)
+node tools/modelo-de-carga/calcular.mjs --estricto    # falla si un nodo de infraestructura llega a ρ ≥ 0,70 o si las conexiones a la base no caben
 node tools/vista-del-grafo/generar.mjs --check        # vista del grafo al día
 ```
 
-El requisito del usuario es ρ < 0,70 en el pico de 10.000 sesiones (kernel, `capacidad_requerida`). El plan de capacidad del reporte dimensiona las réplicas para ese valor, pero **ninguna compuerta automática lo vigila**: `--estricto` corta en 0,90. Quien cambie el grafo o el modelo DEBE revisar en `docs/modelo-de-carga.md` que ningún nodo pase de 0,70. Endurecer la compuerta cambia un umbral y se escala (§9.4).
+`--estricto` vigila el requisito del usuario: ρ < 0,70 en todos los nodos de infraestructura, también en el pico de 10.000 sesiones (kernel, `capacidad_requerida`; corte en 0,70 desde la decisión del 2026-10-26). También falla si las conexiones de las réplicas no caben en los 200 clientes del pooler de Supabase o en el cómputo previsto (PEN-14). Mover cualquiera de esos límites cambia un umbral y se escala (§9.4).
 
 Las cinco juntas: `npm run verificar:todo`. Después de cambiar el grafo o el modelo, se regeneran `node tools/modelo-de-carga/calcular.mjs` y `node tools/vista-del-grafo/generar.mjs`, y los archivos generados se confirman con el cambio.
 
@@ -163,7 +164,7 @@ Un problema baja al nivel más barato que lo resuelve con exactitud: si un cálc
 | :--- | :--- | :--- | :--- |
 | **`P7`** — usuario y soporte | Enrutador, descubrimiento, Mi universo, pedido en borrador (una marca por pedido) y soporte 24 horas | 1,5 llamadas al modelo por turno · p95 < 6 s (`T03`) · perfil < 800 tokens | [`p7-agente-usuario.md`](docs/agentes/p7-agente-usuario.md) |
 | **`P8`** — marca, fase 2 | Manual de Marca → propuesta → guardián → vista previa → verificador → aprobación del responsable → publicación por la persona | Sesión aislada por marca | [`p8-agente-marca.md`](docs/agentes/p8-agente-marca.md) |
-| **`P13`** — motor de decisión | Carga por marca y vectores Π en `D4`, desde los eventos confirmados y el índice publicado | Lectura < 10 ms (`T24`) · 200 eventos/s · cero tokens | [`p13-motor-decision.md`](docs/agentes/p13-motor-decision.md) |
+| **`P13`** — motor de decisión | Carga por marca y vectores Π solo en `D4`, desde los eventos confirmados, el índice publicado y el agregado de recompra de `P10`; alternas del desvío y elegibles del cupo de ADR-0004 | Lectura < 10 ms (`T24`) · 200 eventos/s · cero tokens | [`p13-motor-decision.md`](docs/agentes/p13-motor-decision.md) |
 
 ### 7.3 Principios de producción (ADR-0002)
 - **El agente propone; el dominio decide.** Los agentes son adaptadores primarios del hexágono.
@@ -255,7 +256,7 @@ La definición canónica de cada código está en `arquitectura/grafo-operaciona
 
 ## 11. Supuestos de esta versión (PEN-16)
 
-Todo valor marcado `⟨propuesto⟩` en este archivo o en `docs/agentes/` es un supuesto. Esta tabla recoge los de mayor impacto; al ratificar o descartar uno, se actualiza aquí, en su documento y en PEN-16.
+Todo valor marcado `⟨propuesto⟩` en este archivo o en `docs/agentes/` es un supuesto. Esta tabla recoge los de mayor impacto; al ratificar o descartar uno, se actualiza aquí, en su documento y en PEN-16. S13 (publicar Π solo en `D4`) lo ratificó el usuario el 2026-10-26 y salió de la tabla; la numeración no se reutiliza.
 
 | # | Supuesto | Dónde |
 | :--- | :--- | :--- |
@@ -266,12 +267,11 @@ Todo valor marcado `⟨propuesto⟩` en este archivo o en `docs/agentes/` es un 
 | S5 | La purga de puntos de control de ADR-0002 corre cada 15 minutos | `plano-b-runtime.md` §4.1 |
 | S6 | Máximo 3 llamadas a herramientas por turno en `P7` | `p7-agente-usuario.md` |
 | S7 | Máximo 3 regeneraciones de la propuesta de landing | `p8-agente-marca.md` |
-| S8 | `P13` escribe 2 comandos en `D4` por evento (parámetro del modelo de carga) | `p13-motor-decision.md` |
+| S8 | `P13` usa 3 comandos en `D4` por evento: 2 escrituras y 1 lectura MGET de la carga viva (parámetro del modelo de carga) | `p13-motor-decision.md` |
 | S9 | Orden de precedencia de §0, que extiende el de `docs/fuentes/README.md` | §0 |
 | S10 | La calificación agregada pública (`R04`) puede llegar al agente en los resultados de búsqueda sin contar como "leer la reputación" | §7.3, `p7-agente-usuario.md` §4 |
-| S11 | Las alternas del desvío de `rule_02` son del mismo nicho, además de la misma galaxia, no están amortiguadas (`L < 0,90`) y las elige `P13` al publicar Π | §3, `p13-motor-decision.md` §3 |
+| S11 | Las alternas del desvío de `rule_02` son del mismo nicho, además de la misma galaxia (el umbral `L_m < 0,70` y que las elija `P13` ya los decidió el usuario) | §3, `p13-motor-decision.md` §3 |
 | S12 | La carga, la velocidad en Telegram y la recompra agregada de una marca ordenan los resultados, pero no se muestran al comprador mientras no se amplíe `R04` | `p13-motor-decision.md` §2, `p7-agente-usuario.md` §4 |
-| S13 | Π se publica solo en `D4`, no también en `D1` como dice la aprobación, porque `D1` es el nodo más cargado y Π se reconstruye desde `D3` | `p13-motor-decision.md` §1 |
 
 ---
 
@@ -279,4 +279,4 @@ Todo valor marcado `⟨propuesto⟩` en este archivo o en `docs/agentes/` es un 
 
 | Versión | Fecha | Cambio |
 | :--- | :--- | :--- |
-| `1.0.0` | 2026-10-26 | Primera versión en el repositorio. Consolida el borrador del mismo día y lo corrige contra el kernel, el grafo y los ADR (FG-05): Ω por transacción, `X1` para Telegram, `D1` como base única, borradores en `D4`, Definición de terminado por fase y traza en lugar de "nodo de ingeniería". |
+| `1.0.0` | 2026-10-27 | Primera versión en el repositorio. Consolida el borrador del 2026-10-26 y lo corrige contra el kernel, el grafo y los ADR (FG-05): Ω por transacción, `X1` para Telegram, `D1` como base única, borradores en `D4`, Definición de terminado por fase y traza en lugar de "nodo de ingeniería". Incorpora las decisiones del usuario del 2026-10-26 (FG-06): recompra desde `P10`, Π solo en `D4`, alternas con `L_m < 0,70`, ADR-0004 aprobado y `--estricto` en 0,70 con presupuesto de conexiones. |

@@ -90,7 +90,7 @@ Interfaz (sesión de la persona) ─► P2 API ─► P4 Pedidos
 | `candado:conv:{conversacion_id}` | Token del turno en curso | Servicio `agentes` |
 | `borrador:{conversacion_id}` | Borrador de pedido | `P4` por el agente `pedido` |
 | `pi:{galaxia_id}:{nicho_id}:{franja}` | Vector de decisión | Solo el consumidor de `P13` de ese nicho |
-| `carga:marca:{marca_id}` | `L_m(t)`, `Theta_s` y `mu_m^Tg` | Solo el consumidor de `P13` de esa marca |
+| `carga:marca:{marca_id}` | `L_m(t)`, `Theta_s` y `mu_m^Tg`, con su marca de tiempo y posición del registro | Solo el consumidor de `P13` de esa marca |
 
 ## 5. Degradación
 

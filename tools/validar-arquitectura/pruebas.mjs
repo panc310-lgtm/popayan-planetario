@@ -1,7 +1,8 @@
 #!/usr/bin/env node
-// Pruebas del validador de la arquitectura.
+// Pruebas del validador de la arquitectura y de la compuerta de capacidad.
 // Cada caso copia arquitectura/, docs/, tools/, .claude/ y AGENTS.md a una carpeta temporal, introduce un error, y exige que
-// validar.mjs falle con el código esperado. Los archivos del repositorio nunca se modifican.
+// validar.mjs falle con el código esperado. Los casos de capacidad regeneran el modelo de carga en la copia y exigen que
+// calcular.mjs --estricto falle con el mensaje esperado. Los archivos del repositorio nunca se modifican.
 // Uso: node tools/validar-arquitectura/pruebas.mjs
 
 import { cpSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
@@ -21,6 +22,7 @@ const RUTAS = {
   indice: "docs/adr/README.md",
   agents: "AGENTS.md",
   plantilla: "docs/agentes/plantillas/doble-salida.md",
+  fg05: "docs/fuentes/gemini/FG-05-texto-original.md",
 };
 
 // Mutaciones: cada una recibe la carpeta temporal y modifica un archivo.
@@ -60,6 +62,16 @@ const CASOS = [
   ["AGENTS.md cita un grafo desalineado", "V3", texto("agents", (t) => t.replace(/grafo operacional `v\d+\.\d+`/, "grafo operacional `v0.0`"))],
   ["AGENTS.md cita un modelo de carga desalineado", "V3", texto("agents", (t) => t.replace(/modelo de carga `v\d+\.\d+`/, "modelo de carga `v0.0`"))],
   ["plantilla COMPLETADO con una verificación en rojo", "PL1", texto("plantilla", (t) => t.replace('"resultado": "VERDE"', '"resultado": "ROJO"'))],
+  ["servicio sin presupuesto de conexiones", "M4", json("modelo", (d) => { delete d.parametros.conexiones_worker_por_replica; })],
+  ["texto original alterado", "F3", texto("fg05", (t) => t.replace("Theta_s", "Theta_x"))],
+  ["huella CRLF alterada", "F3", texto("fg05", (t) => t.replace(/(\| T2 \|.*`)([0-9a-f])([0-9a-f]{63}`[^|]*CRLF)/, (_, a, b, c) => `${a}${b === "0" ? "1" : "0"}${c}`))],
+];
+
+// Compuerta de capacidad: calcular.mjs --estricto (AGENTS.md §5). Cada caso exige que falle con el texto esperado.
+const CASOS_CAPACIDAD = [
+  ["copia sin cambios", null, () => {}],
+  ["nodo de infraestructura entre ρ 0,7 y 0,9", "Nodo de infraestructura en ρ ≥ 0,7", json("grafo", (d) => { nodo(d, "D1").capacidad.mu_por_s = 1700; })],
+  ["conexiones por encima de los 200 clientes del pooler", "Las conexiones a la base no caben", json("modelo", (d) => { d.parametros.conexiones_api_por_replica.valores.capacidad = 60; })],
 ];
 
 let fallas = 0;
@@ -78,5 +90,23 @@ for (const [nombre, codigo, mutar] of CASOS) {
     rmSync(dir, { recursive: true, force: true });
   }
 }
-console.log(fallas ? `${fallas} de ${CASOS.length} casos fallaron.` : `${CASOS.length} casos correctos.`);
+for (const [nombre, esperado, mutar] of CASOS_CAPACIDAD) {
+  const dir = mkdtempSync(join(tmpdir(), "validar-capacidad-"));
+  try {
+    for (const c of CARPETAS) cpSync(join(RAIZ, c), join(dir, c), { recursive: true });
+    mutar(dir);
+    const calcular = join(dir, "tools/modelo-de-carga/calcular.mjs"); // la copia: su raíz es la carpeta temporal
+    const regenerado = spawnSync(process.execPath, [calcular], { encoding: "utf8" });
+    const r = spawnSync(process.execPath, [calcular, "--estricto"], { encoding: "utf8" });
+    const salida = `${regenerado.stderr}${r.stdout}${r.stderr}`;
+    const ok = regenerado.status === 0 && (esperado === null ? r.status === 0 : r.status === 1 && salida.includes(esperado));
+    if (!ok) fallas++;
+    console.log(`${ok ? "ok   " : "FALLA"} ${(esperado === null ? "válido" : "estricto").padEnd(9)} ${nombre}`);
+    if (!ok) console.log(`      salida: ${salida.trim().split(/\r?\n/).slice(0, 4).join(" | ")}`);
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+}
+const total = CASOS.length + CASOS_CAPACIDAD.length;
+console.log(fallas ? `${fallas} de ${total} casos fallaron.` : `${total} casos correctos.`);
 process.exit(fallas ? 1 : 0);

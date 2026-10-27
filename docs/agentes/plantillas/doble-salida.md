@@ -47,7 +47,7 @@ Cinco apartados cortos, en este orden:
   ],
   "verificaciones": [
     { "comando": "node tools/validar-arquitectura/validar.mjs", "resultado": "VERDE" },
-    { "comando": "node tools/validar-arquitectura/pruebas.mjs", "resultado": "VERDE", "resumen": "22 casos correctos" },
+    { "comando": "node tools/validar-arquitectura/pruebas.mjs", "resultado": "VERDE", "resumen": "28 casos correctos" },
     { "comando": "node tools/modelo-de-carga/calcular.mjs --check", "resultado": "VERDE" },
     { "comando": "node tools/modelo-de-carga/calcular.mjs --estricto", "resultado": "VERDE", "resumen": "ρ máx = 0,67 en D1" },
     { "comando": "node tools/vista-del-grafo/generar.mjs --check", "resultado": "VERDE" }

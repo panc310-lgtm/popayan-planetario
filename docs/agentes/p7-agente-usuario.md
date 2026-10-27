@@ -46,13 +46,14 @@ Cada herramienta corresponde uno a uno con un caso de uso del dominio (ADR-0002)
 
 ## 4. Cómo recomienda
 
-El orden de los resultados lo da `P3` con el vector Π y la carga de cada marca que publica `P13`; el agente no calcula rankings. Lo que sí hace es **explicar** la recomendación, solo con datos que recibió de las herramientas en ese turno y que puede mostrar:
+El orden sale de Π. `P3` lo lee desde `D4`: el vector ya integra la amortiguación `Theta_s(L_m)`, las alternas con carga menor a 0,70 y los elegibles del cupo de exploración, todo calculado por `P13`. `P7` recibe ese orden a través de su herramienta de búsqueda (`E31`), porque los agentes no leen `D4` directamente (ADR-0002). Ninguno de los dos recalcula `Theta_s`, ni las alternas, ni el cupo. Lo que sí hace el agente es **explicar** la recomendación, solo con datos que recibió de las herramientas en ese turno y que puede mostrar:
 
 1. **Calificación agregada en cuatro dimensiones:** atención, producto, precio y distribución (esta última solo con domicilio). ⟨propuesto S10⟩ Llega en los resultados de búsqueda porque `R04` la declara pública. Si eso cuenta como "leer la reputación", que ADR-0002 prohíbe, es una interpretación pendiente; el motor de reputación (`P9`) y las evaluaciones sueltas nunca son herramientas del agente.
 2. **Cercanía:** la galaxia del comprador primero (`P3`), y la distancia entre el centroide de su comuna y la sede que lo atiende (`delta_hat`), sin exponer direcciones.
 3. **Fidelidad:** las recompras del propio comprador con esa marca (`P10`), que son datos suyos y vienen en su perfil o en el detalle de la marca.
-4. **Saturación (`rule_02`):** si una marca está amortiguada, el orden ya pone primero a las alternas (`p13-motor-decision.md` §3). El agente deja elegir sin ocultar ninguna opción. En el MVP no hay alternas (S11).
-5. **Líder del nicho y Mejor evaluado son cosas distintas**, y el agente nunca los presenta como sinónimos.
+4. **Saturación (`rule_02`):** si una marca está amortiguada, el orden ya pone primero a las alternas que eligió `P13` (`p13-motor-decision.md` §3). El agente deja elegir sin ocultar ninguna opción. En el MVP no hay alternas (S11).
+5. **Marcas nuevas (ADR-0004):** si un resultado viene marcado como *Nueva en el nicho*, el agente puede decirlo y explicar que su calificación todavía tiene pocas evaluaciones.
+6. **Líder del nicho y Mejor evaluado son cosas distintas**, y el agente nunca los presenta como sinónimos.
 
 ⟨propuesto S12⟩ La carga de una marca, su velocidad de atención en Telegram (`mu_m^Tg`) y su recompra agregada sirven para ordenar, pero el agente no las muestra ni las cita al comprador mientras no se amplíe `R04`. Cualquier marca puede entrar como comprador.
 

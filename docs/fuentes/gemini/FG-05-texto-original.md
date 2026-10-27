@@ -2,12 +2,13 @@
 
 Texto literal de los dos turnos que resume [FG-05](FG-05-constitucion-agents-md.md), para que su tabla de origen se pueda comprobar. No se edita: es la evidencia del insumo, no una regla. El borrador T1 termina dentro de su bloque de la sección 6, como llegó.
 
-Cada texto va entre una línea `~~~~markdown` y una línea `~~~~`. La huella se calcula sobre el texto que queda entre las dos, con finales de línea LF (`.gitattributes`). T1 termina con un salto de línea y T2 no.
+Cada texto va entre una línea `~~~~markdown` y una línea `~~~~`. La huella se calcula sobre ese texto sin el salto de línea que precede al cierre, con finales de línea LF (`.gitattributes`). `tools/validar-arquitectura/validar.mjs` (regla F3) la comprueba en cada pull request.
 
-| Turno | Contenido | SHA-256 del texto guardado aquí | SHA-256 del original recibido |
+| Bloque | Contenido | SHA-256 del texto guardado aquí | SHA-256 del original recibido |
 |---|---|---|---|
-| T1 | Borrador de AGENTS.md, pegado como texto en el chat | `bba6c939e7fa517571abed521894321a23f115bafe910d83ba3b5208623e4251` | El mismo: se pegó como texto |
+| T1 | Borrador de AGENTS.md del usuario, pegado como texto en el chat | `dc899437e79324f5243ea20b1817d0f5eb2eef1f4a89cf799bdad435d31d773a` | El mismo: se pegó como texto |
 | T2 | Instrucciones de sincronización, adjuntas como archivo de texto | `4de981a3a7141e7722d7137c99a21f0d1b88f4b52de2a274380a86788c0851a9` | `5a5ebedc6bb6e59d5f6482e372b373d825ddc30d86606df899c39bcf0a93c889` (con finales de línea CRLF) |
+| A1 | Anexo: fila S8 del primer borrador de AGENTS.md que Claude entregó en la misma conversación, antes de T2 | `549f009c96625f627cefea5ff1ce7b296cce64a42128711019d178bd5a5d4a61` | Archivo completo del borrador: `96e41e663ed52ae3ecbfdcae0647c56838a8bbb78612ae4d63fe1a100b79e2bf` |
 
 ## T1
 
@@ -165,4 +166,12 @@ Actualiza de forma coherente y validada por esquemas:
 - `tools/validar-arquitectura/validar.mjs` y `tools/validar-arquitectura/pruebas.mjs`: asegura que el validador y su suite de pruebas pasen al 100 % en verde.
 
 Al finalizar, ejecuta las verificaciones y entrégame el resultado aplicando el Protocolo de Doble Salida (`§6` de `AGENTS.md`: 1. Telemetría JSON de nivel principal y 2. Cápsula didáctica de ingeniería).
+~~~~
+
+## A1
+
+El "(S8)" que cita T2 ("escribe en D1/D4 (S8) los vectores Π_BigData") remite a esta fila del primer borrador, que T2 tenía delante. En AGENTS.md 1.0.0, S8 es otro supuesto: el costo en Redis de P13.
+
+~~~~markdown
+| S8 | `P13` no escribe en `D3`; solo lee de `D3` y escribe en `D1`/`D4` | `p13-motor-decision.md` |
 ~~~~

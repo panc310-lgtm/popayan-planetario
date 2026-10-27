@@ -40,14 +40,14 @@ Orden fijo de `AGENTS.md` §2: kernel → grafo → modelo de carga → ADR vige
 | # | Comando | Qué detecta |
 | :-- | :--- | :--- |
 | 1 | `node tools/validar-arquitectura/validar.mjs` | Esquemas, estructura del grafo, referencias, versiones y rutas citadas (incluido AGENTS.md) |
-| 2 | `node tools/validar-arquitectura/pruebas.mjs` | Que el validador siga detectando cada tipo de error |
+| 2 | `node tools/validar-arquitectura/pruebas.mjs` | Que el validador siga detectando cada tipo de error y que `--estricto` falle cuando debe |
 | 3 | `node tools/modelo-de-carga/calcular.mjs --check` | Resultados del modelo de carga desactualizados |
-| 4 | `node tools/modelo-de-carga/calcular.mjs --estricto` | Algún nodo de infraestructura en zona crítica (ρ ≥ 0,90) |
+| 4 | `node tools/modelo-de-carga/calcular.mjs --estricto` | Algún nodo de infraestructura con ρ ≥ 0,70, o conexiones a la base que no caben (PEN-14) |
 | 5 | `node tools/vista-del-grafo/generar.mjs --check` | Vista del grafo desactualizada o sin cubrir todos los nodos |
 
 Las cinco juntas: `npm run verificar:todo`.
 
-El requisito del usuario es más estricto que la compuerta: ρ < 0,70 en el pico de 10.000 sesiones. Si el cambio toca el grafo o el modelo de carga, el Actor revisa en `docs/modelo-de-carga.md` la utilización de cada nodo y reporta el máximo en `metricas.rho_max`. Un valor entre 0,70 y 0,90 pasa la integración continua, pero se escala.
+La compuerta vigila el requisito del usuario: ρ < 0,70 en el pico de 10.000 sesiones (corte en 0,70 desde la decisión del 2026-10-26). Si el cambio toca el grafo o el modelo de carga, el Actor reporta el máximo en `metricas.rho_max` y el margen que queda en `D1`, el nodo más cargado.
 
 **Fase de código (se activa con el primer paquete en `packages/`).** Se suman, declaradas en `package.json` y en la integración continua junto con ese paquete:
 

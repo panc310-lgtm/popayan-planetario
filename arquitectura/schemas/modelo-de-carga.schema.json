@@ -92,7 +92,8 @@
           "valor": {
             "anyOf": [
               { "type": "number" },
-              { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nivel_de_cuenta" } }
+              { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/nivel_de_cuenta" } },
+              { "type": "array", "minItems": 1, "items": { "$ref": "#/$defs/computo_supabase" } }
             ]
           },
           "origen": { "$ref": "#/$defs/texto" }
@@ -148,6 +149,16 @@
         "itpm": { "type": "number", "exclusiveMinimum": 0 },
         "otpm": { "type": "number", "exclusiveMinimum": 0 },
         "tope_gasto_usd_mes": { "type": "number", "exclusiveMinimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "computo_supabase": {
+      "type": "object",
+      "required": ["computo", "max_conexiones", "clientes_pooler"],
+      "properties": {
+        "computo": { "$ref": "#/$defs/texto" },
+        "max_conexiones": { "type": "integer", "exclusiveMinimum": 0 },
+        "clientes_pooler": { "type": "integer", "exclusiveMinimum": 0 }
       },
       "additionalProperties": false
     }

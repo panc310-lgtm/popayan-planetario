@@ -5,7 +5,8 @@
 // Uso: node tools/validar-arquitectura/validar.mjs [--raiz CARPETA]   (termina con error si encuentra alguno)
 //   --raiz valida una copia del repositorio en otra carpeta; lo usan las pruebas (pruebas.mjs).
 
-import { existsSync, readFileSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import Ajv2020 from "ajv/dist/2020.js";
@@ -151,6 +152,11 @@ for (const m of modelo.mapa_de_capacidad) {
 for (const id of repetidos(modelo.mapa_de_aristas.map((a) => a.arista))) error("M3", `arista repetida en mapa_de_aristas: ${id}`);
 for (const a of modelo.mapa_de_aristas) if (!aristas.has(a.arista)) error("M3", `mapa_de_aristas usa ${a.arista}, que no existe en el grafo`);
 
+// M4 Cada servicio de despliegue tiene su presupuesto de conexiones a la base (PEN-14 (4)), y solo esos servicios
+const serviciosConPresupuesto = Object.keys(modelo.parametros).map((n) => n.match(/^conexiones_(.+)_por_replica$/)?.[1]).filter(Boolean);
+for (const s of servicios) if (!serviciosConPresupuesto.includes(s)) error("M4", `el servicio ${s} no tiene el parámetro conexiones_${s}_por_replica`);
+for (const s of serviciosConPresupuesto) if (!servicios.includes(s)) error("M4", `conexiones_${s}_por_replica no corresponde a ningún servicio de servicios_de_despliegue`);
+
 // V1 Versiones alineadas entre los tres archivos
 const citaKernel = `arquitectura/kernel-durable.json (${kernel.schema_version})`;
 const citaGrafo = `arquitectura/grafo-operacional.json (${grafo.version})`;
@@ -211,6 +217,33 @@ if (!existsSync(resolve(RAIZ, AGENTS))) {
   if (!agents.includes(kernel.schema_version)) error("V3", `${AGENTS} no cita el kernel vigente ${kernel.schema_version}`);
   if (!agents.includes(`grafo operacional \`v${grafo.version}\``)) error("V3", `${AGENTS} no cita el grafo operacional vigente v${grafo.version}`);
   if (!agents.includes(`modelo de carga \`v${modelo.version}\``)) error("V3", `${AGENTS} no cita el modelo de carga vigente v${modelo.version}`);
+}
+
+// F3 Las huellas SHA-256 de los textos originales de las fuentes coinciden con el texto guardado.
+// Cada archivo docs/fuentes/*/*-texto-original.md tiene una tabla con una fila por bloque (| T1 | … | `huella` | … |)
+// antes del primer bloque, y una sección "## T1" con el texto entre una línea ~~~~markdown y una línea ~~~~. La huella se calcula sobre ese
+// texto sin el salto de línea que precede al cierre. Si la fila trae una segunda huella y dice CRLF, esa huella es la
+// del original recibido con finales de línea CRLF y se comprueba reconstruyéndolo.
+const DIR_FUENTES = resolve(RAIZ, "docs/fuentes");
+const textosOriginales = existsSync(DIR_FUENTES)
+  ? readdirSync(DIR_FUENTES, { recursive: true }).filter((f) => /-texto-original\.md$/.test(f)).map((f) => `docs/fuentes/${f.replaceAll("\\", "/")}`)
+  : [];
+const sha256 = (s) => createHash("sha256").update(s, "utf8").digest("hex");
+for (const ruta of textosOriginales) {
+  const contenido = leer(ruta).replace(/\r\n/g, "\n");
+  const encabezado = contenido.slice(0, Math.max(0, contenido.search(/^## /m))); // la tabla va antes del primer bloque
+  const filas = [...encabezado.matchAll(/^\| ([A-Z]\d+) \|.*$/gm)];
+  if (!filas.length) error("F3", `${ruta} no tiene filas de huellas`);
+  for (const [fila, id] of filas) {
+    const huellas = [...fila.matchAll(/`([0-9a-f]{64})`/g)].map((m) => m[1]);
+    const bloque = contenido.match(new RegExp(`^## ${id}\\n[\\s\\S]*?^~~~~markdown\\n([\\s\\S]*?)\\n~~~~$`, "m"));
+    if (!huellas.length) error("F3", `${ruta}: la fila ${id} no tiene huella`);
+    else if (!bloque) error("F3", `${ruta}: no hay bloque de texto para ${id}`);
+    else {
+      if (sha256(bloque[1]) !== huellas[0]) error("F3", `${ruta}: la huella de ${id} no coincide con su texto`);
+      if (huellas[1] && /CRLF/.test(fila) && sha256(bloque[1].replace(/\n/g, "\r\n")) !== huellas[1]) error("F3", `${ruta}: la huella CRLF de ${id} no coincide con su texto`);
+    }
+  }
 }
 
 // PL1 El ejemplo de la plantilla de doble salida cumple el esquema de telemetría (AGENTS.md §6)

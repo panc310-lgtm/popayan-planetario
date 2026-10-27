@@ -11,7 +11,7 @@ Solo el usuario aprueba un ADR. Mientras no lo apruebe, su estado es **Propuesta
 | [ADR-0001](ADR-0001-topologia-de-despliegue.md) | Topología de despliegue: Supabase + host de contenedores en Virginia (opción C) | Aprobada | 2026-10-20 | AUD-12, PEN-03, PEN-04 |
 | [ADR-0002](ADR-0002-arquitectura-multiagente.md) | Arquitectura multiagente: orquestación determinista con agentes especializados sobre el núcleo de dominio (opción C) | Aprobada | 2026-10-21 | PEN-15 |
 | [ADR-0003](ADR-0003-verificacion-de-pagos.md) | Verificación de pagos Bre-B: Bold condicionado a su aprobación escrita antes del 31-oct; contingencia: confirmación manual | Aprobada | 2026-10-21 | PEN-01 |
-| [ADR-0004](ADR-0004-incentivo-marcas-nuevas.md) | Incentivo para marcas nuevas en el Índice de Relevancia | Propuesta | 2026-10-26 | PEN-08 |
+| [ADR-0004](ADR-0004-incentivo-marcas-nuevas.md) | Incentivo para marcas nuevas en el Índice de Relevancia: calificación bayesiana más cupo de exploración (opción F) | Aprobada | 2026-10-26 | PEN-08 |
 
 ## Estados
 
